@@ -21,6 +21,11 @@ create table if not exists public.internship_places (
   updated_at timestamptz not null default now()
 );
 
+-- Seed default instansi Kominfo Tanggamus (egov)
+insert into public.internship_places (name, address, phone, pic_name, pic_phone)
+values ('Kominfo Tanggamus (egov)', 'Komplek Perkantoran Pemkab Tanggamus, Jl. Jend. Sudirman', '0722-21001', 'Bidang E-Government', '081273928192')
+on conflict do nothing;
+
 -- 3. Tambahkan kolom-kolom baru pada tabel users untuk data lengkap siswa & presence
 alter table public.users add column if not exists username text;
 alter table public.users add column if not exists class_name text;

@@ -21,9 +21,10 @@ export default async function proxy(req: NextRequest) {
   // Protected route groups
   const isAdminRoute = path.startsWith('/admin')
   const isStudentRoute = path.startsWith('/dashboard')
+  const isOnboardingRoute = path.startsWith('/onboarding')
 
   // Not authenticated, trying to access protected route
-  if (!user && (isAdminRoute || isStudentRoute)) {
+  if (!user && (isAdminRoute || isStudentRoute || isOnboardingRoute)) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
@@ -40,20 +41,34 @@ export default async function proxy(req: NextRequest) {
 
     const { data: profile } = await adminSupabase
       .from('users')
-      .select('role, is_active')
+      .select('role, is_active, class_name, major, phone, internship_place_id')
       .eq('id', user.id)
       .maybeSingle()
 
     // Account not in our system (email not registered as student/admin)
-    if (!profile && (isAdminRoute || isStudentRoute)) {
+    if (!profile && (isAdminRoute || isStudentRoute || isOnboardingRoute)) {
       await supabase.auth.signOut()
       return NextResponse.redirect(new URL('/login?error=not_registered', req.url))
     }
 
     // Account is inactive
-    if (profile && !profile.is_active && (isAdminRoute || isStudentRoute)) {
+    if (profile && !profile.is_active && (isAdminRoute || isStudentRoute || isOnboardingRoute)) {
       await supabase.auth.signOut()
       return NextResponse.redirect(new URL('/login?error=inactive', req.url))
+    }
+
+    const isBiodataIncomplete =
+      profile?.role === 'student' &&
+      (!profile.class_name || !profile.major || !profile.phone || !profile.internship_place_id)
+
+    // Student with incomplete biodata accessing dashboard -> redirect to onboarding
+    if (isBiodataIncomplete && isStudentRoute) {
+      return NextResponse.redirect(new URL('/onboarding', req.url))
+    }
+
+    // Student with completed biodata accessing onboarding -> redirect to dashboard
+    if (!isBiodataIncomplete && isOnboardingRoute && profile?.role === 'student') {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
     }
 
     // Student trying to access admin routes
@@ -70,7 +85,12 @@ export default async function proxy(req: NextRequest) {
     if (path === '/login') {
       if (profile?.role === 'superadmin') {
         return NextResponse.redirect(new URL('/admin', req.url))
+      } else if (profile?.role === 'pembimbing') {
+        return NextResponse.redirect(new URL('/pembimbing', req.url))
       } else {
+        if (isBiodataIncomplete) {
+          return NextResponse.redirect(new URL('/onboarding', req.url))
+        }
         return NextResponse.redirect(new URL('/dashboard', req.url))
       }
     }
@@ -79,7 +99,12 @@ export default async function proxy(req: NextRequest) {
     if (path === '/') {
       if (profile?.role === 'superadmin') {
         return NextResponse.redirect(new URL('/admin', req.url))
+      } else if (profile?.role === 'pembimbing') {
+        return NextResponse.redirect(new URL('/pembimbing', req.url))
       } else if (profile?.role === 'student') {
+        if (isBiodataIncomplete) {
+          return NextResponse.redirect(new URL('/onboarding', req.url))
+        }
         return NextResponse.redirect(new URL('/dashboard', req.url))
       }
     }

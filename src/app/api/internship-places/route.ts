@@ -12,12 +12,39 @@ export async function GET() {
 
     const adminClient = createAdminClient()
 
-    const { data: places, error } = await adminClient
+    let { data: places, error } = await adminClient
       .from('internship_places')
       .select('*, users(id)')
       .order('name', { ascending: true })
 
     if (error) throw error
+
+    // Ensure "Kominfo Tanggamus (egov)" is present
+    const hasEgov = (places || []).some((p: any) =>
+      p.name?.toLowerCase().includes('kominfo') && p.name?.toLowerCase().includes('egov')
+    )
+
+    if (!hasEgov) {
+      try {
+        const { data: newSeed } = await adminClient
+          .from('internship_places')
+          .insert({
+            name: 'Kominfo Tanggamus (egov)',
+            address: 'Komplek Perkantoran Pemkab Tanggamus, Jl. Jend. Sudirman',
+            phone: '0722-21001',
+            pic_name: 'Bidang E-Government',
+            pic_phone: '081273928192',
+          })
+          .select('*, users(id)')
+          .single()
+
+        if (newSeed) {
+          places = [newSeed, ...(places || [])]
+        }
+      } catch (seedErr) {
+        console.warn('Could not auto-seed Kominfo Tanggamus (egov):', seedErr)
+      }
+    }
 
     const formatted = (places || []).map((p: any) => ({
       id: p.id,

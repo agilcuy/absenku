@@ -16,11 +16,13 @@ import {
   FileSpreadsheet,
   ShieldAlert,
   Smartphone,
+  Camera,
   X,
 } from 'lucide-react'
 
 const MENU_ITEMS = [
   { label: 'Monitoring Live', href: '/admin', icon: LayoutDashboard },
+  { label: 'Absen Saya (Kamera)', href: '/dashboard', icon: Camera },
   { label: 'Peserta Didik', href: '/admin/students', icon: Users },
   { label: 'Pembimbing PKL', href: '/admin/mentors', icon: GraduationCap },
   { label: 'Tempat PKL', href: '/admin/places', icon: Building },

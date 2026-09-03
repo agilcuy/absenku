@@ -250,6 +250,34 @@ body {
   color: var(--text-muted);
 }
 
+/* Fix select option white screen when not hovered */
+select,
+select.input-field {
+  background-color: #0d111e;
+  color: #f8fafc;
+}
+
+select option,
+.input-field option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+select option:checked,
+.input-field option:checked {
+  background-color: #4f46e5 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+select option:hover,
+.input-field option:hover {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
 /* Table styles */
 .data-table {
   width: 100%;

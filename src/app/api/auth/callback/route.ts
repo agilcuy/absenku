@@ -41,7 +41,7 @@ export async function GET(request: Request) {
         // 2. Check if user exists by ID
         let { data: profile } = await adminClient
           .from('users')
-          .select('id, role, is_active')
+          .select('id, role, is_active, class_name, major, phone, internship_place_id')
           .eq('id', user.id)
           .maybeSingle()
 
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
         if (!profile) {
           const { data: byEmail } = await adminClient
             .from('users')
-            .select('id, role, is_active')
+            .select('id, role, is_active, class_name, major, phone, internship_place_id')
             .eq('email', userEmail)
             .maybeSingle()
 
@@ -89,6 +89,9 @@ export async function GET(request: Request) {
         } else if (profile.role === 'pembimbing') {
           return NextResponse.redirect(`${origin}/pembimbing`)
         } else {
+          if (!profile.class_name || !profile.major || !profile.phone || !profile.internship_place_id) {
+            return NextResponse.redirect(`${origin}/onboarding`)
+          }
           return NextResponse.redirect(`${origin}/dashboard`)
         }
       }

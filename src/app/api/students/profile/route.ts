@@ -23,10 +23,36 @@ export async function GET() {
     }
 
     // 2. Get available internship places for selection
-    const { data: places } = await adminClient
+    let { data: places } = await adminClient
       .from('internship_places')
       .select('id, name, address, pic_name')
       .order('name', { ascending: true })
+
+    const hasEgov = (places || []).some((p: any) =>
+      p.name?.toLowerCase().includes('kominfo') && p.name?.toLowerCase().includes('egov')
+    )
+
+    if (!hasEgov) {
+      try {
+        const { data: newSeed } = await adminClient
+          .from('internship_places')
+          .insert({
+            name: 'Kominfo Tanggamus (egov)',
+            address: 'Komplek Perkantoran Pemkab Tanggamus, Jl. Jend. Sudirman',
+            phone: '0722-21001',
+            pic_name: 'Bidang E-Government',
+            pic_phone: '081273928192',
+          })
+          .select('id, name, address, pic_name')
+          .single()
+
+        if (newSeed) {
+          places = [newSeed, ...(places || [])]
+        }
+      } catch (seedErr) {
+        console.warn('Could not auto-seed Kominfo Tanggamus (egov):', seedErr)
+      }
+    }
 
     return NextResponse.json({
       profile,

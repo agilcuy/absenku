@@ -12,6 +12,7 @@ interface StudentNavbarProps {
     full_name?: string
     email?: string
     avatar_url?: string
+    role?: string
   }
 }
 
@@ -93,6 +94,18 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
             <UserCircle className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Profil</span>
           </Link>
+
+          {/* Return to Admin Panel for Superadmin */}
+          {user?.role === 'superadmin' && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1.5 rounded-lg hover:bg-amber-500/25 transition"
+              title="Kembali ke Panel Superadmin"
+            >
+              <span>⚡</span>
+              <span className="hidden sm:inline">Panel Admin</span>
+            </Link>
+          )}
 
           {/* Notification Center */}
           <NotificationCenter />

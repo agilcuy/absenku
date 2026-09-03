@@ -133,6 +133,15 @@ export default function AdminDashboardPage() {
 
         {/* Quick Actions */}
         <div className="flex items-center gap-2 flex-wrap relative z-10">
+          <Link
+            href="/dashboard"
+            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/15 font-semibold"
+            title="Buka kamera absensi mandiri untuk Anda"
+          >
+            <span>📸</span>
+            <span>Absensi Saya</span>
+          </Link>
+
           <button
             onClick={handleManualRefresh}
             disabled={refreshing}

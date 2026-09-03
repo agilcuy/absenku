@@ -65,6 +65,16 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
         {/* Notification Center */}
         <NotificationCenter />
 
+        {/* Superadmin Absen Mandiri Button */}
+        <a
+          href="/dashboard"
+          className="flex items-center gap-1.5 text-xs text-indigo-300 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 px-3 py-1.5 rounded-xl transition font-semibold"
+          title="Lakukan Absensi Masuk / Pulang Mandiri"
+        >
+          <span>📸</span>
+          <span className="hidden md:inline">Absen Mandiri</span>
+        </a>
+
         {/* Logout button */}
         <button
           onClick={handleSignOut}
