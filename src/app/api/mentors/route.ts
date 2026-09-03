@@ -15,7 +15,7 @@ export async function GET() {
     // 1. Get all mentors, including superadmins who also serve as mentors
     const { data: mentors, error: mError } = await adminClient
       .from('users')
-      .select('id, full_name, email, phone, avatar_url, role, is_active, created_at')
+      .select('id, full_name, email, phone, avatar_url, role, is_active, created_at, internship_place_id, internship_places(id, name, address)')
       .in('role', ['pembimbing', 'superadmin'])
       .order('full_name', { ascending: true })
 
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { email, full_name, phone } = body
+    const { email, full_name, phone, internship_place_id } = body
 
     if (!email?.trim() || !full_name?.trim()) {
       return NextResponse.json({ error: 'Email dan Nama Pembimbing wajib diisi.' }, { status: 400 })
@@ -111,11 +111,12 @@ export async function POST(req: NextRequest) {
           full_name: full_name.trim(),
           phone: phone?.trim() || null,
           role: 'pembimbing',
+          internship_place_id: internship_place_id || null,
           is_active: true,
         },
         { onConflict: 'email' }
       )
-      .select()
+      .select('*, internship_places(id, name, address)')
       .single()
 
     if (insertError) throw insertError

@@ -10,9 +10,16 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const adminClient = createAdminClient()
-    const isAdmin = await isUserSuperadmin(user, adminClient)
+    const { data: profile } = await adminClient
+      .from('users')
+      .select('role, internship_place_id')
+      .eq('id', user.id)
+      .maybeSingle()
 
-    if (!isAdmin) {
+    const isSuperAdmin = await isUserSuperadmin(user, adminClient)
+    const isMentor = profile?.role === 'pembimbing'
+
+    if (!isSuperAdmin && !isMentor) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -37,17 +44,31 @@ export async function GET() {
 
     const isTodayWorkDay = isWorkingDay(now, workingDays) && !holiday
 
-    // 2. All active students with relations
-    const { data: students } = await adminClient
+    // 2. Active students with relations, filtered by internship place for mentors
+    let studentQuery = adminClient
       .from('users')
       .select(
-        'id, full_name, email, phone, avatar_url, class_name, major, start_date, end_date, is_online, last_seen, internship_status, internship_places(id, name), mentor:mentor_id(id, full_name)'
+        'id, full_name, email, phone, avatar_url, class_name, major, start_date, end_date, is_online, last_seen, internship_status, internship_place_id, internship_places(id, name), mentor:mentor_id(id, full_name)'
       )
       .eq('role', 'student')
       .eq('is_active', true)
       .order('full_name', { ascending: true })
 
+    if (isMentor && !isSuperAdmin) {
+      if (profile?.internship_place_id) {
+        studentQuery = studentQuery.or(
+          `internship_place_id.eq.${profile.internship_place_id},mentor_id.eq.${user.id}`
+        )
+      } else {
+        studentQuery = studentQuery.eq('mentor_id', user.id)
+      }
+    }
+
+    const { data: students, error: studentError } = await studentQuery
+    if (studentError) throw studentError
+
     const totalStudents = students?.length || 0
+    const studentIdSet = new Set((students || []).map((s: any) => s.id))
 
     // 3. Today's attendances
     const { data: todayAttendances } = await adminClient
@@ -57,7 +78,9 @@ export async function GET() {
 
     const attendanceMap: Record<string, any> = {}
     ;(todayAttendances || []).forEach((att: any) => {
-      attendanceMap[att.user_id] = att
+      if (studentIdSet.has(att.user_id)) {
+        attendanceMap[att.user_id] = att
+      }
     })
 
     let presentToday = 0
@@ -73,6 +96,7 @@ export async function GET() {
 
     if (todayAttendances) {
       todayAttendances.forEach((att) => {
+        if (!studentIdSet.has(att.user_id)) return
         attendedUserIds.add(att.user_id)
         if (att.check_in_time) {
           checkedInToday++

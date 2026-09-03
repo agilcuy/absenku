@@ -60,10 +60,23 @@ function PembimbingPortalContent() {
         return
       }
 
-      // 2. Fetch permits (auto filtered by mentor backend)
+      // Get mentor user info with assigned internship place
+      const { data: profile } = await supabase
+        .from('users')
+        .select('*, internship_places(id, name, address)')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.role !== 'pembimbing' && profile?.role !== 'superadmin') {
+        router.push('/dashboard')
+        return
+      }
+      setMentor(profile)
+
+      // 2. Fetch permits and stats (both backend endpoints now automatically filter by mentor's internship place)
       const [resPermits, resStudents] = await Promise.all([
         fetch('/api/permits'),
-        fetch('/api/admin/stats'), // gives all students with presence
+        fetch('/api/admin/stats'),
       ])
 
       if (resPermits.ok) {
@@ -73,25 +86,19 @@ function PembimbingPortalContent() {
 
       if (resStudents.ok) {
         const sData = await resStudents.json()
-        // Filter students where mentor_id === user.id
-        const myStudents = (sData.students || []).filter(
-          (s: any) => s.mentor?.id === user.id || s.mentor_id === user.id
-        )
+        const allFetched = sData.students || []
+        // Strict client-side filter to ensure mentor only sees students from their assigned PKL place
+        const myStudents = allFetched.filter((s: any) => {
+          if (profile?.role === 'superadmin') return true
+          const isSamePlace =
+            profile?.internship_place_id &&
+            (s.internship_place_id === profile.internship_place_id ||
+              s.internship_places?.id === profile.internship_place_id)
+          const isAssigned = s.mentor?.id === user.id || s.mentor_id === user.id
+          return isSamePlace || isAssigned
+        })
         setStudents(myStudents)
       }
-
-      // Get mentor user info
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (profile?.role !== 'pembimbing' && profile?.role !== 'superadmin') {
-        router.push('/dashboard')
-        return
-      }
-      setMentor(profile)
     } catch (err) {
       console.error(err)
     } finally {
@@ -217,9 +224,22 @@ function PembimbingPortalContent() {
             <h1 className="text-2xl font-black text-white">
               Halo, {mentor?.full_name || 'Bapak/Ibu Pembimbing'}
             </h1>
-            <p className="text-xs text-gray-400 mt-1">
-              {formatDate(new Date())} · Pantau kehadiran dan tinjau surat izin siswa bimbingan Anda
-            </p>
+            <div className="flex items-center gap-2 flex-wrap mt-1.5">
+              <span className="text-xs text-gray-400">
+                {formatDate(new Date())}
+              </span>
+              <span className="text-gray-600">•</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                <Building className="w-3 h-3 text-purple-400" />
+                <span>
+                  {mentor?.internship_places?.name
+                    ? `Tempat PKL: ${mentor.internship_places.name}`
+                    : mentor?.role === 'superadmin'
+                    ? 'Semua Tempat PKL (Akses Superadmin)'
+                    : 'Belum Ditugaskan ke Tempat PKL'}
+                </span>
+              </span>
+            </div>
           </div>
 
           <button

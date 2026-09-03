@@ -23,6 +23,7 @@ import { useToast, ToastProvider } from '@/components/Toast'
 function MentorsPageContent() {
   const { showToast } = useToast()
   const [mentors, setMentors] = useState<any[]>([])
+  const [places, setPlaces] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
@@ -34,6 +35,7 @@ function MentorsPageContent() {
     email: '',
     full_name: '',
     phone: '',
+    internship_place_id: '',
   })
   const [submitting, setSubmitting] = useState(false)
 
@@ -43,10 +45,17 @@ function MentorsPageContent() {
 
   const loadMentors = async () => {
     try {
-      const res = await fetch('/api/mentors')
-      if (res.ok) {
-        const json = await res.json()
+      const [resMentors, resPlaces] = await Promise.all([
+        fetch('/api/mentors'),
+        fetch('/api/internship-places'),
+      ])
+      if (resMentors.ok) {
+        const json = await resMentors.json()
         setMentors(json.mentors || [])
+      }
+      if (resPlaces.ok) {
+        const pJson = await resPlaces.json()
+        setPlaces(pJson.places || [])
       }
     } catch (err) {
       console.error(err)
@@ -68,7 +77,12 @@ function MentorsPageContent() {
 
   const handleOpenAdd = () => {
     setEditingMentor(null)
-    setFormData({ email: '', full_name: '', phone: '' })
+    setFormData({
+      email: '',
+      full_name: '',
+      phone: '',
+      internship_place_id: places.length > 0 ? places[0].id : '',
+    })
     setModalOpen(true)
   }
 
@@ -78,6 +92,7 @@ function MentorsPageContent() {
       email: mentor.email,
       full_name: mentor.full_name,
       phone: mentor.phone || '',
+      internship_place_id: mentor.internship_place_id || '',
     })
     setModalOpen(true)
   }
@@ -95,6 +110,7 @@ function MentorsPageContent() {
           body: JSON.stringify({
             full_name: formData.full_name,
             phone: formData.phone,
+            internship_place_id: formData.internship_place_id || null,
           }),
         })
         if (!res.ok) {
@@ -257,6 +273,17 @@ function MentorsPageContent() {
                     </div>
                   )}
                 </div>
+
+                {/* Tempat PKL Penugasan */}
+                <div className="mt-3 p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2.5">
+                  <Building className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-semibold">Tempat PKL Penugasan</span>
+                    <span className="text-xs font-bold text-white truncate block">
+                      {mentor.internship_places?.name || 'Belum Ditugaskan'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Assigned Students Summary */}
@@ -346,6 +373,28 @@ function MentorsPageContent() {
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="input-field w-full text-xs"
                 />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-medium mb-1">
+                  Tempat / Instansi PKL Penugasan *
+                </label>
+                <select
+                  required
+                  value={formData.internship_place_id}
+                  onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
+                  className="input-field w-full text-xs"
+                >
+                  <option value="">-- Pilih Tempat / Instansi PKL --</option>
+                  {places.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-indigo-300/80 mt-1">
+                  🔒 <b>Keamanan & Privasi:</b> Pembimbing ini akan ditempatkan di instansi ini dan <u>hanya dapat melihat data siswa pada tempat PKL yang sama</u> saat login.
+                </p>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">

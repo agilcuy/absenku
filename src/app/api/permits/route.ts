@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const adminClient = createAdminClient()
     const { data: profile } = await adminClient
       .from('users')
-      .select('id, role')
+      .select('id, role, internship_place_id')
       .eq('id', user.id)
       .single()
 
@@ -31,12 +31,17 @@ export async function GET(req: NextRequest) {
       // Siswa hanya melihat miliknya
       query = query.eq('user_id', user.id)
     } else if (profile?.role === 'pembimbing') {
-      // Pembimbing melihat siswa yang dibimbingnya
-      const { data: assignedStudents } = await adminClient
-        .from('users')
-        .select('id')
-        .eq('mentor_id', user.id)
+      // Pembimbing melihat siswa di tempat PKL yang sama ATAU yang dibimbingnya
+      let studentQuery = adminClient.from('users').select('id').eq('role', 'student')
+      if (profile.internship_place_id) {
+        studentQuery = studentQuery.or(
+          `internship_place_id.eq.${profile.internship_place_id},mentor_id.eq.${user.id}`
+        )
+      } else {
+        studentQuery = studentQuery.eq('mentor_id', user.id)
+      }
 
+      const { data: assignedStudents } = await studentQuery
       const studentIds = (assignedStudents || []).map((s: any) => s.id)
       if (studentIds.length === 0) {
         return NextResponse.json({ permits: [] })

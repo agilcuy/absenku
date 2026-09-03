@@ -11,17 +11,34 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const adminClient = createAdminClient()
-    const isAdmin = await isUserSuperadmin(user, adminClient)
+    const { data: profile } = await adminClient
+      .from('users')
+      .select('role, internship_place_id')
+      .eq('id', user.id)
+      .maybeSingle()
 
-    if (!isAdmin) {
+    const isSuperAdmin = await isUserSuperadmin(user, adminClient)
+    const isMentor = profile?.role === 'pembimbing'
+
+    if (!isSuperAdmin && !isMentor) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { data: students, error } = await adminClient
+    let query = adminClient
       .from('users')
       .select('*, internship_places(id, name, address, pic_name, pic_phone), mentor:mentor_id(id, full_name, email, phone)')
       .eq('role', 'student')
       .order('created_at', { ascending: false })
+
+    if (isMentor && !isSuperAdmin) {
+      if (profile?.internship_place_id) {
+        query = query.or(`internship_place_id.eq.${profile.internship_place_id},mentor_id.eq.${user.id}`)
+      } else {
+        query = query.eq('mentor_id', user.id)
+      }
+    }
+
+    const { data: students, error } = await query
 
     if (error) throw error
 

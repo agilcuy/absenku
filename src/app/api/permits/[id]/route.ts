@@ -17,7 +17,7 @@ export async function PUT(
     const adminClient = createAdminClient()
     const { data: profile } = await adminClient
       .from('users')
-      .select('id, role, full_name')
+      .select('id, role, full_name, internship_place_id')
       .eq('id', user.id)
       .single()
 
@@ -51,7 +51,7 @@ export async function PUT(
     // Get the permit details
     const { data: permit, error: pErr } = await adminClient
       .from('permits')
-      .select('*, users!permits_user_id_fkey(id, full_name, mentor_id)')
+      .select('*, users!permits_user_id_fkey(id, full_name, mentor_id, internship_place_id)')
       .eq('id', id)
       .single()
 
@@ -59,11 +59,16 @@ export async function PUT(
       return NextResponse.json({ error: 'Data pengajuan tidak ditemukan.' }, { status: 404 })
     }
 
-    // If caller is mentor, verify that this student is assigned to them
+    // If caller is mentor, verify that this student is assigned to them or in the same internship place
     if (isMentor && !isSuperAdmin) {
-      if (permit.users?.mentor_id !== user.id) {
+      const studentPlace = permit.users?.internship_place_id
+      const mentorPlace = profile?.internship_place_id
+      const isSamePlace = mentorPlace && studentPlace && mentorPlace === studentPlace
+      const isAssigned = permit.users?.mentor_id === user.id
+
+      if (!isSamePlace && !isAssigned) {
         return NextResponse.json(
-          { error: 'Forbidden: Siswa ini bukan merupakan bimbingan Anda.' },
+          { error: 'Forbidden: Siswa ini berada di tempat PKL yang berbeda atau bukan bimbingan Anda.' },
           { status: 403 }
         )
       }
