@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   User,
   Building,
@@ -13,42 +14,154 @@ import {
   CheckCircle,
   Activity,
   Award,
+  Edit3,
+  Camera,
+  X,
+  AlertTriangle,
+  Sparkles,
 } from 'lucide-react'
 import StudentNavbar from '@/components/StudentNavbar'
 import { formatDate } from '@/lib/utils'
+import { useToast, ToastProvider } from '@/components/Toast'
 
-export default function StudentProfilePage() {
+function StudentProfileContent() {
+  const { showToast } = useToast()
+  const searchParams = useSearchParams()
+
   const [profile, setProfile] = useState<any>(null)
   const [stats, setStats] = useState<any>(null)
+  const [availablePlaces, setAvailablePlaces] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const res = await fetch('/api/attendance/today')
-        if (res.ok) {
-          const json = await res.json()
-          const p = json.userProfile
-          setProfile(p)
+  // Edit Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [formData, setFormData] = useState({
+    full_name: '',
+    username: '',
+    phone: '',
+    class_name: '',
+    major: '',
+    internship_place_id: '',
+  })
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
-          // Load detail & stats
-          if (p?.id) {
-            const resDetail = await fetch(`/api/students/${p.id}`)
-            if (resDetail.ok) {
-              const d = await resDetail.json()
-              setStats(d.stats)
-            }
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const loadProfile = async () => {
+    try {
+      const res = await fetch('/api/students/profile')
+      if (res.ok) {
+        const json = await res.json()
+        const p = json.profile
+        setProfile(p)
+        setAvailablePlaces(json.places || [])
+
+        setFormData({
+          full_name: p.full_name || '',
+          username: p.username || '',
+          phone: p.phone || '',
+          class_name: p.class_name || '',
+          major: p.major || '',
+          internship_place_id: p.internship_place_id || '',
+        })
+
+        // Also fetch attendance statistics
+        if (p?.id) {
+          const resDetail = await fetch(`/api/students/${p.id}`)
+          if (resDetail.ok) {
+            const d = await resDetail.json()
+            setStats(d.stats)
           }
         }
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
       }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     loadProfile()
   }, [])
+
+  useEffect(() => {
+    if (searchParams.get('edit') === 'true') {
+      setEditModalOpen(true)
+    }
+  }, [searchParams])
+
+  const handleOpenEdit = () => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        username: profile.username || '',
+        phone: profile.phone || '',
+        class_name: profile.class_name || '',
+        major: profile.major || '',
+        internship_place_id: profile.internship_place_id || '',
+      })
+      setAvatarFile(null)
+      setAvatarPreview(null)
+    }
+    setEditModalOpen(true)
+  }
+
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Ukuran foto maksimal 5 MB', 'error')
+      return
+    }
+
+    setAvatarFile(file)
+    const reader = new FileReader()
+    reader.onload = () => setAvatarPreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+
+    try {
+      const data = new FormData()
+      data.append('full_name', formData.full_name)
+      data.append('username', formData.username)
+      data.append('phone', formData.phone)
+      data.append('class_name', formData.class_name)
+      data.append('major', formData.major)
+      if (formData.internship_place_id) {
+        data.append('internship_place_id', formData.internship_place_id)
+      }
+      if (avatarFile) {
+        data.append('avatar', avatarFile)
+      }
+
+      const res = await fetch('/api/students/profile', {
+        method: 'PUT',
+        body: data,
+      })
+
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menyimpan biodata')
+
+      showToast('Biodata diri berhasil diperbarui!', 'success')
+      setEditModalOpen(false)
+      loadProfile()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const isProfileIncomplete =
+    !profile?.class_name || !profile?.major || !profile?.phone || !profile?.username
 
   return (
     <div className="min-h-screen bg-[#06070d] text-gray-100 flex flex-col pb-12">
@@ -56,15 +169,48 @@ export default function StudentProfilePage() {
 
       <main className="max-w-3xl w-full mx-auto p-4 sm:p-6 space-y-6 flex-1">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <User className="w-6 h-6 text-indigo-400" />
-            Profil Peserta Didik
-          </h1>
-          <p className="text-xs text-gray-400 mt-1">
-            Informasi identitas, penempatan PKL, pembimbing, dan rekapitulasi kedisiplinan Anda
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-black text-white flex items-center gap-2">
+              <User className="w-6 h-6 text-indigo-400" />
+              Profil & Biodata Siswa
+            </h1>
+            <p className="text-xs text-gray-400 mt-1">
+              Data identitas diri, kelas, jurusan, penempatan PKL, dan rekap kehadiran
+            </p>
+          </div>
+
+          <button
+            onClick={handleOpenEdit}
+            className="btn-primary text-xs py-2.5 px-4 flex items-center gap-1.5 self-start sm:self-auto shadow-lg shadow-indigo-500/20"
+          >
+            <Edit3 className="w-4 h-4" />
+            <span>Lengkapi / Edit Biodata</span>
+          </button>
         </div>
+
+        {/* Biodata Incomplete Alert Banner */}
+        {isProfileIncomplete && (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-xl">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-bold text-amber-300">
+                  Biodata Diri Anda Belum Lengkap!
+                </h4>
+                <p className="text-xs text-amber-200/80 mt-0.5">
+                  Harap isi kelas, jurusan, username, dan nomor WhatsApp agar data absensi dan penempatan PKL Anda valid.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleOpenEdit}
+              className="btn-outline border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-xs py-2 px-3 whitespace-nowrap self-start sm:self-auto font-bold"
+            >
+              Isi Biodata Sekarang
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="py-16 text-center text-gray-400 text-xs">Memuat profil...</div>
@@ -78,29 +224,41 @@ export default function StudentProfilePage() {
             <div className="glass-card p-6 border border-white/10 flex flex-col sm:flex-row items-center sm:items-start gap-5 relative overflow-hidden">
               <div className="orb orb-purple w-48 h-48 top-[-20px] right-[-20px]" />
 
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-3xl font-black border-2 border-white/10 shadow-2xl flex-shrink-0 overflow-hidden">
-                {profile.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={profile.full_name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  profile.full_name?.charAt(0).toUpperCase()
-                )}
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-3xl font-black border-2 border-white/10 shadow-2xl flex-shrink-0 overflow-hidden">
+                  {profile.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.full_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    profile.full_name?.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <button
+                  onClick={handleOpenEdit}
+                  className="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition text-[10px] font-semibold gap-1"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Ubah Foto</span>
+                </button>
               </div>
 
               <div className="flex-1 text-center sm:text-left min-w-0">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
                   <h2 className="text-xl font-bold text-white">{profile.full_name}</h2>
+                  {profile.username && (
+                    <span className="text-xs text-indigo-400 font-mono">@{profile.username}</span>
+                  )}
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
                     {profile.internship_status || 'Aktif'}
                   </span>
                 </div>
 
                 <p className="text-xs text-indigo-300 font-medium mb-3">
-                  {profile.class_name ? `${profile.class_name}` : 'Kelas belum diset'} •{' '}
-                  {profile.major || 'Jurusan belum diset'}
+                  {profile.class_name ? `${profile.class_name}` : 'Kelas belum diisi'} •{' '}
+                  {profile.major || 'Jurusan belum diisi'}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-300">
@@ -108,12 +266,10 @@ export default function StudentProfilePage() {
                     <Mail className="w-3.5 h-3.5 text-gray-400" />
                     <span className="truncate">{profile.email}</span>
                   </div>
-                  {profile.phone && (
-                    <div className="flex items-center justify-center sm:justify-start gap-2">
-                      <Phone className="w-3.5 h-3.5 text-gray-400" />
-                      <span>{profile.phone}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-center sm:justify-start gap-2">
+                    <Phone className="w-3.5 h-3.5 text-gray-400" />
+                    <span>{profile.phone || 'Nomor HP belum diisi'}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -127,10 +283,10 @@ export default function StudentProfilePage() {
                 <div className="min-w-0">
                   <p className="text-[11px] text-gray-400 font-semibold uppercase">Instansi / Tempat PKL</p>
                   <p className="text-sm font-bold text-white mt-0.5 truncate">
-                    {profile.internship_places?.name || 'Belum Ditempatkan'}
+                    {profile.internship_places?.name || 'Belum Ditentukan'}
                   </p>
                   <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                    {profile.internship_places?.address || 'Alamat instansi belum diisi'}
+                    {profile.internship_places?.address || 'Pilih tempat PKL pada menu edit biodata'}
                   </p>
                 </div>
               </div>
@@ -142,10 +298,10 @@ export default function StudentProfilePage() {
                 <div className="min-w-0">
                   <p className="text-[11px] text-gray-400 font-semibold uppercase">Pembimbing PKL</p>
                   <p className="text-sm font-bold text-white mt-0.5 truncate">
-                    {profile.mentor?.full_name || 'Belum Ditugaskan'}
+                    {profile.mentor?.full_name || 'Ditugaskan oleh Admin'}
                   </p>
                   <p className="text-xs text-gray-400 mt-1 truncate">
-                    {profile.mentor?.email || 'Hubungi admin sekolah untuk penugasan'}
+                    {profile.mentor?.email || 'Hubungi admin sekolah jika belum ada pembimbing'}
                   </p>
                 </div>
               </div>
@@ -167,7 +323,7 @@ export default function StudentProfilePage() {
               </div>
             </div>
 
-            {/* Attendance & Discipline Stats (Fitur 17) */}
+            {/* Attendance & Discipline Stats */}
             <div className="glass-card p-5 border border-white/10 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -205,6 +361,174 @@ export default function StudentProfilePage() {
           </>
         )}
       </main>
+
+      {/* Edit Biodata Modal */}
+      {editModalOpen && (
+        <div className="modal-overlay">
+          <div className="glass-card w-full max-w-md p-6 border border-white/10 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-indigo-400" />
+                Lengkapi & Edit Biodata Diri
+              </h3>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+              {/* Avatar Upload */}
+              <div className="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/10">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 overflow-hidden flex items-center justify-center flex-shrink-0">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-8 h-8 text-indigo-300" />
+                  )}
+                </div>
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarSelect}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1.5"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Pilih Foto Profil</span>
+                  </button>
+                  <p className="text-[10px] text-gray-400 mt-1">Maks. 5 MB (JPG, PNG)</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-medium mb-1">Nama Lengkap *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Nama Lengkap Siswa"
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  className="input-field w-full text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Username Unik</label>
+                  <input
+                    type="text"
+                    placeholder="contoh: ahmad_r"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">No. WhatsApp / HP *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="08xxxxxxxxxx"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Kelas *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: XII RPL 1"
+                    value={formData.class_name}
+                    onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Jurusan *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Rekayasa Perangkat Lunak"
+                    value={formData.major}
+                    onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-medium mb-1">
+                  Tempat / Instansi PKL
+                </label>
+                <select
+                  value={formData.internship_place_id}
+                  onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
+                  className="input-field w-full text-xs"
+                >
+                  <option value="">-- Pilih Instansi / Perusahaan PKL --</option>
+                  {availablePlaces.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} {p.pic_name ? `(PIC: ${p.pic_name})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Pilih tempat instansi PKL yang sudah disediakan oleh admin sekolah.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="btn-outline text-xs py-2 px-4"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary text-xs py-2 px-5"
+                >
+                  {submitting ? 'Menyimpan...' : 'Simpan Biodata'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+export default function StudentProfilePage() {
+  return (
+    <ToastProvider>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-[#06070d] flex items-center justify-center text-gray-400 text-xs">
+            Memuat profil...
+          </div>
+        }
+      >
+        <StudentProfileContent />
+      </Suspense>
+    </ToastProvider>
   )
 }

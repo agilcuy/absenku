@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
 import StudentNavbar from '@/components/StudentNavbar'
 import CameraCaptureModal from '@/components/CameraCaptureModal'
 import GpsLocationBadge from '@/components/GpsLocationBadge'
@@ -184,7 +185,9 @@ function StudentDashboardContent() {
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Portal Peserta Didik PKL</span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white">Selamat Datang!</h1>
+              <h1 className="text-xl sm:text-2xl font-black text-white">
+                Selamat Datang, {userProfile?.full_name ? userProfile.full_name.split(' ')[0] : 'Siswa'}!
+              </h1>
               <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-gray-400" />
                 {formatDate(new Date())}
@@ -195,6 +198,25 @@ function StudentDashboardContent() {
               ⚡
             </div>
           </div>
+
+          {/* Pengingat Lengkapi Biodata jika belum terisi */}
+          {userProfile && (!userProfile.class_name || !userProfile.major || !userProfile.phone) && (
+            <div className="mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-amber-300 block">Biodata Anda Belum Lengkap</span>
+                  <span className="text-amber-200/80">Silakan lengkapi kelas, jurusan, no WA, dan tempat PKL Anda.</span>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/profile?edit=true"
+                className="btn-outline border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-[11px] py-1.5 px-3 whitespace-nowrap self-start sm:self-auto font-bold"
+              >
+                Lengkapi Sekarang ➔
+              </Link>
+            </div>
+          )}
 
           {/* Holiday or Non-working day banner */}
           {isHoliday && (

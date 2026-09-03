@@ -392,6 +392,13 @@ export default function AdminStudentsPage() {
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-3.5 text-xs">
+              <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs flex items-start gap-2">
+                <span className="text-base">💡</span>
+                <span className="leading-relaxed">
+                  <b>Cukup masukkan Email & Nama Siswa:</b> Kolom lainnya bersifat opsional karena siswa dapat langsung melengkapi sendiri biodata dirinya (kelas, jurusan, no WhatsApp, foto, & instansi PKL) saat login ke web.
+                </span>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-gray-300 font-medium mb-1">
@@ -410,7 +417,7 @@ export default function AdminStudentsPage() {
                   <label className="block text-gray-300 font-medium mb-1">Username (Opsional)</label>
                   <input
                     type="text"
-                    placeholder="ahmadrizki"
+                    placeholder="Bisa diisi sendiri oleh siswa"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     className="input-field w-full text-xs"
@@ -431,10 +438,10 @@ export default function AdminStudentsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">No. WhatsApp / HP</label>
+                  <label className="block text-gray-300 font-medium mb-1">No. WhatsApp / HP (Opsional)</label>
                   <input
                     type="tel"
-                    placeholder="08xxxxxxxxxx"
+                    placeholder="Bisa diisi sendiri oleh siswa"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="input-field w-full text-xs"
@@ -444,20 +451,20 @@ export default function AdminStudentsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">Kelas</label>
+                  <label className="block text-gray-300 font-medium mb-1">Kelas (Opsional)</label>
                   <input
                     type="text"
-                    placeholder="Contoh: XII TKJ 1"
+                    placeholder="Contoh: XII TKJ 1 (Bisa diisi siswa)"
                     value={formData.class_name}
                     onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
                     className="input-field w-full text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">Jurusan</label>
+                  <label className="block text-gray-300 font-medium mb-1">Jurusan (Opsional)</label>
                   <input
                     type="text"
-                    placeholder="Contoh: Teknik Komputer dan Jaringan"
+                    placeholder="Contoh: RPL (Bisa diisi siswa)"
                     value={formData.major}
                     onChange={(e) => setFormData({ ...formData, major: e.target.value })}
                     className="input-field w-full text-xs"

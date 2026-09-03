@@ -1,0 +1,193 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
+
+// GET current student's own profile and available options
+export async function GET() {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const adminClient = createAdminClient()
+
+    // 1. Get student profile
+    const { data: profile, error } = await adminClient
+      .from('users')
+      .select('*, internship_places(*), mentor:mentor_id(*)')
+      .eq('id', user.id)
+      .single()
+
+    if (error || !profile) {
+      return NextResponse.json({ error: 'Profil tidak ditemukan' }, { status: 404 })
+    }
+
+    // 2. Get available internship places for selection
+    const { data: places } = await adminClient
+      .from('internship_places')
+      .select('id, name, address, pic_name')
+      .order('name', { ascending: true })
+
+    return NextResponse.json({
+      profile,
+      places: places || [],
+    })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
+
+// PUT student self-updates biodata & avatar
+export async function PUT(req: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const adminClient = createAdminClient()
+
+    // Get current data
+    const { data: currentStudent } = await adminClient
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+    if (!currentStudent) {
+      return NextResponse.json({ error: 'Pengguna tidak ditemukan' }, { status: 404 })
+    }
+
+    const contentType = req.headers.get('content-type') || ''
+    let fullName = currentStudent.full_name
+    let username = currentStudent.username
+    let phone = currentStudent.phone
+    let className = currentStudent.class_name
+    let major = currentStudent.major
+    let internshipPlaceId = currentStudent.internship_place_id
+    let avatarUrl = currentStudent.avatar_url
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData()
+      if (formData.has('full_name')) fullName = (formData.get('full_name') as string)?.trim()
+      if (formData.has('username')) username = (formData.get('username') as string)?.trim().toLowerCase() || null
+      if (formData.has('phone')) phone = (formData.get('phone') as string)?.trim() || null
+      if (formData.has('class_name')) className = (formData.get('class_name') as string)?.trim() || null
+      if (formData.has('major')) major = (formData.get('major') as string)?.trim() || null
+      if (formData.has('internship_place_id')) {
+        const pId = formData.get('internship_place_id') as string
+        if (pId) internshipPlaceId = pId
+      }
+
+      // Handle avatar file upload
+      const avatarFile = formData.get('avatar') as File | null
+      if (avatarFile && avatarFile.size > 0) {
+        try {
+          const arrayBuffer = await avatarFile.arrayBuffer()
+          const buffer = Buffer.from(arrayBuffer)
+          const fileExt = avatarFile.name ? avatarFile.name.split('.').pop() || 'jpg' : 'jpg'
+          const filePath = `avatars/${user.id}-${Date.now()}.${fileExt}`
+
+          const { error: uploadError } = await adminClient.storage
+            .from('attendance-photos')
+            .upload(filePath, buffer, {
+              contentType: avatarFile.type || 'image/jpeg',
+              upsert: true,
+            })
+
+          if (!uploadError) {
+            const { data: pubData } = adminClient.storage
+              .from('attendance-photos')
+              .getPublicUrl(filePath)
+            avatarUrl = pubData.publicUrl
+          }
+        } catch (uploadErr) {
+          console.warn('Avatar upload failed:', uploadErr)
+        }
+      }
+    } else {
+      const body = await req.json()
+      if (body.full_name !== undefined) fullName = body.full_name?.trim()
+      if (body.username !== undefined) username = body.username?.trim().toLowerCase() || null
+      if (body.phone !== undefined) phone = body.phone?.trim() || null
+      if (body.class_name !== undefined) className = body.class_name?.trim() || null
+      if (body.major !== undefined) major = body.major?.trim() || null
+      if (body.internship_place_id !== undefined && body.internship_place_id) {
+        internshipPlaceId = body.internship_place_id
+      }
+      if (body.avatar_url !== undefined) avatarUrl = body.avatar_url
+    }
+
+    if (!fullName) {
+      return NextResponse.json({ error: 'Nama lengkap wajib diisi.' }, { status: 400 })
+    }
+
+    // Check username uniqueness if modified
+    if (username && username !== currentStudent.username) {
+      const { data: existingUser } = await adminClient
+        .from('users')
+        .select('id')
+        .eq('username', username)
+        .neq('id', user.id)
+        .maybeSingle()
+
+      if (existingUser) {
+        return NextResponse.json(
+          { error: 'Username ini sudah digunakan oleh siswa lain.' },
+          { status: 400 }
+        )
+      }
+    }
+
+    const { data: updated, error: updateErr } = await adminClient
+      .from('users')
+      .update({
+        full_name: fullName,
+        username,
+        phone,
+        class_name: className,
+        major,
+        internship_place_id: internshipPlaceId,
+        avatar_url: avatarUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id)
+      .select('*, internship_places(*), mentor:mentor_id(*)')
+      .single()
+
+    if (updateErr) throw updateErr
+
+    // Send notification to Superadmin that student completed their profile
+    const { data: superadmins } = await adminClient
+      .from('users')
+      .select('id')
+      .eq('role', 'superadmin')
+
+    const notifPayloads = (superadmins || []).map((sa: any) => ({
+      user_id: sa.id,
+      title: 'Biodata Siswa Diperbarui',
+      message: `${updated.full_name} (${updated.class_name || 'Kelas -'}) telah melengkapi biodata dirinya.`,
+      type: 'info',
+      link: '/admin/students',
+    }))
+
+    if (notifPayloads.length > 0) {
+      await adminClient.from('notifications').insert(notifPayloads)
+    }
+
+    await logAudit({
+      action: 'UPDATE_STUDENT_SELF_PROFILE',
+      tableName: 'users',
+      recordId: user.id,
+      oldData: currentStudent,
+      newData: updated,
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Biodata Anda berhasil diperbarui!',
+      profile: updated,
+    })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}

@@ -17,7 +17,7 @@ export async function GET() {
   // 1. Get user profile
   const { data: userProfile } = await adminClient
     .from('users')
-    .select('id, full_name, email, avatar_url, role')
+    .select('*, internship_places(*), mentor:mentor_id(*)')
     .eq('id', user.id)
     .maybeSingle()
 
