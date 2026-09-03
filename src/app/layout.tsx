@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { ToastProvider } from '@/components/Toast'
+import RouteProgressBar from '@/components/RouteProgressBar'
 
 export const metadata: Metadata = {
   title: {
@@ -19,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <RouteProgressBar />
         <ToastProvider>
           {children}
         </ToastProvider>

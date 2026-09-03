@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useToast, ToastProvider } from '@/components/Toast'
+import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 
 function PermitsAdminPageContent() {
   const { showToast } = useToast()
@@ -35,13 +36,10 @@ function PermitsAdminPageContent() {
   // Image preview modal
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
-  const loadPermits = async () => {
+  const loadPermits = async (forceFresh = false) => {
     try {
-      const res = await fetch('/api/permits')
-      if (res.ok) {
-        const json = await res.json()
-        setPermits(json.permits || [])
-      }
+      const json = await cachedFetch('/api/permits', undefined, 15000, forceFresh)
+      setPermits(json.permits || [])
     } catch (err) {
       console.error(err)
     } finally {
@@ -52,7 +50,8 @@ function PermitsAdminPageContent() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadPermits()
+    invalidateCache('/api/permits')
+    await loadPermits(true)
     showToast('Data izin & sakit berhasil diperbarui!', 'success')
   }
 
@@ -87,7 +86,9 @@ function PermitsAdminPageContent() {
 
       showToast(json.message || 'Status pengajuan berhasil diperbarui', 'success')
       setReviewModalOpen(false)
-      loadPermits()
+      invalidateCache('/api/permits')
+      invalidateCache('/api/admin/stats')
+      loadPermits(true)
     } catch (err: any) {
       showToast(err.message, 'error')
     } finally {

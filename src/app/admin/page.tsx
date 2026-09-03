@@ -42,6 +42,7 @@ import {
 } from '@/lib/utils'
 import StudentDetailModal from '@/components/StudentDetailModal'
 import { useToast } from '@/components/Toast'
+import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 
 export default function AdminDashboardPage() {
   const { showToast } = useToast()
@@ -53,13 +54,10 @@ export default function AdminDashboardPage() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
-  const loadStats = useCallback(async () => {
+  const loadStats = useCallback(async (forceFresh = false) => {
     try {
-      const res = await fetch('/api/admin/stats')
-      if (res.ok) {
-        const json = await res.json()
-        setData(json)
-      }
+      const json = await cachedFetch('/api/admin/stats', undefined, 15000, forceFresh)
+      setData(json)
     } catch (err) {
       console.error('Failed to load stats:', err)
     } finally {
@@ -71,13 +69,14 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     loadStats()
     // Auto-refresh stats every 25 seconds for live real-time presence & attendance monitoring
-    const interval = setInterval(loadStats, 25000)
+    const interval = setInterval(() => loadStats(true), 25000)
     return () => clearInterval(interval)
   }, [loadStats])
 
   const handleManualRefresh = async () => {
     setRefreshing(true)
-    await loadStats()
+    invalidateCache('/api/admin/stats')
+    await loadStats(true)
     showToast('Data monitoring berhasil diperbarui!', 'success')
   }
 

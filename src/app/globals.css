@@ -59,22 +59,23 @@ body {
   background: var(--accent);
 }
 
-/* Glass card */
+/* Glass card with hardware acceleration */
 .glass-card {
-  background: rgba(17, 24, 39, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
   border-radius: 16px;
+  transform: translateZ(0);
 }
 
 .glass-card-hover {
-  transition: all 0.3s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .glass-card-hover:hover {
   border-color: var(--border-hover);
-  box-shadow: 0 0 30px var(--accent-glow);
+  box-shadow: 0 0 25px var(--accent-glow);
   transform: translateY(-2px);
 }
 
@@ -329,8 +330,15 @@ select option:hover,
   color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: transform 0.08s ease, background 0.15s ease, color 0.15s ease;
   text-decoration: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.sidebar-link:active {
+  transform: scale(0.97);
 }
 
 .sidebar-link:hover {

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Menu, LogOut, Clock, ShieldCheck } from 'lucide-react'
@@ -66,24 +67,26 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
         <NotificationCenter />
 
         {/* Portal Pembimbing Button for Superadmin */}
-        <a
+        <Link
           href="/pembimbing"
-          className="flex items-center gap-1.5 text-xs text-purple-300 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 px-3 py-1.5 rounded-xl transition font-semibold"
+          prefetch={true}
+          className="flex items-center gap-1.5 text-xs text-purple-300 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 px-3 py-1.5 rounded-xl transition font-semibold active:scale-[0.98]"
           title="Buka Portal Bimbingan Siswa PKL Anda"
         >
           <span>🎓</span>
           <span className="hidden md:inline">Portal Pembimbing</span>
-        </a>
+        </Link>
 
         {/* Superadmin Absen Mandiri Button */}
-        <a
+        <Link
           href="/dashboard"
-          className="flex items-center gap-1.5 text-xs text-indigo-300 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 px-3 py-1.5 rounded-xl transition font-semibold"
+          prefetch={true}
+          className="flex items-center gap-1.5 text-xs text-indigo-300 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 px-3 py-1.5 rounded-xl transition font-semibold active:scale-[0.98]"
           title="Lakukan Absensi Masuk / Pulang Mandiri"
         >
           <span>📸</span>
           <span className="hidden md:inline">Absen Mandiri</span>
-        </a>
+        </Link>
 
         {/* Logout button */}
         <button

@@ -99,8 +99,9 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 onClick={onCloseMobile}
-                className={`sidebar-link ${isActive ? 'active' : ''}`}
+                className={`sidebar-link active:scale-[0.98] transition-all duration-100 ${isActive ? 'active' : ''}`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`} />
                 <span className="text-xs font-medium">{item.label}</span>

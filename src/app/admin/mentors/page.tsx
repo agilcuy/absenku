@@ -19,6 +19,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { useToast, ToastProvider } from '@/components/Toast'
+import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 
 function MentorsPageContent() {
   const { showToast } = useToast()
@@ -43,20 +44,14 @@ function MentorsPageContent() {
   const [studentModalOpen, setStudentModalOpen] = useState(false)
   const [selectedMentor, setSelectedMentor] = useState<any>(null)
 
-  const loadMentors = async () => {
+  const loadMentors = async (forceFresh = false) => {
     try {
-      const [resMentors, resPlaces] = await Promise.all([
-        fetch('/api/mentors'),
-        fetch('/api/internship-places'),
+      const [mJson, pJson] = await Promise.all([
+        cachedFetch('/api/mentors', undefined, 20000, forceFresh),
+        cachedFetch('/api/internship-places', undefined, 30000, forceFresh),
       ])
-      if (resMentors.ok) {
-        const json = await resMentors.json()
-        setMentors(json.mentors || [])
-      }
-      if (resPlaces.ok) {
-        const pJson = await resPlaces.json()
-        setPlaces(pJson.places || [])
-      }
+      setMentors(mJson.mentors || [])
+      setPlaces(pJson.places || [])
     } catch (err) {
       console.error(err)
     } finally {
@@ -67,7 +62,9 @@ function MentorsPageContent() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadMentors()
+    invalidateCache('/api/mentors')
+    invalidateCache('/api/internship-places')
+    await loadMentors(true)
     showToast('Data pembimbing berhasil diperbarui!', 'success')
   }
 
@@ -133,7 +130,8 @@ function MentorsPageContent() {
       }
 
       setModalOpen(false)
-      loadMentors()
+      invalidateCache('/api/mentors')
+      loadMentors(true)
     } catch (err: any) {
       showToast(err.message, 'error')
     } finally {
@@ -153,7 +151,8 @@ function MentorsPageContent() {
           `Pembimbing berhasil ${mentor.is_active ? 'dinonaktifkan' : 'diaktifkan'}`,
           'success'
         )
-        loadMentors()
+        invalidateCache('/api/mentors')
+        loadMentors(true)
       }
     } catch (err: any) {
       showToast(err.message, 'error')

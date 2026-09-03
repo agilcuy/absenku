@@ -25,6 +25,7 @@ import {
   getStatusLabel,
   MONTH_NAMES,
 } from '@/lib/utils'
+import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 
 export default function AdminAttendancesPage() {
   const { showToast } = useToast()
@@ -91,28 +92,22 @@ export default function AdminAttendancesPage() {
       if (filterYear) url.searchParams.set('year', filterYear)
       if (search) url.searchParams.set('search', search)
 
-      const res = await fetch(url.toString())
-      if (res.ok) {
-        const data = await res.json()
-        setAttendances(data.attendances || [])
-      }
+      const data = await cachedFetch(url.toString(), undefined, 10000, refreshing)
+      setAttendances(data.attendances || [])
     } catch (err) {
       console.error('Failed to load attendances:', err)
     } finally {
       setLoading(false)
     }
-  }, [filterDate, filterStatus, filterMonth, filterYear, search])
+  }, [filterDate, filterStatus, filterMonth, filterYear, search, refreshing])
 
   // Fetch students for manual entry dropdown
   const loadStudents = async () => {
     try {
-      const res = await fetch('/api/students')
-      if (res.ok) {
-        const data = await res.json()
-        setStudents(data.students || [])
-        if (data.students?.length > 0) {
-          setManualUserId(data.students[0].id)
-        }
+      const data = await cachedFetch('/api/students', undefined, 30000, refreshing)
+      setStudents(data.students || [])
+      if (data.students?.length > 0 && !manualUserId) {
+        setManualUserId(data.students[0].id)
       }
     } catch (err) {
       console.error('Failed to load students:', err)
@@ -126,6 +121,8 @@ export default function AdminAttendancesPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
+    invalidateCache('/api/admin/attendances')
+    invalidateCache('/api/students')
     await Promise.all([loadAttendances(), loadStudents()])
     setRefreshing(false)
     showToast('Data absensi berhasil diperbarui!', 'success')

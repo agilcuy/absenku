@@ -49,7 +49,8 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
         <nav className="flex items-center gap-1 sm:gap-2">
           <Link
             href="/dashboard"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
+            prefetch={true}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition active:scale-[0.98] ${
               pathname === '/dashboard'
                 ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -61,7 +62,8 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
 
           <Link
             href="/dashboard/permits"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
+            prefetch={true}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition active:scale-[0.98] ${
               pathname === '/dashboard/permits'
                 ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -73,7 +75,8 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
 
           <Link
             href="/dashboard/history"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
+            prefetch={true}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition active:scale-[0.98] ${
               pathname === '/dashboard/history'
                 ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -85,7 +88,8 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
 
           <Link
             href="/dashboard/profile"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
+            prefetch={true}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition active:scale-[0.98] ${
               pathname === '/dashboard/profile'
                 ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'

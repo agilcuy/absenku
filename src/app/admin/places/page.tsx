@@ -17,6 +17,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { useToast, ToastProvider } from '@/components/Toast'
+import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 
 function PlacesPageContent() {
   const { showToast } = useToast()
@@ -43,10 +44,9 @@ function PlacesPageContent() {
   const [selectedPlaceDetail, setSelectedPlaceDetail] = useState<any>(null)
   const [detailLoading, setDetailLoading] = useState(false)
 
-  const loadPlaces = async () => {
+  const loadPlaces = async (forceFresh = false) => {
     try {
-      const res = await fetch('/api/internship-places')
-      const json = await res.json()
+      const json = await cachedFetch('/api/internship-places', undefined, 30000, forceFresh)
       if (json.needsMigration) {
         setNeedsMigration(true)
       } else {
@@ -62,7 +62,8 @@ function PlacesPageContent() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadPlaces()
+    invalidateCache('/api/internship-places')
+    await loadPlaces(true)
     showToast('Data tempat PKL berhasil diperbarui!', 'success')
   }
 
@@ -125,7 +126,8 @@ function PlacesPageContent() {
 
       showToast(json.message || 'Tempat PKL berhasil disimpan', 'success')
       setModalOpen(false)
-      loadPlaces()
+      invalidateCache('/api/internship-places')
+      loadPlaces(true)
     } catch (err: any) {
       showToast(err.message, 'error')
     } finally {
@@ -142,7 +144,8 @@ function PlacesPageContent() {
       const res = await fetch(`/api/internship-places/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Gagal menghapus tempat PKL')
       showToast('Tempat PKL berhasil dihapus', 'success')
-      loadPlaces()
+      invalidateCache('/api/internship-places')
+      loadPlaces(true)
     } catch (err: any) {
       showToast(err.message, 'error')
     }

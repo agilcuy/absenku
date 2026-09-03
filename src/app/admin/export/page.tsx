@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { FileSpreadsheet, Download, Filter, Calendar, Users, Building, RefreshCw } from 'lucide-react'
 import { useToast } from '@/components/Toast'
+import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 
 export default function AdminExportPage() {
   const { showToast } = useToast()
@@ -19,20 +20,14 @@ export default function AdminExportPage() {
   const [exportFormat, setExportFormat] = useState<'xlsx' | 'csv'>('xlsx')
   const [downloading, setDownloading] = useState(false)
 
-  const loadData = async () => {
+  const loadData = async (forceFresh = false) => {
     try {
-      const [resStudents, resPlaces] = await Promise.all([
-        fetch('/api/students'),
-        fetch('/api/internship-places'),
+      const [sJson, pJson] = await Promise.all([
+        cachedFetch('/api/students', undefined, 20000, forceFresh),
+        cachedFetch('/api/internship-places', undefined, 30000, forceFresh),
       ])
-      if (resStudents.ok) {
-        const json = await resStudents.json()
-        setStudents(json.students || [])
-      }
-      if (resPlaces.ok) {
-        const pJson = await resPlaces.json()
-        setPlaces(pJson.places || [])
-      }
+      setStudents(sJson.students || [])
+      setPlaces(pJson.places || [])
     } catch (err) {
       console.error('Failed to load export filters:', err)
     } finally {
@@ -47,7 +42,9 @@ export default function AdminExportPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadData()
+    invalidateCache('/api/students')
+    invalidateCache('/api/internship-places')
+    await loadData(true)
     showToast('Data kriteria export berhasil diperbarui!', 'success')
   }
 

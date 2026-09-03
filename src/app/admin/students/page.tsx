@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { formatDate } from '@/lib/utils'
+import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 
 export default function AdminStudentsPage() {
   const { showToast } = useToast()
@@ -55,25 +56,16 @@ export default function AdminStudentsPage() {
   })
   const [submitting, setSubmitting] = useState(false)
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (forceFresh = false) => {
     try {
-      const [resStudents, resPlaces, resMentors] = await Promise.all([
-        fetch('/api/students'),
-        fetch('/api/internship-places'),
-        fetch('/api/mentors'),
+      const [s, p, m] = await Promise.all([
+        cachedFetch('/api/students', undefined, 20000, forceFresh),
+        cachedFetch('/api/internship-places', undefined, 30000, forceFresh),
+        cachedFetch('/api/mentors', undefined, 20000, forceFresh),
       ])
-      if (resStudents.ok) {
-        const s = await resStudents.json()
-        setStudents(s.students || [])
-      }
-      if (resPlaces.ok) {
-        const p = await resPlaces.json()
-        setPlaces(p.places || [])
-      }
-      if (resMentors.ok) {
-        const m = await resMentors.json()
-        setMentors(m.mentors || [])
-      }
+      setStudents(s.students || [])
+      setPlaces(p.places || [])
+      setMentors(m.mentors || [])
     } catch (err) {
       console.error(err)
     } finally {
@@ -84,7 +76,10 @@ export default function AdminStudentsPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadData()
+    invalidateCache('/api/students')
+    invalidateCache('/api/internship-places')
+    invalidateCache('/api/mentors')
+    await loadData(true)
     showToast('Data peserta didik berhasil diperbarui!', 'success')
   }
 
@@ -126,7 +121,9 @@ export default function AdminStudentsPage() {
 
       showToast('Peserta didik berhasil ditambahkan!', 'success', 'Berhasil')
       setCreateModalOpen(false)
-      loadData()
+      invalidateCache('/api/students')
+      invalidateCache('/api/admin/stats')
+      loadData(true)
     } catch (err: any) {
       showToast(err.message, 'error', 'Error')
     } finally {
@@ -170,7 +167,9 @@ export default function AdminStudentsPage() {
 
       showToast('Data peserta didik berhasil diperbarui!', 'success', 'Berhasil')
       setEditModalOpen(false)
-      loadData()
+      invalidateCache('/api/students')
+      invalidateCache('/api/admin/stats')
+      loadData(true)
     } catch (err: any) {
       showToast(err.message, 'error', 'Error')
     } finally {
@@ -197,7 +196,9 @@ export default function AdminStudentsPage() {
 
       showToast('Peserta didik berhasil dihapus dari sistem.', 'success', 'Dihapus')
       setDeleteModalOpen(false)
-      loadData()
+      invalidateCache('/api/students')
+      invalidateCache('/api/admin/stats')
+      loadData(true)
     } catch (err: any) {
       showToast(err.message, 'error', 'Error')
     } finally {
