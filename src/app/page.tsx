@@ -17,6 +17,8 @@ export default async function Home() {
 
   if (profile?.role === 'superadmin') {
     redirect('/admin')
+  } else if (profile?.role === 'pembimbing') {
+    redirect('/pembimbing')
   } else {
     redirect('/dashboard')
   }

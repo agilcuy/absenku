@@ -4,7 +4,8 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LogOut, Calendar, Home, User as UserIcon } from 'lucide-react'
+import { LogOut, Calendar, Home, User as UserIcon, FileText, UserCircle } from 'lucide-react'
+import NotificationCenter from '@/components/NotificationCenter'
 
 interface StudentNavbarProps {
   user?: {
@@ -47,19 +48,31 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
         <nav className="flex items-center gap-1 sm:gap-2">
           <Link
             href="/dashboard"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
               pathname === '/dashboard'
                 ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <Home className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Beranda</span>
+            <span className="hidden sm:inline">Absensi</span>
+          </Link>
+
+          <Link
+            href="/dashboard/permits"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
+              pathname === '/dashboard/permits'
+                ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Izin & Sakit</span>
           </Link>
 
           <Link
             href="/dashboard/history"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
               pathname === '/dashboard/history'
                 ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -69,10 +82,25 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
             <span className="hidden sm:inline">Riwayat</span>
           </Link>
 
-          {/* User profile avatar & Sign out */}
-          <div className="h-4 w-[1px] bg-white/10 mx-1" />
+          <Link
+            href="/dashboard/profile"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
+              pathname === '/dashboard/profile'
+                ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <UserCircle className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Profil</span>
+          </Link>
 
-          <div className="flex items-center gap-2">
+          {/* Notification Center */}
+          <NotificationCenter />
+
+          {/* User profile avatar & Sign out */}
+          <div className="h-4 w-[1px] bg-white/10 mx-0.5" />
+
+          <div className="flex items-center gap-1.5">
             {user?.avatar_url ? (
               <img
                 src={user.avatar_url}

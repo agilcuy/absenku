@@ -6,24 +6,32 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
+  GraduationCap,
+  Building,
+  FileText,
   ClipboardList,
   CalendarDays,
   Clock,
   CalendarCheck,
   FileSpreadsheet,
   ShieldAlert,
+  Smartphone,
   X,
 } from 'lucide-react'
 
 const MENU_ITEMS = [
-  { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { label: 'Monitoring Live', href: '/admin', icon: LayoutDashboard },
   { label: 'Peserta Didik', href: '/admin/students', icon: Users },
+  { label: 'Pembimbing PKL', href: '/admin/mentors', icon: GraduationCap },
+  { label: 'Tempat PKL', href: '/admin/places', icon: Building },
+  { label: 'Izin & Sakit', href: '/admin/permits', icon: FileText },
   { label: 'Data Absensi', href: '/admin/attendances', icon: ClipboardList },
   { label: 'Kalender Absensi', href: '/admin/calendar', icon: CalendarDays },
+  { label: 'Aktivitas Login', href: '/admin/login-activity', icon: Smartphone },
   { label: 'Jam & Identitas', href: '/admin/settings', icon: Clock },
   { label: 'Hari Kerja & Libur', href: '/admin/settings/schedule', icon: CalendarCheck },
-  { label: 'Audit Log', href: '/admin/audit', icon: ShieldAlert },
   { label: 'Export Rekap', href: '/admin/export', icon: FileSpreadsheet },
+  { label: 'Audit Log', href: '/admin/audit', icon: ShieldAlert },
 ]
 
 interface AdminSidebarProps {

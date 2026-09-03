@@ -12,14 +12,37 @@ create extension if not exists "uuid-ossp";
 -- ============================================================
 
 -- Users (profiles linked to Supabase Auth)
+-- Internship Places (Tempat / Instansi PKL)
+create table public.internship_places (
+  id uuid primary key default uuid_generate_v4(),
+  name text not null,
+  address text,
+  phone text,
+  pic_name text,
+  pic_phone text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Users (profiles linked to Supabase Auth)
 create table public.users (
   id uuid references auth.users(id) on delete cascade primary key,
   email text unique not null,
   full_name text not null,
+  username text unique,
   phone text,
   avatar_url text,
-  role text not null default 'student' check (role in ('superadmin', 'student')),
+  class_name text,
+  major text,
+  internship_place_id uuid references public.internship_places(id) on delete set null,
+  mentor_id uuid references public.users(id) on delete set null,
+  start_date date,
+  end_date date,
+  internship_status text not null default 'aktif' check (internship_status in ('belum_mulai', 'aktif', 'selesai')),
+  role text not null default 'student' check (role in ('superadmin', 'pembimbing', 'student')),
   is_active boolean not null default true,
+  last_seen timestamptz default now(),
+  is_online boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -47,13 +70,30 @@ create table public.holidays (
   created_at timestamptz not null default now()
 );
 
+-- Permits (Pengajuan Izin & Sakit)
+create table public.permits (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references public.users(id) on delete cascade not null,
+  type text not null check (type in ('izin', 'sakit')),
+  start_date date not null,
+  end_date date not null,
+  reason text not null,
+  proof_url text,
+  status text not null default 'menunggu' check (status in ('menunggu', 'disetujui', 'ditolak')),
+  reviewed_by uuid references public.users(id),
+  rejection_reason text,
+  reviewed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 -- Attendances
 create table public.attendances (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references public.users(id) on delete cascade not null,
   date date not null,
   check_in_time timestamptz,
-  check_in_status text check (check_in_status in ('on_time', 'late', 'alpha')),
+  check_in_status text check (check_in_status in ('on_time', 'late', 'alpha', 'izin', 'sakit')),
   check_in_lat decimal(10,8),
   check_in_lng decimal(11,8),
   check_in_address text,
@@ -63,6 +103,7 @@ create table public.attendances (
   check_out_address text,
   is_manual boolean not null default false,
   note text,
+  permit_id uuid references public.permits(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(user_id, date)
@@ -77,6 +118,34 @@ create table public.attendance_photos (
   file_name text,
   file_size integer,
   uploaded_at timestamptz not null default now()
+);
+
+-- User Sessions (Pencatatan Perangkat Login & Multi-device Detection)
+create table public.user_sessions (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references public.users(id) on delete cascade not null,
+  device_type text,
+  os text,
+  browser text,
+  ip_address text,
+  user_agent text,
+  session_token text,
+  is_active boolean not null default true,
+  login_at timestamptz not null default now(),
+  last_active_at timestamptz not null default now(),
+  logout_at timestamptz
+);
+
+-- Notifications (Pusat Notifikasi Internal)
+create table public.notifications (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references public.users(id) on delete cascade not null,
+  title text not null,
+  message text not null,
+  type text not null check (type in ('permit', 'attendance', 'reminder', 'warning', 'info')),
+  link text,
+  is_read boolean not null default false,
+  created_at timestamptz not null default now()
 );
 
 -- Audit Logs

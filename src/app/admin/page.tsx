@@ -8,14 +8,18 @@ import {
   Clock,
   AlertTriangle,
   UserX,
-  LogOut,
   Calendar,
   ArrowUpRight,
   RefreshCw,
   TrendingUp,
   Activity,
-  Plus,
-  FileSpreadsheet,
+  Building,
+  FileText,
+  Smartphone,
+  CheckCircle2,
+  XCircle,
+  HelpCircle,
+  Search,
 } from 'lucide-react'
 import {
   BarChart,
@@ -27,14 +31,25 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from 'recharts'
-import { formatDate, formatTime, getStatusBadge, getStatusEmoji } from '@/lib/utils'
+import {
+  formatDate,
+  formatTime,
+  getStatusBadge,
+  getStatusEmoji,
+  getStatusLabel,
+  formatLastSeen,
+} from '@/lib/utils'
+import StudentDetailModal from '@/components/StudentDetailModal'
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [presenceFilter, setPresenceFilter] = useState<'all' | 'online' | 'offline'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
 
   const loadStats = useCallback(async () => {
     try {
@@ -53,8 +68,8 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     loadStats()
-    // Auto-refresh stats every 30 seconds for live monitoring
-    const interval = setInterval(loadStats, 30000)
+    // Auto-refresh stats every 25 seconds for live real-time presence & attendance monitoring
+    const interval = setInterval(loadStats, 25000)
     return () => clearInterval(interval)
   }, [loadStats])
 
@@ -63,17 +78,39 @@ export default function AdminDashboardPage() {
     loadStats()
   }
 
+  const handleOpenStudentDetail = (id: string) => {
+    setSelectedStudentId(id)
+    setModalOpen(true)
+  }
+
   const stats = data?.stats
+  const students = data?.students || []
   const weeklyTrend = data?.weeklyTrend || []
-  const recentActivities = data?.recentActivities || []
+  const multiDeviceAlerts = data?.multiDeviceAlerts || []
 
   // Donut chart data
   const pieData = [
     { name: 'Tepat Waktu', value: stats?.onTimeToday || 0, color: '#10b981' },
     { name: 'Terlambat', value: stats?.lateToday || 0, color: '#f59e0b' },
+    { name: 'Izin', value: stats?.izinToday || 0, color: '#3b82f6' },
+    { name: 'Sakit', value: stats?.sakitToday || 0, color: '#a855f7' },
     { name: 'Alpha', value: stats?.alphaToday || 0, color: '#ef4444' },
     { name: 'Belum Absen', value: stats?.notCheckedIn || 0, color: '#475569' },
   ].filter((d) => d.value > 0)
+
+  // Filter students by presence and search query
+  const filteredStudents = students.filter((s: any) => {
+    if (presenceFilter === 'online' && !s.is_online) return false
+    if (presenceFilter === 'offline' && s.is_online) return false
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      const matchName = s.full_name?.toLowerCase().includes(q)
+      const matchClass = s.class_name?.toLowerCase().includes(q)
+      const matchPlace = s.internship_places?.name?.toLowerCase().includes(q)
+      if (!matchName && !matchClass && !matchPlace) return false
+    }
+    return true
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -84,13 +121,13 @@ export default function AdminDashboardPage() {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1">
             <Activity className="w-4 h-4 text-indigo-400" />
-            <span>Real-time Monitoring Absensi</span>
+            <span>Pusat Monitoring Siswa & Real-time Presence</span>
           </div>
           <h1 className="text-2xl lg:text-3xl font-black text-white">
             Dashboard Superadmin
           </h1>
           <p className="text-xs text-gray-400 mt-1">
-            {formatDate(new Date())} · Sistem Absensi PKL Kominfo Tanggamus
+            {formatDate(new Date())} · Sistem Monitoring PKL & Kedisiplinan Siswa
           </p>
         </div>
 
@@ -100,119 +137,136 @@ export default function AdminDashboardPage() {
             onClick={handleManualRefresh}
             disabled={refreshing}
             className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5"
+            title="Refresh data sekarang"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : ''}`} />
-            <span>Refresh</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
           </button>
 
-          <Link href="/admin/students" className="btn-primary text-xs py-2 px-3">
-            <Plus className="w-3.5 h-3.5" />
-            <span>Tambah Siswa</span>
-          </Link>
-
-          <Link href="/admin/export" className="btn-outline text-xs py-2 px-3">
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>Export Rekap</span>
+          <Link href="/admin/permits" className="btn-primary text-xs py-2 px-3 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" />
+            <span>Review Izin & Sakit</span>
           </Link>
         </div>
       </div>
 
-      {/* Primary Key Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        {/* Total Siswa */}
-        <div className="glass-card p-4 border border-white/5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-gray-400 uppercase">Total Siswa</span>
-            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
-              <Users className="w-4 h-4" />
+      {/* Multi-Device Warning Alert (Fitur 15) */}
+      {multiDeviceAlerts.length > 0 && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-xl">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-bold text-amber-300">
+                Peringatan: Satu Akun Aktif di Beberapa Perangkat Bersamaan
+              </h4>
+              <p className="text-xs text-amber-200/80 mt-0.5">
+                Terdeteksi {multiDeviceAlerts.length} siswa login pada lebih dari satu perangkat secara aktif (contoh: HP dan Laptop):{' '}
+                <span className="font-semibold text-white">
+                  {multiDeviceAlerts.map((a: any) => a.user_name).join(', ')}
+                </span>
+              </p>
             </div>
           </div>
-          <div className="mt-2">
-            <p className="text-2xl font-black text-white">{stats?.totalStudents ?? 0}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">Peserta PKL Aktif</p>
+          <Link
+            href="/admin/login-activity"
+            className="btn-outline text-xs py-2 px-3 border-amber-500/40 text-amber-300 hover:bg-amber-500/20 whitespace-nowrap self-start sm:self-auto"
+          >
+            Kelola Sesi Perangkat
+          </Link>
+        </div>
+      )}
+
+      {/* Top 9 Statistics Grid (Fitur 11) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {/* Total Siswa */}
+        <div className="glass-card p-4 border border-white/10 flex flex-col justify-between">
+          <span className="text-[11px] text-gray-400 font-semibold uppercase">Total Siswa</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-white">{stats?.totalStudents ?? 0}</span>
+            <Users className="w-4 h-4 text-indigo-400" />
+          </div>
+        </div>
+
+        {/* Siswa Online (Fitur 8) */}
+        <div className="glass-card p-4 border border-emerald-500/30 bg-emerald-500/5 flex flex-col justify-between">
+          <span className="text-[11px] text-emerald-400 font-semibold uppercase flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            Online
+          </span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-emerald-400">{stats?.onlineStudents ?? 0}</span>
+            <span className="text-[10px] text-gray-400">Aktif web</span>
+          </div>
+        </div>
+
+        {/* Siswa Offline */}
+        <div className="glass-card p-4 border border-white/10 flex flex-col justify-between">
+          <span className="text-[11px] text-gray-400 font-semibold uppercase flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-slate-500" />
+            Offline
+          </span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-gray-300">{stats?.offlineStudents ?? 0}</span>
+            <span className="text-[10px] text-gray-500">Tidak aktif</span>
           </div>
         </div>
 
         {/* Hadir Hari Ini */}
-        <div className="glass-card p-4 border border-white/5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-gray-400 uppercase">Hadir Hari Ini</span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-              <UserCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <p className="text-2xl font-black text-emerald-400">{stats?.presentToday ?? 0}</p>
-            <p className="text-[10px] text-emerald-400/80 mt-0.5">
-              {stats?.attendanceRate ?? 0}% Tingkat Kehadiran
-            </p>
-          </div>
-        </div>
-
-        {/* Tepat Waktu */}
-        <div className="glass-card p-4 border border-white/5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-gray-400 uppercase">Tepat Waktu</span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <p className="text-2xl font-black text-emerald-400">{stats?.onTimeToday ?? 0}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">Absen ≤ 07:30 WIB</p>
+        <div className="glass-card p-4 border border-white/10 flex flex-col justify-between">
+          <span className="text-[11px] text-gray-400 font-semibold uppercase">Hadir Hari Ini</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-white">{stats?.presentToday ?? 0}</span>
+            <UserCheck className="w-4 h-4 text-emerald-400" />
           </div>
         </div>
 
         {/* Terlambat */}
-        <div className="glass-card p-4 border border-white/5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-gray-400 uppercase">Terlambat</span>
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <p className="text-2xl font-black text-amber-400">{stats?.lateToday ?? 0}</p>
-            <p className="text-[10px] text-amber-400/80 mt-0.5">
-              {stats?.lateRate ?? 0}% dari yang hadir
-            </p>
+        <div className="glass-card p-4 border border-white/10 flex flex-col justify-between">
+          <span className="text-[11px] text-gray-400 font-semibold uppercase">Terlambat</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-amber-400">{stats?.lateToday ?? 0}</span>
+            <Clock className="w-4 h-4 text-amber-400" />
           </div>
         </div>
 
-        {/* Alpha */}
-        <div className="glass-card p-4 border border-white/5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-gray-400 uppercase">Alpha</span>
-            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400">
-              <UserX className="w-4 h-4" />
-            </div>
+        {/* Izin */}
+        <div className="glass-card p-4 border border-blue-500/20 bg-blue-500/5 flex flex-col justify-between">
+          <span className="text-[11px] text-blue-400 font-semibold uppercase">Izin</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-blue-400">{stats?.izinToday ?? 0}</span>
+            <FileText className="w-4 h-4 text-blue-400" />
           </div>
-          <div className="mt-2">
-            <p className="text-2xl font-black text-rose-400">{stats?.alphaToday ?? 0}</p>
-            <p className="text-[10px] text-rose-400/80 mt-0.5">
-              {stats?.alphaRate ?? 0}% Tingkat Alpha
-            </p>
+        </div>
+
+        {/* Sakit */}
+        <div className="glass-card p-4 border border-purple-500/20 bg-purple-500/5 flex flex-col justify-between">
+          <span className="text-[11px] text-purple-400 font-semibold uppercase">Sakit</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-purple-400">{stats?.sakitToday ?? 0}</span>
+            <Activity className="w-4 h-4 text-purple-400" />
+          </div>
+        </div>
+
+        {/* Alfa */}
+        <div className="glass-card p-4 border border-rose-500/20 bg-rose-500/5 flex flex-col justify-between">
+          <span className="text-[11px] text-rose-400 font-semibold uppercase">Alfa</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-rose-400">{stats?.alphaToday ?? 0}</span>
+            <UserX className="w-4 h-4 text-rose-400" />
+          </div>
+        </div>
+
+        {/* Belum Absen */}
+        <div className="glass-card p-4 border border-white/10 flex flex-col justify-between col-span-2 sm:col-span-1">
+          <span className="text-[11px] text-gray-400 font-semibold uppercase">Belum Absen</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-gray-400">{stats?.notCheckedIn ?? 0}</span>
+            <Clock className="w-4 h-4 text-gray-500" />
           </div>
         </div>
       </div>
 
-      {/* Secondary Quick Indicators */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-          <span className="text-xs text-gray-400 font-medium">Sudah Absen Masuk</span>
-          <span className="text-sm font-bold text-white">{stats?.checkedInToday ?? 0}</span>
-        </div>
-        <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-          <span className="text-xs text-gray-400 font-medium">Sudah Absen Pulang</span>
-          <span className="text-sm font-bold text-white">{stats?.checkedOutToday ?? 0}</span>
-        </div>
-        <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
-          <span className="text-xs text-gray-400 font-medium">Belum Absen</span>
-          <span className="text-sm font-bold text-gray-300">{stats?.notCheckedIn ?? 0}</span>
-        </div>
-      </div>
-
-      {/* Charts & Live Feed Section */}
+      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Weekly Trend Bar Chart (2 cols) */}
         <div className="lg:col-span-2 glass-card p-5 border border-white/10 flex flex-col gap-4">
@@ -223,7 +277,7 @@ export default function AdminDashboardPage() {
                 Tren Kehadiran 7 Hari Terakhir
               </h3>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                Perbandingan siswa tepat waktu, terlambat, dan alpha
+                Visualisasi tepat waktu, terlambat, izin, sakit, dan alpha
               </p>
             </div>
           </div>
@@ -249,6 +303,8 @@ export default function AdminDashboardPage() {
                   />
                   <Bar dataKey="tepat" name="Tepat Waktu" fill="#10b981" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="terlambat" name="Terlambat" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="izin" name="Izin" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sakit" name="Sakit" fill="#a855f7" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="alpha" name="Alpha" fill="#ef4444" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -267,7 +323,7 @@ export default function AdminDashboardPage() {
             Komposisi Hari Ini
           </h3>
 
-          <div className="h-48 w-full flex items-center justify-center">
+          <div className="h-44 w-full flex items-center justify-center">
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -275,9 +331,9 @@ export default function AdminDashboardPage() {
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={4}
+                    innerRadius={45}
+                    outerRadius={70}
+                    paddingAngle={3}
                     dataKey="value"
                   >
                     {pieData.map((entry, index) => (
@@ -308,6 +364,14 @@ export default function AdminDashboardPage() {
               <span className="w-2 h-2 rounded-full bg-amber-400" />
               <span>Telat: {stats?.lateToday ?? 0}</span>
             </div>
+            <div className="flex items-center gap-1.5 text-blue-400 font-medium">
+              <span className="w-2 h-2 rounded-full bg-blue-400" />
+              <span>Izin: {stats?.izinToday ?? 0}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-purple-400 font-medium">
+              <span className="w-2 h-2 rounded-full bg-purple-400" />
+              <span>Sakit: {stats?.sakitToday ?? 0}</span>
+            </div>
             <div className="flex items-center gap-1.5 text-rose-400 font-medium">
               <span className="w-2 h-2 rounded-full bg-rose-400" />
               <span>Alpha: {stats?.alphaToday ?? 0}</span>
@@ -320,65 +384,214 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Real-time Activity Stream */}
+      {/* Live Student Monitoring Section (Fitur 8, 9, 10, 11) */}
       <div className="glass-card p-5 border border-white/10 flex flex-col gap-4">
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <h3 className="text-sm font-bold text-white">
-              Aktivitas Absensi Real-time Hari Ini
-            </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <h3 className="text-base font-bold text-white">
+                Live Monitoring Peserta Didik
+              </h3>
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Pantau status online/offline real-time, aktivitas terakhir, dan absensi hari ini
+            </p>
           </div>
-          <Link
-            href="/admin/attendances"
-            className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-          >
-            Lihat Semua <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
+
+          {/* Presence Filter Badges (Fitur 10) */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Cari siswa/tempat..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="input-field text-xs pl-8 py-1.5 w-40 sm:w-48"
+              />
+            </div>
+
+            <div className="flex items-center p-1 rounded-xl bg-black/40 border border-white/10 text-xs">
+              <button
+                onClick={() => setPresenceFilter('all')}
+                className={`px-3 py-1 rounded-lg font-medium transition ${
+                  presenceFilter === 'all'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Semua ({students.length})
+              </button>
+              <button
+                onClick={() => setPresenceFilter('online')}
+                className={`px-3 py-1 rounded-lg font-medium flex items-center gap-1.5 transition ${
+                  presenceFilter === 'online'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                Online ({stats?.onlineStudents ?? 0})
+              </button>
+              <button
+                onClick={() => setPresenceFilter('offline')}
+                className={`px-3 py-1 rounded-lg font-medium flex items-center gap-1.5 transition ${
+                  presenceFilter === 'offline'
+                    ? 'bg-slate-700 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-slate-400" />
+                Offline ({stats?.offlineStudents ?? 0})
+              </button>
+            </div>
+          </div>
         </div>
 
-        {recentActivities.length === 0 ? (
-          <div className="p-8 text-center text-xs text-gray-500">
-            Belum ada aktivitas absensi tercatat hari ini.
+        {/* Student Table / Cards (Fitur 11 & 12) */}
+        {filteredStudents.length === 0 ? (
+          <div className="py-12 text-center text-xs text-gray-500">
+            Tidak ada data siswa yang cocok dengan filter.
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
-            {recentActivities.map((act: any) => {
-              const name = act.users?.full_name || 'Peserta Didik'
-              const isCheckout = !!act.check_out_time && !act.check_in_time
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-white/10 text-gray-400 font-semibold">
+                  <th className="py-3 px-3">Siswa</th>
+                  <th className="py-3 px-3">Tempat PKL & Pembimbing</th>
+                  <th className="py-3 px-3">Status Presence</th>
+                  <th className="py-3 px-3">Terakhir Aktif</th>
+                  <th className="py-3 px-3">Absensi Hari Ini</th>
+                  <th className="py-3 px-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredStudents.map((s: any) => {
+                  const todayAtt = s.today_attendance
 
-              return (
-                <div key={act.id} className="py-3 flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center text-xs flex-shrink-0">
-                      {name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-white truncate">{name}</p>
-                      <p className="text-[11px] text-gray-400">
-                        {act.check_out_time
-                          ? `Melakukan absensi pulang pada ${formatTime(act.check_out_time)}`
-                          : `Melakukan absensi masuk pada ${formatTime(act.check_in_time)}`}
-                      </p>
-                    </div>
-                  </div>
+                  return (
+                    <tr
+                      key={s.id}
+                      onClick={() => handleOpenStudentDetail(s.id)}
+                      className="hover:bg-white/5 transition cursor-pointer group"
+                    >
+                      {/* Siswa */}
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center text-xs border border-white/10 overflow-hidden flex-shrink-0">
+                              {s.avatar_url ? (
+                                <img
+                                  src={s.avatar_url}
+                                  alt={s.full_name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                s.full_name.charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <span
+                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-slate-900 ${
+                                s.is_online ? 'bg-emerald-500' : 'bg-slate-500'
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-white group-hover:text-indigo-400 transition">
+                              {s.full_name}
+                            </p>
+                            <p className="text-[10px] text-gray-400">
+                              {s.class_name || 'Kelas -'} • {s.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
 
-                  <div className={`badge text-[10px] ${getStatusBadge(act.check_in_status)}`}>
-                    <span>{getStatusEmoji(act.check_in_status)}</span>
-                    <span className="hidden sm:inline">
-                      {act.check_in_status === 'on_time'
-                        ? 'Tepat Waktu'
-                        : act.check_in_status === 'late'
-                        ? 'Terlambat'
-                        : 'Alpha'}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
+                      {/* Tempat PKL & Pembimbing */}
+                      <td className="py-3 px-3">
+                        <p className="font-medium text-gray-200 truncate max-w-[180px]">
+                          {s.internship_places?.name || '-'}
+                        </p>
+                        <p className="text-[10px] text-gray-400 truncate max-w-[180px]">
+                          Bim: {s.mentor?.full_name || '-'}
+                        </p>
+                      </td>
+
+                      {/* Status Presence (Fitur 8) */}
+                      <td className="py-3 px-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                            s.is_online
+                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-slate-500/15 text-slate-400 border border-slate-500/30'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              s.is_online ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'
+                            }`}
+                          />
+                          {s.is_online ? 'Online' : 'Offline'}
+                        </span>
+                      </td>
+
+                      {/* Last Seen (Fitur 9) */}
+                      <td className="py-3 px-3 text-gray-300">
+                        <span className="text-[11px]">{formatLastSeen(s.last_seen)}</span>
+                      </td>
+
+                      {/* Status Absensi Hari Ini */}
+                      <td className="py-3 px-3">
+                        {todayAtt ? (
+                          <span className={`badge text-[11px] ${getStatusBadge(todayAtt.check_in_status)}`}>
+                            <span>{getStatusEmoji(todayAtt.check_in_status)}</span>
+                            <span>{getStatusLabel(todayAtt.check_in_status)}</span>
+                            {todayAtt.check_in_time && (
+                              <span className="text-[10px] opacity-75">
+                                ({formatTime(todayAtt.check_in_time)})
+                              </span>
+                            )}
+                          </span>
+                        ) : !s.is_within_period ? (
+                          <span className="text-[10px] text-gray-500 italic">
+                            Di luar periode PKL
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+                            Belum Absen
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Aksi */}
+                      <td className="py-3 px-3 text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpenStudentDetail(s.id)
+                          }}
+                          className="btn-outline text-[11px] py-1 px-2.5 hover:border-indigo-500"
+                        >
+                          Detail
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
+
+      {/* Student Detail Modal (Fitur 12) */}
+      <StudentDetailModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        studentId={selectedStudentId}
+      />
     </div>
   )
 }

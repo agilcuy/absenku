@@ -86,6 +86,8 @@ export async function GET(request: Request) {
         // 6. Redirect according to role
         if (profile.role === 'superadmin') {
           return NextResponse.redirect(`${origin}/admin`)
+        } else if (profile.role === 'pembimbing') {
+          return NextResponse.redirect(`${origin}/pembimbing`)
         } else {
           return NextResponse.redirect(`${origin}/dashboard`)
         }

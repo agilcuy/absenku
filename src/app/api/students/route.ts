@@ -19,7 +19,7 @@ export async function GET() {
 
     const { data: students, error } = await adminClient
       .from('users')
-      .select('*')
+      .select('*, internship_places(id, name, address, pic_name, pic_phone), mentor:mentor_id(id, full_name, email, phone)')
       .eq('role', 'student')
       .order('created_at', { ascending: false })
 
@@ -46,7 +46,19 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { email, full_name, phone } = body
+    const {
+      email,
+      full_name,
+      username,
+      phone,
+      class_name,
+      major,
+      internship_place_id,
+      mentor_id,
+      start_date,
+      end_date,
+      internship_status,
+    } = body
 
     if (!email || !full_name) {
       return NextResponse.json(
@@ -56,25 +68,42 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedEmail = email.trim().toLowerCase()
+    const normalizedUsername = username?.trim().toLowerCase() || null
 
     // Check if email already exists in users table
-    const { data: existing } = await adminClient
+    const { data: existingEmail } = await adminClient
       .from('users')
       .select('id')
       .eq('email', normalizedEmail)
       .maybeSingle()
 
-    if (existing) {
+    if (existingEmail) {
       return NextResponse.json(
         { error: 'Email ini sudah terdaftar di sistem.' },
         { status: 400 }
       )
     }
 
-    // 1. First attempt: Create user in Supabase Auth so it has a valid auth.users entry
+    // Check if username already exists
+    if (normalizedUsername) {
+      const { data: existingUser } = await adminClient
+        .from('users')
+        .select('id')
+        .eq('username', normalizedUsername)
+        .maybeSingle()
+
+      if (existingUser) {
+        return NextResponse.json(
+          { error: 'Username ini sudah digunakan siswa lain.' },
+          { status: 400 }
+        )
+      }
+    }
+
+    // 1. First attempt: Create user in Supabase Auth
     let studentId = ''
     try {
-      const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({
+      const { data: authUser } = await adminClient.auth.admin.createUser({
         email: normalizedEmail,
         user_metadata: { full_name: full_name.trim(), phone: phone?.trim() || null },
         email_confirm: true,
@@ -91,7 +120,7 @@ export async function POST(req: NextRequest) {
       studentId = crypto.randomUUID()
     }
 
-    // 2. Upsert into public.users
+    // 2. Insert into public.users
     const { data: newStudent, error: insertError } = await adminClient
       .from('users')
       .upsert(
@@ -99,13 +128,21 @@ export async function POST(req: NextRequest) {
           id: studentId,
           email: normalizedEmail,
           full_name: full_name.trim(),
+          username: normalizedUsername,
           phone: phone?.trim() || null,
+          class_name: class_name?.trim() || null,
+          major: major?.trim() || null,
+          internship_place_id: internship_place_id || null,
+          mentor_id: mentor_id || null,
+          start_date: start_date || null,
+          end_date: end_date || null,
+          internship_status: internship_status || 'aktif',
           role: 'student',
           is_active: true,
         },
         { onConflict: 'email' }
       )
-      .select()
+      .select('*, internship_places(name), mentor:mentor_id(full_name)')
       .single()
 
     if (insertError) {

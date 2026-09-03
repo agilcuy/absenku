@@ -13,6 +13,9 @@ import {
   X,
   Mail,
   Phone,
+  Building,
+  GraduationCap,
+  Calendar,
   User as UserIcon,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
@@ -22,6 +25,8 @@ export default function AdminStudentsPage() {
   const { showToast } = useToast()
 
   const [students, setStudents] = useState<any[]>([])
+  const [places, setPlaces] = useState<any[]>([])
+  const [mentors, setMentors] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
@@ -32,36 +37,70 @@ export default function AdminStudentsPage() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null)
 
   // Form states
-  const [formEmail, setFormEmail] = useState('')
-  const [formName, setFormName] = useState('')
-  const [formPhone, setFormPhone] = useState('')
-  const [formActive, setFormActive] = useState(true)
+  const [formData, setFormData] = useState({
+    email: '',
+    full_name: '',
+    username: '',
+    phone: '',
+    class_name: '',
+    major: '',
+    internship_place_id: '',
+    mentor_id: '',
+    start_date: '',
+    end_date: '',
+    internship_status: 'aktif',
+    is_active: true,
+  })
   const [submitting, setSubmitting] = useState(false)
 
-  const loadStudents = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/students')
-      if (res.ok) {
-        const data = await res.json()
-        setStudents(data.students || [])
+      const [resStudents, resPlaces, resMentors] = await Promise.all([
+        fetch('/api/students'),
+        fetch('/api/internship-places'),
+        fetch('/api/mentors'),
+      ])
+
+      if (resStudents.ok) {
+        const d = await resStudents.json()
+        setStudents(d.students || [])
+      }
+      if (resPlaces.ok) {
+        const d = await resPlaces.json()
+        setPlaces(d.places || [])
+      }
+      if (resMentors.ok) {
+        const d = await resMentors.json()
+        setMentors(d.mentors || [])
       }
     } catch (err) {
-      console.error('Failed to load students:', err)
+      console.error('Failed to load data:', err)
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    loadStudents()
-  }, [loadStudents])
+    loadData()
+  }, [loadData])
 
   // Open Create Modal
   const handleOpenCreate = () => {
-    setFormEmail('')
-    setFormName('')
-    setFormPhone('')
+    setFormData({
+      email: '',
+      full_name: '',
+      username: '',
+      phone: '',
+      class_name: '',
+      major: '',
+      internship_place_id: '',
+      mentor_id: '',
+      start_date: '',
+      end_date: '',
+      internship_status: 'aktif',
+      is_active: true,
+    })
     setCreateModalOpen(true)
   }
 
@@ -73,18 +112,14 @@ export default function AdminStudentsPage() {
       const res = await fetch('/api/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formEmail,
-          full_name: formName,
-          phone: formPhone,
-        }),
+        body: JSON.stringify(formData),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal menambahkan peserta didik.')
 
       showToast('Peserta didik berhasil ditambahkan!', 'success', 'Berhasil')
       setCreateModalOpen(false)
-      loadStudents()
+      loadData()
     } catch (err: any) {
       showToast(err.message, 'error', 'Error')
     } finally {
@@ -95,9 +130,20 @@ export default function AdminStudentsPage() {
   // Open Edit Modal
   const handleOpenEdit = (student: any) => {
     setSelectedStudent(student)
-    setFormName(student.full_name)
-    setFormPhone(student.phone || '')
-    setFormActive(student.is_active)
+    setFormData({
+      email: student.email,
+      full_name: student.full_name,
+      username: student.username || '',
+      phone: student.phone || '',
+      class_name: student.class_name || '',
+      major: student.major || '',
+      internship_place_id: student.internship_place_id || '',
+      mentor_id: student.mentor_id || '',
+      start_date: student.start_date || '',
+      end_date: student.end_date || '',
+      internship_status: student.internship_status || 'aktif',
+      is_active: student.is_active,
+    })
     setEditModalOpen(true)
   }
 
@@ -110,18 +156,14 @@ export default function AdminStudentsPage() {
       const res = await fetch(`/api/students/${selectedStudent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name: formName,
-          phone: formPhone,
-          is_active: formActive,
-        }),
+        body: JSON.stringify(formData),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal mengubah data.')
 
       showToast('Data peserta didik berhasil diperbarui!', 'success', 'Berhasil')
       setEditModalOpen(false)
-      loadStudents()
+      loadData()
     } catch (err: any) {
       showToast(err.message, 'error', 'Error')
     } finally {
@@ -148,7 +190,7 @@ export default function AdminStudentsPage() {
 
       showToast('Peserta didik berhasil dihapus dari sistem.', 'success', 'Dihapus')
       setDeleteModalOpen(false)
-      loadStudents()
+      loadData()
     } catch (err: any) {
       showToast(err.message, 'error', 'Error')
     } finally {
@@ -158,217 +200,350 @@ export default function AdminStudentsPage() {
 
   const filteredStudents = students.filter((s) => {
     const q = search.toLowerCase()
-    return s.full_name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q)
+    return (
+      s.full_name?.toLowerCase().includes(q) ||
+      s.email?.toLowerCase().includes(q) ||
+      s.username?.toLowerCase().includes(q) ||
+      s.class_name?.toLowerCase().includes(q) ||
+      s.internship_places?.name?.toLowerCase().includes(q)
+    )
   })
 
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="glass-card p-6 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Users className="w-6 h-6 text-indigo-400" />
-            Manajemen Peserta Didik
-          </h1>
+          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1">
+            <Users className="w-4 h-4" />
+            <span>Manajemen Pengguna</span>
+          </div>
+          <h1 className="text-2xl font-black text-white">Data Peserta Didik PKL</h1>
           <p className="text-xs text-gray-400 mt-1">
-            Kelola daftar siswa PKL yang berhak melakukan absensi dengan akun Google
+            Kelola profil lengkap siswa, penempatan instansi mitra, pembimbing, dan periode PKL
           </p>
         </div>
 
         <button
           onClick={handleOpenCreate}
-          className="btn-primary text-xs py-2.5 px-4 self-start sm:self-auto"
+          className="btn-primary text-xs py-2.5 px-4 flex items-center gap-1.5 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Tambah Siswa Baru</span>
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="glass-card p-4 border border-white/10 flex items-center gap-3">
-        <Search className="w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Cari nama atau email siswa..."
-          className="bg-transparent text-xs text-white placeholder:text-gray-500 outline-none w-full"
-        />
+      {/* Filter and Search */}
+      <div className="glass-card p-4 border border-white/10 flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Cari nama, username, kelas, tempat PKL..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input-field text-xs pl-9 w-full"
+          />
+        </div>
+        <span className="text-xs text-gray-400">Total: {filteredStudents.length} Siswa</span>
       </div>
 
-      {/* Students Table */}
+      {/* Table */}
       <div className="glass-card border border-white/10 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Siswa</th>
-                <th>Kontak</th>
-                <th>Status</th>
-                <th>Terdaftar</th>
-                <th className="text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-8 text-xs text-gray-500">
-                    Memuat data siswa...
-                  </td>
+        {loading ? (
+          <div className="py-16 text-center text-gray-400 text-xs">Memuat data siswa...</div>
+        ) : filteredStudents.length === 0 ? (
+          <div className="py-16 text-center text-gray-500 text-xs flex flex-col items-center gap-2">
+            <Users className="w-8 h-8 opacity-20" />
+            <span>Belum ada peserta didik yang terdaftar.</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-white/10 text-gray-400 font-semibold bg-black/30">
+                  <th className="py-3.5 px-4">Nama Siswa</th>
+                  <th className="py-3.5 px-4">Kelas & Jurusan</th>
+                  <th className="py-3.5 px-4">Tempat PKL & Pembimbing</th>
+                  <th className="py-3.5 px-4">Periode PKL</th>
+                  <th className="py-3.5 px-4">Status PKL</th>
+                  <th className="py-3.5 px-4">Status Akun</th>
+                  <th className="py-3.5 px-4 text-right">Aksi</th>
                 </tr>
-              ) : filteredStudents.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-8 text-xs text-gray-500">
-                    Tidak ada data peserta didik ditemukan.
-                  </td>
-                </tr>
-              ) : (
-                filteredStudents.map((s) => (
-                  <tr key={s.id}>
-                    <td>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredStudents.map((s) => (
+                  <tr key={s.id} className="hover:bg-white/5 transition">
+                    {/* Nama Siswa */}
+                    <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        {s.avatar_url ? (
-                          <img
-                            src={s.avatar_url}
-                            alt={s.full_name}
-                            className="w-8 h-8 rounded-full border border-indigo-500/30 object-cover"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center text-xs">
-                            {s.full_name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
+                        <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center text-xs flex-shrink-0 border border-white/10">
+                          {s.avatar_url ? (
+                            <img
+                              src={s.avatar_url}
+                              alt={s.full_name}
+                              className="w-full h-full object-cover rounded-xl"
+                            />
+                          ) : (
+                            s.full_name.charAt(0).toUpperCase()
+                          )}
+                        </div>
                         <div>
-                          <p className="font-semibold text-white text-xs">{s.full_name}</p>
-                          <p className="text-[11px] text-gray-400">{s.email}</p>
+                          <p className="font-semibold text-white">{s.full_name}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {s.username ? `@${s.username} • ` : ''}
+                            {s.email}
+                          </p>
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <div className="text-xs text-gray-300">
-                        {s.phone ? (
-                          <span className="flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-gray-500" /> {s.phone}
-                          </span>
-                        ) : (
-                          <span className="text-gray-600">-</span>
-                        )}
-                      </div>
+
+                    {/* Kelas & Jurusan */}
+                    <td className="py-3.5 px-4 text-gray-300">
+                      <p className="font-medium text-white">{s.class_name || '-'}</p>
+                      <p className="text-[10px] text-gray-400">{s.major || '-'}</p>
                     </td>
-                    <td>
-                      {s.is_active ? (
-                        <span className="badge bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">
-                          <CheckCircle className="w-3 h-3" /> Aktif
-                        </span>
-                      ) : (
-                        <span className="badge bg-rose-500/10 text-rose-400 border-rose-500/20 text-[10px]">
-                          <XCircle className="w-3 h-3" /> Nonaktif
-                        </span>
-                      )}
+
+                    {/* Tempat PKL & Pembimbing */}
+                    <td className="py-3.5 px-4">
+                      <p className="font-medium text-gray-200 truncate max-w-[170px]">
+                        {s.internship_places?.name || '-'}
+                      </p>
+                      <p className="text-[10px] text-gray-400 truncate max-w-[170px]">
+                        Bim: {s.mentor?.full_name || '-'}
+                      </p>
                     </td>
-                    <td>
-                      <span className="text-xs text-gray-400">{formatDate(s.created_at)}</span>
+
+                    {/* Periode PKL */}
+                    <td className="py-3.5 px-4 text-gray-300">
+                      <p className="text-[11px]">
+                        {s.start_date ? formatDate(s.start_date) : '-'} s/d{' '}
+                        {s.end_date ? formatDate(s.end_date) : '-'}
+                      </p>
                     </td>
-                    <td className="text-right">
+
+                    {/* Status PKL */}
+                    <td className="py-3.5 px-4">
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                          s.internship_status === 'selesai'
+                            ? 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                            : s.internship_status === 'belum_mulai'
+                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        }`}
+                      >
+                        {s.internship_status || 'aktif'}
+                      </span>
+                    </td>
+
+                    {/* Status Akun */}
+                    <td className="py-3.5 px-4">
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                          s.is_active
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        }`}
+                      >
+                        {s.is_active ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </td>
+
+                    {/* Aksi */}
+                    <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenEdit(s)}
-                          title="Edit Siswa"
-                          className="p-1.5 rounded-lg text-indigo-400 hover:bg-indigo-500/10 transition"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition"
+                          title="Edit"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleOpenDelete(s)}
-                          title="Hapus Siswa"
-                          className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                          title="Hapus"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* CREATE STUDENT MODAL */}
+      {/* Modal Create */}
       {createModalOpen && (
         <div className="modal-overlay">
-          <div className="glass-card p-6 w-full max-w-md border border-white/10 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Plus className="w-4 h-4 text-indigo-400" />
-                Tambah Peserta Didik Baru
-              </h3>
+          <div className="glass-card w-full max-w-lg p-6 border border-white/10 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+              <h3 className="font-bold text-white">Tambah Peserta Didik Baru</h3>
               <button
                 onClick={() => setCreateModalOpen(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white p-1 rounded-lg"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="flex flex-col gap-3.5 text-xs">
-              <div>
-                <label className="text-gray-400 font-medium block mb-1">
-                  Email Akun Google <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formEmail}
-                  onChange={(e) => setFormEmail(e.target.value)}
-                  placeholder="contoh@gmail.com"
-                  className="input-field"
-                />
-                <p className="text-[10px] text-gray-500 mt-1">
-                  Harus sesuai dengan akun Google yang dipakai siswa saat login.
-                </p>
+            <form onSubmit={handleCreateSubmit} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Nama Lengkap Siswa *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Ahmad Rizki Pratama"
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Username (Opsional)</label>
+                  <input
+                    type="text"
+                    placeholder="ahmadrizki"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Email Google Login *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="siswa@gmail.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">No. WhatsApp / HP</label>
+                  <input
+                    type="tel"
+                    placeholder="08xxxxxxxxxx"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Kelas</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: XII TKJ 1"
+                    value={formData.class_name}
+                    onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Jurusan</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Teknik Komputer dan Jaringan"
+                    value={formData.major}
+                    onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Tempat / Instansi PKL</label>
+                  <select
+                    value={formData.internship_place_id}
+                    onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
+                    className="input-field w-full text-xs"
+                  >
+                    <option value="">-- Pilih Tempat PKL --</option>
+                    {places.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Pembimbing PKL</label>
+                  <select
+                    value={formData.mentor_id}
+                    onChange={(e) => setFormData({ ...formData, mentor_id: e.target.value })}
+                    className="input-field w-full text-xs"
+                  >
+                    <option value="">-- Pilih Pembimbing --</option>
+                    {mentors.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Tanggal Mulai PKL</label>
+                  <input
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Tanggal Selesai PKL</label>
+                  <input
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="text-gray-400 font-medium block mb-1">
-                  Nama Lengkap <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Nama Peserta Didik"
-                  className="input-field"
-                />
+                <label className="block text-gray-300 font-medium mb-1">Status PKL</label>
+                <select
+                  value={formData.internship_status}
+                  onChange={(e) => setFormData({ ...formData, internship_status: e.target.value })}
+                  className="input-field w-full text-xs"
+                >
+                  <option value="belum_mulai">Belum Mulai</option>
+                  <option value="aktif">Sedang Berjalan (Aktif)</option>
+                  <option value="selesai">Selesai</option>
+                </select>
               </div>
 
-              <div>
-                <label className="text-gray-400 font-medium block mb-1">
-                  Nomor WhatsApp/Telepon (Opsional)
-                </label>
-                <input
-                  type="tel"
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(e.target.value)}
-                  placeholder="0812xxxxxxxx"
-                  className="input-field"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10 mt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="btn-outline py-2 px-4"
+                  className="btn-outline text-xs py-2 px-4"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary py-2 px-4"
+                  className="btn-primary text-xs py-2 px-5"
                 >
                   {submitting ? 'Menyimpan...' : 'Simpan Siswa'}
                 </button>
@@ -378,87 +553,179 @@ export default function AdminStudentsPage() {
         </div>
       )}
 
-      {/* EDIT STUDENT MODAL */}
+      {/* Modal Edit */}
       {editModalOpen && (
         <div className="modal-overlay">
-          <div className="glass-card p-6 w-full max-w-md border border-white/10 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-indigo-400" />
-                Edit Data Peserta Didik
-              </h3>
+          <div className="glass-card w-full max-w-lg p-6 border border-white/10 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+              <h3 className="font-bold text-white">Edit Data Peserta Didik</h3>
               <button
                 onClick={() => setEditModalOpen(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white p-1 rounded-lg"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="flex flex-col gap-3.5 text-xs">
-              <div>
-                <label className="text-gray-400 font-medium block mb-1">Email Google</label>
-                <input
-                  type="text"
-                  disabled
-                  value={selectedStudent?.email || ''}
-                  className="input-field opacity-60 cursor-not-allowed"
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-400 font-medium block mb-1">Nama Lengkap</label>
-                <input
-                  type="text"
-                  required
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  className="input-field"
-                />
-              </div>
-
-              <div>
-                <label className="text-gray-400 font-medium block mb-1">Nomor Telepon</label>
-                <input
-                  type="tel"
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(e.target.value)}
-                  className="input-field"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+            <form onSubmit={handleEditSubmit} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <p className="font-semibold text-white">Status Akun</p>
-                  <p className="text-[10px] text-gray-400">Izinkan login ke sistem</p>
+                  <label className="block text-gray-300 font-medium mb-1">Nama Lengkap *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setFormActive(!formActive)}
-                  className={`px-3 py-1 rounded-lg font-bold text-xs transition ${
-                    formActive
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                  }`}
-                >
-                  {formActive ? 'Aktif' : 'Nonaktif'}
-                </button>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Username</label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10 mt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    disabled
+                    value={formData.email}
+                    className="input-field w-full text-xs opacity-50 cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">No. WhatsApp</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Kelas</label>
+                  <input
+                    type="text"
+                    value={formData.class_name}
+                    onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Jurusan</label>
+                  <input
+                    type="text"
+                    value={formData.major}
+                    onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Tempat PKL</label>
+                  <select
+                    value={formData.internship_place_id}
+                    onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
+                    className="input-field w-full text-xs"
+                  >
+                    <option value="">-- Pilih Tempat PKL --</option>
+                    {places.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Pembimbing PKL</label>
+                  <select
+                    value={formData.mentor_id}
+                    onChange={(e) => setFormData({ ...formData, mentor_id: e.target.value })}
+                    className="input-field w-full text-xs"
+                  >
+                    <option value="">-- Pilih Pembimbing --</option>
+                    {mentors.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Tanggal Mulai PKL</label>
+                  <input
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Tanggal Selesai PKL</label>
+                  <input
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Status PKL</label>
+                  <select
+                    value={formData.internship_status}
+                    onChange={(e) => setFormData({ ...formData, internship_status: e.target.value })}
+                    className="input-field w-full text-xs"
+                  >
+                    <option value="belum_mulai">Belum Mulai</option>
+                    <option value="aktif">Sedang Berjalan (Aktif)</option>
+                    <option value="selesai">Selesai</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Status Akun</label>
+                  <select
+                    value={formData.is_active ? 'active' : 'inactive'}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}
+                    className="input-field w-full text-xs"
+                  >
+                    <option value="active">Aktif</option>
+                    <option value="inactive">Nonaktif</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setEditModalOpen(false)}
-                  className="btn-outline py-2 px-4"
+                  className="btn-outline text-xs py-2 px-4"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary py-2 px-4"
+                  className="btn-primary text-xs py-2 px-5"
                 >
-                  {submitting ? 'Memperbarui...' : 'Simpan Perubahan'}
+                  {submitting ? 'Menyimpan...' : 'Perbarui Siswa'}
                 </button>
               </div>
             </form>
@@ -466,37 +733,28 @@ export default function AdminStudentsPage() {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {deleteModalOpen && (
+      {/* Modal Delete */}
+      {deleteModalOpen && selectedStudent && (
         <div className="modal-overlay">
-          <div className="glass-card p-6 w-full max-w-sm border border-rose-500/30 shadow-2xl flex flex-col gap-4">
-            <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
-              <AlertTriangle className="w-6 h-6" />
+          <div className="glass-card w-full max-w-sm p-6 border border-white/10 shadow-2xl animate-fade-in-up text-center">
+            <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-3">
+              <Trash2 className="w-6 h-6" />
             </div>
-
-            <div className="text-center">
-              <h3 className="text-base font-bold text-white">Hapus Peserta Didik?</h3>
-              <p className="text-xs text-gray-300 mt-2">
-                Anda akan menghapus data <b>{selectedStudent?.full_name}</b>.
-              </p>
-              <div className="mt-3 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-300 text-left">
-                ⚠️ <b>Konsekuensi:</b> Semua riwayat kehadiran dan foto yang terkait dengan akun ini akan terhapus secara permanen dari database. Tindakan ini tidak dapat dibatalkan.
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 pt-2">
+            <h3 className="font-bold text-white text-base mb-1">Hapus Peserta Didik?</h3>
+            <p className="text-xs text-gray-400 mb-4">
+              Apakah Anda yakin ingin menghapus data <b>{selectedStudent.full_name}</b>? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex items-center justify-center gap-2">
               <button
-                type="button"
                 onClick={() => setDeleteModalOpen(false)}
-                className="btn-outline text-xs flex-1 py-2.5"
+                className="btn-outline text-xs py-2 px-4"
               >
                 Batal
               </button>
               <button
-                type="button"
                 onClick={handleDeleteSubmit}
                 disabled={submitting}
-                className="btn-danger text-xs flex-1 py-2.5"
+                className="btn-primary bg-rose-600 hover:bg-rose-500 text-xs py-2 px-5 text-white"
               >
                 {submitting ? 'Menghapus...' : 'Ya, Hapus'}
               </button>

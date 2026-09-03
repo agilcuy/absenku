@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Menu, LogOut, Clock, ShieldCheck } from 'lucide-react'
+import NotificationCenter from '@/components/NotificationCenter'
 
 interface AdminTopNavProps {
   onOpenMobileSidebar: () => void
@@ -60,6 +61,9 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
           <Clock className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
           <span>{timeStr || 'Memuat...'}</span>
         </div>
+
+        {/* Notification Center */}
+        <NotificationCenter />
 
         {/* Logout button */}
         <button

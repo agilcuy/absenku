@@ -37,24 +37,34 @@ export async function GET() {
 
     const isTodayWorkDay = isWorkingDay(now, workingDays) && !holiday
 
-    // 2. All active students
+    // 2. All active students with relations
     const { data: students } = await adminClient
       .from('users')
-      .select('id, full_name, email, avatar_url')
+      .select(
+        'id, full_name, email, phone, avatar_url, class_name, major, start_date, end_date, is_online, last_seen, internship_status, internship_places(id, name), mentor:mentor_id(id, full_name)'
+      )
       .eq('role', 'student')
       .eq('is_active', true)
+      .order('full_name', { ascending: true })
 
     const totalStudents = students?.length || 0
 
     // 3. Today's attendances
     const { data: todayAttendances } = await adminClient
       .from('attendances')
-      .select('*, users(full_name, email, avatar_url)')
+      .select('*, attendance_photos(*)')
       .eq('date', todayStr)
+
+    const attendanceMap: Record<string, any> = {}
+    ;(todayAttendances || []).forEach((att: any) => {
+      attendanceMap[att.user_id] = att
+    })
 
     let presentToday = 0
     let onTimeToday = 0
     let lateToday = 0
+    let izinToday = 0
+    let sakitToday = 0
     let alphaToday = 0
     let checkedInToday = 0
     let checkedOutToday = 0
@@ -77,77 +87,131 @@ export async function GET() {
         if (att.check_out_time) {
           checkedOutToday++
         }
-        if (att.check_in_status === 'alpha') {
+        if (att.check_in_status === 'izin') {
+          izinToday++
+        } else if (att.check_in_status === 'sakit') {
+          sakitToday++
+        } else if (att.check_in_status === 'alpha') {
           alphaToday++
         }
       })
     }
 
-    // Auto-calculate Alpha for students who haven't checked in past checkout time on a working day
+    // Auto-calculate Alpha & active obligations based on PKL period
     const { hours: coHours, minutes: coMinutes } = parseTime(checkOutConfig)
     const isPastCheckOut =
       now.getHours() > coHours || (now.getHours() === coHours && now.getMinutes() >= coMinutes)
 
     let notCheckedIn = 0
-    if (students) {
-      students.forEach((s) => {
+    let activeObligationStudents = 0
+
+    // Online / Offline count (threshold: 45 seconds)
+    const presenceThreshold = new Date(Date.now() - 45 * 1000)
+    let onlineStudents = 0
+    let offlineStudents = 0
+
+    const studentListWithStatus = (students || []).map((s: any) => {
+      const isOnline =
+        s.last_seen && new Date(s.last_seen) >= presenceThreshold
+
+      if (isOnline) onlineStudents++
+      else offlineStudents++
+
+      // Check PKL Period validity for today
+      let isWithinPeriod = true
+      if (s.start_date && todayStr < s.start_date) isWithinPeriod = false
+      if (s.end_date && todayStr > s.end_date) isWithinPeriod = false
+
+      if (isWithinPeriod) {
+        activeObligationStudents++
         if (!attendedUserIds.has(s.id)) {
           notCheckedIn++
           if (isTodayWorkDay && isPastCheckOut) {
             alphaToday++
           }
         }
-      })
-    }
+      }
 
-    const attendanceRate = totalStudents > 0 ? Math.round((presentToday / totalStudents) * 100) : 0
-    const lateRate = presentToday > 0 ? Math.round((lateToday / presentToday) * 100) : 0
-    const alphaRate = totalStudents > 0 ? Math.round((alphaToday / totalStudents) * 100) : 0
+      return {
+        ...s,
+        is_online: isOnline,
+        is_within_period: isWithinPeriod,
+        today_attendance: attendanceMap[s.id] || null,
+      }
+    })
 
-    // 4. Last 7 Days trend
-    const { data: pastAttendances } = await supabase
+    const attendanceRate =
+      activeObligationStudents > 0
+        ? Math.round(((presentToday + izinToday + sakitToday) / activeObligationStudents) * 100)
+        : 100
+
+    // 4. Multi-device check
+    const ninetySecAgo = new Date(Date.now() - 90 * 1000).toISOString()
+    const { data: activeSessions } = await adminClient
+      .from('user_sessions')
+      .select('id, user_id, device_type, os, browser, users(full_name)')
+      .eq('is_active', true)
+      .gte('last_active_at', ninetySecAgo)
+
+    const sessionsByUser: Record<string, any[]> = {}
+    ;(activeSessions || []).forEach((s: any) => {
+      if (!sessionsByUser[s.user_id]) sessionsByUser[s.user_id] = []
+      sessionsByUser[s.user_id].push(s)
+    })
+
+    const multiDeviceAlerts = Object.entries(sessionsByUser)
+      .filter(([_, list]) => list.length > 1)
+      .map(([userId, list]) => ({
+        user_id: userId,
+        user_name: list[0]?.users?.full_name || 'Siswa',
+        sessions: list,
+      }))
+
+    // 5. Last 7 Days trend
+    const { data: pastAttendances } = await adminClient
       .from('attendances')
       .select('date, check_in_status')
       .gte('date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
       .order('date', { ascending: true })
 
-    const trendMap: Record<string, { date: string; tepat: number; terlambat: number; alpha: number }> = {}
+    const trendMap: Record<
+      string,
+      { date: string; tepat: number; terlambat: number; izin: number; sakit: number; alpha: number }
+    > = {}
     if (pastAttendances) {
       pastAttendances.forEach((item) => {
         if (!trendMap[item.date]) {
-          trendMap[item.date] = { date: item.date, tepat: 0, terlambat: 0, alpha: 0 }
+          trendMap[item.date] = { date: item.date, tepat: 0, terlambat: 0, izin: 0, sakit: 0, alpha: 0 }
         }
         if (item.check_in_status === 'on_time') trendMap[item.date].tepat++
         else if (item.check_in_status === 'late') trendMap[item.date].terlambat++
+        else if (item.check_in_status === 'izin') trendMap[item.date].izin++
+        else if (item.check_in_status === 'sakit') trendMap[item.date].sakit++
         else if (item.check_in_status === 'alpha') trendMap[item.date].alpha++
       })
     }
     const weeklyTrend = Object.values(trendMap)
 
-    // 5. Recent live activities (monitoring)
-    const { data: recentActivities } = await supabase
-      .from('attendances')
-      .select('id, date, check_in_time, check_out_time, check_in_status, users(full_name, avatar_url)')
-      .eq('date', todayStr)
-      .order('updated_at', { ascending: false })
-      .limit(10)
-
     return NextResponse.json({
       stats: {
         totalStudents,
+        onlineStudents,
+        offlineStudents,
         presentToday,
         onTimeToday,
         lateToday,
+        izinToday,
+        sakitToday,
         alphaToday,
         checkedInToday,
         checkedOutToday,
         notCheckedIn,
         attendanceRate,
-        lateRate,
-        alphaRate,
+        multiDeviceCount: multiDeviceAlerts.length,
       },
+      students: studentListWithStatus,
+      multiDeviceAlerts,
       weeklyTrend,
-      recentActivities: recentActivities || [],
       today: todayStr,
       isTodayWorkDay,
       holidayName: holiday?.name || null,

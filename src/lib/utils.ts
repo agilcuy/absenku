@@ -90,6 +90,8 @@ export function getStatusLabel(status: string | null | undefined): string {
     on_time: 'Tepat Waktu',
     late: 'Terlambat',
     alpha: 'Alpha',
+    izin: 'Izin',
+    sakit: 'Sakit',
   }
   return labels[status] ?? status
 }
@@ -98,9 +100,11 @@ export function getStatusLabel(status: string | null | undefined): string {
 export function getStatusColor(status: string | null | undefined): string {
   if (!status) return 'text-gray-400'
   const colors: Record<string, string> = {
-    on_time: 'text-green-400',
-    late: 'text-yellow-400',
-    alpha: 'text-red-400',
+    on_time: 'text-emerald-400',
+    late: 'text-amber-400',
+    alpha: 'text-rose-400',
+    izin: 'text-blue-400',
+    sakit: 'text-purple-400',
   }
   return colors[status] ?? 'text-gray-400'
 }
@@ -109,9 +113,11 @@ export function getStatusColor(status: string | null | undefined): string {
 export function getStatusBadge(status: string | null | undefined): string {
   if (!status) return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
   const badges: Record<string, string> = {
-    on_time: 'bg-green-500/20 text-green-400 border-green-500/30',
-    late: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    alpha: 'bg-red-500/20 text-red-400 border-red-500/30',
+    on_time: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    late: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    alpha: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+    izin: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    sakit: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   }
   return badges[status] ?? 'bg-gray-500/20 text-gray-400 border-gray-500/30'
 }
@@ -122,8 +128,40 @@ export function getStatusEmoji(status: string | null | undefined): string {
     on_time: '🟢',
     late: '🟡',
     alpha: '🔴',
+    izin: '📝',
+    sakit: '🏥',
   }
   return emojis[status ?? ''] ?? '⚪'
+}
+
+// Human-friendly Last Seen format
+export function formatLastSeen(dateStr?: string | null): string {
+  if (!dateStr) return 'Belum pernah aktif'
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+  if (diffSec < 45) return 'Baru saja'
+  if (diffSec < 60) return `${diffSec} detik lalu`
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin} menit lalu`
+  const diffHours = Math.floor(diffMin / 60)
+  if (diffHours < 24) {
+    const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    return `Hari ini ${timeStr}`
+  }
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays === 1) {
+    const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    return `Kemarin ${timeStr}`
+  }
+
+  return date.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 // Format file size
