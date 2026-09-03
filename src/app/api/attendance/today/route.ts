@@ -15,11 +15,28 @@ export async function GET() {
   const now = getNowJakarta()
 
   // 1. Get user profile
-  const { data: userProfile } = await adminClient
-    .from('users')
-    .select('*, internship_places(*), mentor:mentor_id(*)')
-    .eq('id', user.id)
-    .maybeSingle()
+  let userProfile: any = null
+  try {
+    const { data, error } = await adminClient
+      .from('users')
+      .select('*, internship_places(*), mentor:mentor_id(*)')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!error && data) {
+      userProfile = data
+    }
+  } catch {
+    // Ignore relation error
+  }
+
+  if (!userProfile) {
+    const { data } = await adminClient
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle()
+    userProfile = data
+  }
 
   // 2. Get system settings
   const { data: settings } = await adminClient

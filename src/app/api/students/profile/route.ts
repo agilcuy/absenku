@@ -11,52 +11,77 @@ export async function GET() {
 
     const adminClient = createAdminClient()
 
-    // 1. Get student profile
-    const { data: profile, error } = await adminClient
-      .from('users')
-      .select('*, internship_places(*), mentor:mentor_id(*)')
-      .eq('id', user.id)
-      .single()
+    // 1. Get student profile with graceful fallback
+    let profile: any = null
+    try {
+      const { data, error } = await adminClient
+        .from('users')
+        .select('*, internship_places(*), mentor:mentor_id(*)')
+        .eq('id', user.id)
+        .single()
+      if (!error && data) {
+        profile = data
+      }
+    } catch {
+      // Ignore relation error if tables not yet migrated
+    }
 
-    if (error || !profile) {
-      return NextResponse.json({ error: 'Profil tidak ditemukan' }, { status: 404 })
+    if (!profile) {
+      const { data, error } = await adminClient
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error || !data) {
+        return NextResponse.json({ error: 'Profil tidak ditemukan' }, { status: 404 })
+      }
+      profile = data
     }
 
     // 2. Get available internship places for selection
-    let { data: places } = await adminClient
-      .from('internship_places')
-      .select('id, name, address, pic_name')
-      .order('name', { ascending: true })
+    let places: any[] = []
+    try {
+      const { data: pData } = await adminClient
+        .from('internship_places')
+        .select('id, name, address, pic_name')
+        .order('name', { ascending: true })
 
-    const hasEgov = (places || []).some((p: any) =>
-      p.name?.toLowerCase().includes('kominfo') && p.name?.toLowerCase().includes('egov')
-    )
+      places = pData || []
 
-    if (!hasEgov) {
-      try {
-        const { data: newSeed } = await adminClient
-          .from('internship_places')
-          .insert({
-            name: 'Kominfo Tanggamus (egov)',
-            address: 'Komplek Perkantoran Pemkab Tanggamus, Jl. Jend. Sudirman',
-            phone: '0722-21001',
-            pic_name: 'Bidang E-Government',
-            pic_phone: '081273928192',
-          })
-          .select('id, name, address, pic_name')
-          .single()
+      const hasEgov = places.some((p: any) =>
+        p.name?.toLowerCase().includes('kominfo') && p.name?.toLowerCase().includes('egov')
+      )
 
-        if (newSeed) {
-          places = [newSeed, ...(places || [])]
+      if (!hasEgov) {
+        try {
+          const { data: newSeed } = await adminClient
+            .from('internship_places')
+            .insert({
+              name: 'Kominfo Tanggamus (egov)',
+              address: 'Komplek Perkantoran Pemkab Tanggamus, Jl. Jend. Sudirman',
+              phone: '0722-21001',
+              pic_name: 'Bidang E-Government',
+              pic_phone: '081273928192',
+            })
+            .select('id, name, address, pic_name')
+            .single()
+
+          if (newSeed) {
+            places = [newSeed, ...places]
+          }
+        } catch {
+          // If table does not exist yet, ignore
         }
-      } catch (seedErr) {
-        console.warn('Could not auto-seed Kominfo Tanggamus (egov):', seedErr)
       }
+    } catch {
+      // If internship_places table does not exist yet
+      places = []
     }
 
     return NextResponse.json({
       profile,
-      places: places || [],
+      places,
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -164,7 +189,8 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    const { data: updated, error: updateErr } = await adminClient
+    let updated: any = null
+    const { data: fullData, error: updateErr } = await adminClient
       .from('users')
       .update({
         full_name: fullName,
@@ -172,41 +198,67 @@ export async function PUT(req: NextRequest) {
         phone,
         class_name: className,
         major,
-        internship_place_id: internshipPlaceId,
+        internship_place_id: internshipPlaceId || null,
         avatar_url: avatarUrl,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
       .select('*, internship_places(*), mentor:mentor_id(*)')
-      .single()
+      .maybeSingle()
 
-    if (updateErr) throw updateErr
+    if (updateErr) {
+      // Fallback: update without relations/new columns if migration not run yet
+      const { data: basicData, error: bErr } = await adminClient
+        .from('users')
+        .update({
+          full_name: fullName,
+          phone,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+        .select('*')
+        .single()
 
-    // Send notification to Superadmin that student completed their profile
-    const { data: superadmins } = await adminClient
-      .from('users')
-      .select('id')
-      .eq('role', 'superadmin')
-
-    const notifPayloads = (superadmins || []).map((sa: any) => ({
-      user_id: sa.id,
-      title: 'Biodata Siswa Diperbarui',
-      message: `${updated.full_name} (${updated.class_name || 'Kelas -'}) telah melengkapi biodata dirinya.`,
-      type: 'info',
-      link: '/admin/students',
-    }))
-
-    if (notifPayloads.length > 0) {
-      await adminClient.from('notifications').insert(notifPayloads)
+      if (bErr) throw bErr
+      updated = basicData
+    } else {
+      updated = fullData
     }
 
-    await logAudit({
-      action: 'UPDATE_STUDENT_SELF_PROFILE',
-      tableName: 'users',
-      recordId: user.id,
-      oldData: currentStudent,
-      newData: updated,
-    })
+    // Send notification to Superadmin if notifications table exists
+    try {
+      const { data: superadmins } = await adminClient
+        .from('users')
+        .select('id')
+        .eq('role', 'superadmin')
+
+      const notifPayloads = (superadmins || []).map((sa: any) => ({
+        user_id: sa.id,
+        title: 'Biodata Siswa Diperbarui',
+        message: `${updated?.full_name || 'Siswa'} telah melengkapi biodata dirinya.`,
+        type: 'info',
+        link: '/admin/students',
+      }))
+
+      if (notifPayloads.length > 0) {
+        await adminClient.from('notifications').insert(notifPayloads)
+      }
+    } catch {
+      // Ignore if notifications table not migrated yet
+    }
+
+    try {
+      await logAudit({
+        action: 'UPDATE_STUDENT_SELF_PROFILE',
+        tableName: 'users',
+        recordId: user.id,
+        oldData: currentStudent,
+        newData: updated,
+      })
+    } catch {
+      // Ignore audit log error
+    }
 
     return NextResponse.json({
       success: true,

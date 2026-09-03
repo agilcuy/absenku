@@ -21,10 +21,10 @@ create table if not exists public.internship_places (
   updated_at timestamptz not null default now()
 );
 
--- Seed default instansi Kominfo Tanggamus (egov)
+-- Seed default instansi Kominfo Tanggamus (egov) jika belum ada
 insert into public.internship_places (name, address, phone, pic_name, pic_phone)
-values ('Kominfo Tanggamus (egov)', 'Komplek Perkantoran Pemkab Tanggamus, Jl. Jend. Sudirman', '0722-21001', 'Bidang E-Government', '081273928192')
-on conflict do nothing;
+select 'Kominfo Tanggamus (egov)', 'Komplek Perkantoran Pemkab Tanggamus, Jl. Jend. Sudirman', '0722-21001', 'Bidang E-Government', '081273928192'
+where not exists (select 1 from public.internship_places where name ilike '%kominfo%egov%' or name = 'Kominfo Tanggamus (egov)');
 
 -- 3. Tambahkan kolom-kolom baru pada tabel users untuk data lengkap siswa & presence
 alter table public.users add column if not exists username text;
@@ -111,9 +111,10 @@ alter table public.permits enable row level security;
 alter table public.user_sessions enable row level security;
 alter table public.notifications enable row level security;
 
--- Policies Internship Places: Terbuka baca untuk authenticated user
+-- Policies Internship Places: Terbuka untuk authenticated user (Superadmin & Siswa)
 drop policy if exists "internship_places_read" on public.internship_places;
-create policy "internship_places_read" on public.internship_places for select using (auth.role() = 'authenticated');
+drop policy if exists "internship_places_all" on public.internship_places;
+create policy "internship_places_all" on public.internship_places for all using (auth.role() = 'authenticated');
 
 -- Policies Permits: Siswa bisa baca & submit miliknya, Superadmin & Pembimbing baca semua
 drop policy if exists "permits_select_own" on public.permits;

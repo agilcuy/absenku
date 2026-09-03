@@ -12,6 +12,8 @@ import {
   Edit,
   Trash2,
   X,
+  AlertTriangle,
+  Code,
 } from 'lucide-react'
 import { useToast, ToastProvider } from '@/components/Toast'
 
@@ -19,6 +21,7 @@ function PlacesPageContent() {
   const { showToast } = useToast()
   const [places, setPlaces] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [needsMigration, setNeedsMigration] = useState(false)
   const [search, setSearch] = useState('')
 
   // Modal create/edit
@@ -41,8 +44,10 @@ function PlacesPageContent() {
   const loadPlaces = async () => {
     try {
       const res = await fetch('/api/internship-places')
-      if (res.ok) {
-        const json = await res.json()
+      const json = await res.json()
+      if (json.needsMigration) {
+        setNeedsMigration(true)
+      } else {
         setPlaces(json.places || [])
       }
     } catch (err) {
@@ -163,6 +168,29 @@ function PlacesPageContent() {
           <span>Tambah Tempat PKL</span>
         </button>
       </div>
+
+      {/* Alert jika tabel database belum dijalankan di Supabase */}
+      {needsMigration && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in shadow-xl">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-amber-300">Tabel Tempat PKL Belum Dibuat di Supabase</h4>
+              <p className="text-amber-200/80 mt-0.5 leading-relaxed">
+                Fitur ini memerlukan tabel database baru. Silakan buka <b>Supabase Dashboard ➔ SQL Editor</b>, lalu jalankan file <code>migration_v2.sql</code>.
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://supabase.com/dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-outline border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-xs py-2 px-3.5 whitespace-nowrap self-start sm:self-auto font-bold flex items-center gap-1.5"
+          >
+            <span>Buka Supabase SQL Editor ➔</span>
+          </a>
+        </div>
+      )}
 
       {/* Filter and Search */}
       <div className="glass-card p-4 border border-white/10 flex items-center justify-between gap-4">

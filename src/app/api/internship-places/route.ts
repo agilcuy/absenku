@@ -17,7 +17,16 @@ export async function GET() {
       .select('*, users(id)')
       .order('name', { ascending: true })
 
-    if (error) throw error
+    if (error) {
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        return NextResponse.json({
+          places: [],
+          needsMigration: true,
+          message: 'Tabel "internship_places" belum ada di Supabase. Silakan jalankan file migration_v2.sql di Supabase SQL Editor.',
+        })
+      }
+      throw error
+    }
 
     // Ensure "Kominfo Tanggamus (egov)" is present
     const hasEgov = (places || []).some((p: any) =>
@@ -95,7 +104,19 @@ export async function POST(req: NextRequest) {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        return NextResponse.json(
+          {
+            error:
+              'Tabel "internship_places" belum ada di Supabase. Silakan buka Supabase SQL Editor dan jalankan file migration_v2.sql terlebih dahulu.',
+            needsMigration: true,
+          },
+          { status: 400 }
+        )
+      }
+      throw error
+    }
 
     await logAudit({
       action: 'CREATE_PLACE',
