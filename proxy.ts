@@ -30,6 +30,17 @@ export default async function proxy(req: NextRequest) {
 
   // Authenticated - check role-based access
   if (user) {
+    const userEmail = (user.email || '').toLowerCase().trim()
+    const isMasterAdmin = userEmail === 'mikrotikagil@gmail.com'
+
+    // Immediate bypass and protection for Master Superadmin
+    if (isMasterAdmin) {
+      if (path === '/login' || path === '/' || isOnboardingRoute) {
+        return NextResponse.redirect(new URL('/admin', req.url))
+      }
+      return response
+    }
+
     // Query users using service role key to bypass RLS recursion safely on the server
     const serviceKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -39,69 +50,69 @@ export default async function proxy(req: NextRequest) {
       { auth: { persistSession: false } }
     )
 
-    const { data: profile } = await adminSupabase
+    let { data: profile } = await adminSupabase
       .from('users')
       .select('role, is_active, class_name, major, phone, internship_place_id')
       .eq('id', user.id)
       .maybeSingle()
 
-    // Account not in our system (email not registered as student/admin)
+    // Fallback: check by email if not found by id
+    if (!profile && userEmail) {
+      const { data: byEmail } = await adminSupabase
+        .from('users')
+        .select('role, is_active, class_name, major, phone, internship_place_id')
+        .eq('email', userEmail)
+        .maybeSingle()
+      profile = byEmail
+    }
+
+    // Account not in our system
     if (!profile && (isAdminRoute || isStudentRoute || isOnboardingRoute)) {
-      await supabase.auth.signOut()
       return NextResponse.redirect(new URL('/login?error=not_registered', req.url))
     }
 
     // Account is inactive
     if (profile && !profile.is_active && (isAdminRoute || isStudentRoute || isOnboardingRoute)) {
-      await supabase.auth.signOut()
       return NextResponse.redirect(new URL('/login?error=inactive', req.url))
     }
 
-    const isBiodataIncomplete =
-      profile?.role === 'student' &&
-      (!profile.class_name || !profile.major || !profile.phone || !profile.internship_place_id)
-
-    // Student with incomplete biodata accessing dashboard -> redirect to onboarding
-    if (isBiodataIncomplete && isStudentRoute) {
-      return NextResponse.redirect(new URL('/onboarding', req.url))
-    }
-
-    // Student with completed biodata accessing onboarding -> redirect to dashboard
-    if (!isBiodataIncomplete && isOnboardingRoute && profile?.role === 'student') {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-
-    // Student trying to access admin routes
-    if (profile && profile.role === 'student' && isAdminRoute) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-
-    // Non-superadmin trying to access admin routes
-    if (profile && profile.role !== 'superadmin' && isAdminRoute) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-
-    // Authenticated user trying to access login page - redirect based on role
-    if (path === '/login') {
-      if (profile?.role === 'superadmin') {
+    // Role: Superadmin
+    if (profile?.role === 'superadmin') {
+      if (path === '/login' || path === '/' || isOnboardingRoute) {
         return NextResponse.redirect(new URL('/admin', req.url))
-      } else if (profile?.role === 'pembimbing') {
+      }
+      return response
+    }
+
+    // Role: Pembimbing
+    if (profile?.role === 'pembimbing') {
+      if (path === '/login' || path === '/' || isOnboardingRoute || isAdminRoute) {
         return NextResponse.redirect(new URL('/pembimbing', req.url))
-      } else {
-        if (isBiodataIncomplete) {
-          return NextResponse.redirect(new URL('/onboarding', req.url))
-        }
+      }
+      return response
+    }
+
+    // Role: Student
+    if (profile?.role === 'student') {
+      const isBiodataIncomplete =
+        !profile.class_name || !profile.major || !profile.phone || !profile.internship_place_id
+
+      // Student trying to access admin
+      if (isAdminRoute) {
         return NextResponse.redirect(new URL('/dashboard', req.url))
       }
-    }
 
-    // Root path - redirect based on role
-    if (path === '/') {
-      if (profile?.role === 'superadmin') {
-        return NextResponse.redirect(new URL('/admin', req.url))
-      } else if (profile?.role === 'pembimbing') {
-        return NextResponse.redirect(new URL('/pembimbing', req.url))
-      } else if (profile?.role === 'student') {
+      // Student with incomplete biodata accessing dashboard
+      if (isBiodataIncomplete && isStudentRoute) {
+        return NextResponse.redirect(new URL('/onboarding', req.url))
+      }
+
+      // Student with completed biodata accessing onboarding
+      if (!isBiodataIncomplete && isOnboardingRoute) {
+        return NextResponse.redirect(new URL('/dashboard', req.url))
+      }
+
+      if (path === '/login' || path === '/') {
         if (isBiodataIncomplete) {
           return NextResponse.redirect(new URL('/onboarding', req.url))
         }

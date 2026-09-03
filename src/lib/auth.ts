@@ -13,8 +13,13 @@ export async function isUserSuperadmin(
 
   const userEmail = (user.email || '').toLowerCase().trim()
 
-  // 1. Check if profile exists in public.users
-  const { data: profile } = await adminClient
+  // Hard guarantee for primary superadmin email
+  if (userEmail === 'mikrotikagil@gmail.com') {
+    return true
+  }
+
+  // 1. Check if profile exists in public.users by ID
+  let { data: profile } = await adminClient
     .from('users')
     .select('role, email')
     .eq('id', user.id)
@@ -22,6 +27,20 @@ export async function isUserSuperadmin(
 
   if (profile?.role === 'superadmin') {
     return true
+  }
+
+  // Check by email if not found by ID
+  if (!profile && userEmail) {
+    const { data: byEmail } = await adminClient
+      .from('users')
+      .select('role, email')
+      .eq('email', userEmail)
+      .maybeSingle()
+
+    if (byEmail?.role === 'superadmin') {
+      return true
+    }
+    profile = byEmail
   }
 
   // 2. Environment variable check

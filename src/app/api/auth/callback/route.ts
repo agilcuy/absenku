@@ -14,7 +14,27 @@ export async function GET(request: Request) {
 
       if (user && user.email) {
         const userEmail = user.email.toLowerCase()
-        const adminClient = await createAdminClient()
+        const adminClient = createAdminClient()
+
+        // 0. Primary Superadmin Hard Guarantee
+        if (userEmail === 'mikrotikagil@gmail.com') {
+          await adminClient.from('users').upsert(
+            {
+              id: user.id,
+              email: userEmail,
+              full_name:
+                user.user_metadata?.full_name ||
+                user.user_metadata?.name ||
+                'Mikrotik',
+              avatar_url: user.user_metadata?.avatar_url || null,
+              role: 'superadmin',
+              is_active: true,
+            },
+            { onConflict: 'email' }
+          )
+
+          return NextResponse.redirect(`${origin}/admin`)
+        }
 
         // 1. Check if users table is empty (Bootstrap first user as Superadmin)
         const { count } = await adminClient
@@ -54,11 +74,10 @@ export async function GET(request: Request) {
             .maybeSingle()
 
           if (byEmail) {
-            // Update the existing pre-registered record to bind with Supabase Auth user ID
+            // Update the existing pre-registered record
             await adminClient
               .from('users')
               .update({
-                id: user.id,
                 full_name:
                   user.user_metadata?.full_name ||
                   user.user_metadata?.name ||

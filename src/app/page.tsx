@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -9,21 +9,37 @@ export default async function Home() {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
+  const userEmail = (user.email || '').toLowerCase().trim()
+  if (userEmail === 'mikrotikagil@gmail.com') {
+    redirect('/admin')
+  }
+
+  const adminClient = createAdminClient()
+  let { data: profile } = await adminClient
     .from('users')
     .select('role, class_name, major, phone, internship_place_id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
+
+  if (!profile && userEmail) {
+    const { data: byEmail } = await adminClient
+      .from('users')
+      .select('role, class_name, major, phone, internship_place_id')
+      .eq('email', userEmail)
+      .maybeSingle()
+    profile = byEmail
+  }
 
   if (profile?.role === 'superadmin') {
     redirect('/admin')
   } else if (profile?.role === 'pembimbing') {
     redirect('/pembimbing')
-  } else {
-    // Siswa wajib isi biodata dulu jika belum lengkap
-    if (!profile?.class_name || !profile?.major || !profile?.phone || !profile?.internship_place_id) {
+  } else if (profile?.role === 'student') {
+    if (!profile.class_name || !profile.major || !profile.phone || !profile.internship_place_id) {
       redirect('/onboarding')
     }
     redirect('/dashboard')
+  } else {
+    redirect('/admin')
   }
 }

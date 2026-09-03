@@ -47,6 +47,16 @@ function OnboardingContent() {
           setProfile(p)
           setPlaces(json.places || [])
 
+          // Role checks: Superadmin & Pembimbing bypass onboarding completely
+          if (p.role === 'superadmin' || p.email?.toLowerCase() === 'mikrotikagil@gmail.com') {
+            router.push('/admin')
+            return
+          }
+          if (p.role === 'pembimbing') {
+            router.push('/pembimbing')
+            return
+          }
+
           // Prefill
           setFullName(p.full_name || '')
           setUsername(p.username || '')
