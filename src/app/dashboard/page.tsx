@@ -25,12 +25,14 @@ import {
   Sparkles,
   Eye,
   Info,
+  RefreshCw,
 } from 'lucide-react'
 
 function StudentDashboardContent() {
   const { showToast } = useToast()
 
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [data, setData] = useState<any>(null)
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
@@ -79,12 +81,19 @@ function StudentDashboardContent() {
       console.error('Error loading dashboard:', err)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }, [])
 
   useEffect(() => {
     loadDashboardData()
   }, [loadDashboardData])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadDashboardData()
+    showToast('Status absensi berhasil diperbarui!', 'success')
+  }
 
   // Handle Action Trigger
   const handleInitiateAction = (action: 'check_in' | 'check_out') => {
@@ -198,10 +207,22 @@ function StudentDashboardContent() {
                   : 'Peserta Didik'}
                 !
               </h1>
-              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                {formatDate(new Date())}
-              </p>
+              <div className="text-xs text-gray-400 mt-1.5 flex flex-wrap items-center gap-2">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                  {formatDate(new Date())}
+                </span>
+                <span>•</span>
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold transition"
+                  title="Perbarui status absensi"
+                >
+                  <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+                  <span>{refreshing ? 'Memperbarui...' : 'Perbarui Status'}</span>
+                </button>
+              </div>
             </div>
 
             <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-2xl shadow-inner">

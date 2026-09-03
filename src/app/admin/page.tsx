@@ -41,8 +41,10 @@ import {
   formatLastSeen,
 } from '@/lib/utils'
 import StudentDetailModal from '@/components/StudentDetailModal'
+import { useToast } from '@/components/Toast'
 
 export default function AdminDashboardPage() {
+  const { showToast } = useToast()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -73,9 +75,10 @@ export default function AdminDashboardPage() {
     return () => clearInterval(interval)
   }, [loadStats])
 
-  const handleManualRefresh = () => {
+  const handleManualRefresh = async () => {
     setRefreshing(true)
-    loadStats()
+    await loadStats()
+    showToast('Data monitoring berhasil diperbarui!', 'success')
   }
 
   const handleOpenStudentDetail = (id: string) => {

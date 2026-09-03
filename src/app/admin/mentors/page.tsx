@@ -16,6 +16,7 @@ import {
   X,
   CheckCircle,
   AlertCircle,
+  RefreshCw,
 } from 'lucide-react'
 import { useToast, ToastProvider } from '@/components/Toast'
 
@@ -23,6 +24,7 @@ function MentorsPageContent() {
   const { showToast } = useToast()
   const [mentors, setMentors] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
 
   // Create / Edit modal
@@ -50,7 +52,14 @@ function MentorsPageContent() {
       console.error(err)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadMentors()
+    showToast('Data pembimbing berhasil diperbarui!', 'success')
   }
 
   useEffect(() => {
@@ -159,10 +168,22 @@ function MentorsPageContent() {
           </p>
         </div>
 
-        <button onClick={handleOpenAdd} className="btn-primary text-xs py-2.5 px-4 flex items-center gap-1.5 self-start sm:self-auto">
-          <Plus className="w-4 h-4" />
-          <span>Tambah Pembimbing</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="btn-outline text-xs py-2.5 px-3.5 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40"
+            title="Perbarui data pembimbing"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
+            <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
+          </button>
+
+          <button onClick={handleOpenAdd} className="btn-primary text-xs py-2.5 px-4 flex items-center gap-1.5">
+            <Plus className="w-4 h-4" />
+            <span>Tambah Pembimbing</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search */}

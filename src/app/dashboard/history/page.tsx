@@ -11,11 +11,14 @@ import {
   getStatusLabel,
   MONTH_NAMES,
 } from '@/lib/utils'
-import { Calendar, Filter, MapPin, Eye, Clock, CheckCircle2 } from 'lucide-react'
+import { Calendar, Filter, MapPin, Eye, Clock, CheckCircle2, RefreshCw } from 'lucide-react'
+import { useToast } from '@/components/Toast'
 
 export default function StudentHistoryPage() {
+  const { showToast } = useToast()
   const [attendances, setAttendances] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Filters
   const currentYear = new Date().getFullYear().toString()
@@ -70,13 +73,20 @@ export default function StudentHistoryPage() {
     loadHistory()
   }, [loadHistory])
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadHistory()
+    setRefreshing(false)
+    showToast('Riwayat absensi berhasil diperbarui!', 'success')
+  }
+
   return (
     <div className="min-h-screen bg-[#06070d] text-slate-100 pb-20">
       <StudentNavbar />
 
       <main className="max-w-2xl mx-auto px-4 pt-6 flex flex-col gap-5">
         {/* Header Title */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <Calendar className="w-5 h-5 text-indigo-400" />
@@ -86,6 +96,16 @@ export default function StudentHistoryPage() {
               Catatan lengkap kehadiran PKL Anda
             </p>
           </div>
+
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40 self-start sm:self-auto"
+            title="Perbarui riwayat absensi"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
+            <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
+          </button>
         </div>
 
         {/* Filters Card */}

@@ -13,6 +13,7 @@ import {
   Calendar,
   X,
   CheckCircle2,
+  RefreshCw,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import LeafletMapModal from '@/components/LeafletMapModal'
@@ -31,6 +32,7 @@ export default function AdminAttendancesPage() {
   const [attendances, setAttendances] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Filters
   const [search, setSearch] = useState('')
@@ -121,6 +123,13 @@ export default function AdminAttendancesPage() {
     loadAttendances()
     loadStudents()
   }, [loadAttendances])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await Promise.all([loadAttendances(), loadStudents()])
+    setRefreshing(false)
+    showToast('Data absensi berhasil diperbarui!', 'success')
+  }
 
   // Submit Manual Attendance
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -234,13 +243,25 @@ export default function AdminAttendancesPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setManualModalOpen(true)}
-          className="btn-primary text-xs py-2.5 px-4 self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Absensi Manual</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="btn-outline text-xs py-2.5 px-3.5 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40"
+            title="Perbarui data absensi"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
+            <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
+          </button>
+
+          <button
+            onClick={() => setManualModalOpen(true)}
+            className="btn-primary text-xs py-2.5 px-4"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Absensi Manual</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters Toolbar */}

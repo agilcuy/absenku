@@ -1,42 +1,65 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { ShieldAlert, Clock, User, Eye, X } from 'lucide-react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { ShieldAlert, Clock, User, Eye, X, RefreshCw } from 'lucide-react'
 import { formatDate, formatTime } from '@/lib/utils'
+import { useToast } from '@/components/Toast'
 
 export default function AdminAuditPage() {
+  const { showToast } = useToast()
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [selectedLog, setSelectedLog] = useState<any>(null)
 
-  useEffect(() => {
-    const loadLogs = async () => {
-      try {
-        const res = await fetch('/api/audit-logs')
-        if (res.ok) {
-          const json = await res.json()
-          setLogs(json.logs || [])
-        }
-      } catch (err) {
-        console.error('Failed to load audit logs:', err)
-      } finally {
-        setLoading(false)
+  const loadLogs = useCallback(async () => {
+    try {
+      const res = await fetch('/api/audit-logs')
+      if (res.ok) {
+        const json = await res.json()
+        setLogs(json.logs || [])
       }
+    } catch (err) {
+      console.error('Failed to load audit logs:', err)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
-    loadLogs()
   }, [])
+
+  useEffect(() => {
+    loadLogs()
+  }, [loadLogs])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadLogs()
+    showToast('Data audit log berhasil diperbarui!', 'success')
+  }
 
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <ShieldAlert className="w-6 h-6 text-indigo-400" />
-          Audit Log Aktivitas Superadmin
-        </h1>
-        <p className="text-xs text-gray-400 mt-1">
-          Rekaman jejak digital setiap perubahan data, penambahan manual, maupun penghapusan oleh admin
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <ShieldAlert className="w-6 h-6 text-indigo-400" />
+            Audit Log Aktivitas Superadmin
+          </h1>
+          <p className="text-xs text-gray-400 mt-1">
+            Rekaman jejak digital setiap perubahan data, penambahan manual, maupun penghapusan oleh admin
+          </p>
+        </div>
+
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="btn-outline text-xs py-2.5 px-3.5 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40 self-start sm:self-auto"
+          title="Perbarui data audit log"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
+          <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
+        </button>
       </div>
 
       {/* Audit Log Table */}

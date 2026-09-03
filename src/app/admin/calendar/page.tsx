@@ -9,7 +9,9 @@ import {
   User,
   Users,
   Eye,
+  RefreshCw,
 } from 'lucide-react'
+import { useToast } from '@/components/Toast'
 import {
   formatDate,
   formatTime,
@@ -20,12 +22,14 @@ import {
 } from '@/lib/utils'
 
 export default function AdminCalendarPage() {
+  const { showToast } = useToast()
   const today = new Date()
   const [currentMonth, setCurrentMonth] = useState(today.getMonth()) // 0-11
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [selectedDate, setSelectedDate] = useState(today.toISOString().split('T')[0])
   const [monthData, setMonthData] = useState<Record<string, any[]>>({})
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Fetch all attendances for the displayed month
   const loadMonthData = useCallback(async () => {
@@ -96,20 +100,39 @@ export default function AdminCalendarPage() {
     calendarDays.push({ day: d, dateStr: dateKey })
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadMonthData()
+    setRefreshing(false)
+    showToast('Data kalender absensi berhasil diperbarui!', 'success')
+  }
+
   // Selected date students
   const selectedAttendances = monthData[selectedDate] || []
 
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <CalendarDays className="w-6 h-6 text-indigo-400" />
-          Kalender Absensi
-        </h1>
-        <p className="text-xs text-gray-400 mt-1">
-          Pilih tanggal untuk melihat rekap kehadiran seluruh peserta didik pada hari tersebut
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <CalendarDays className="w-6 h-6 text-indigo-400" />
+            Kalender Absensi
+          </h1>
+          <p className="text-xs text-gray-400 mt-1">
+            Pilih tanggal untuk melihat rekap kehadiran seluruh peserta didik pada hari tersebut
+          </p>
+        </div>
+
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="btn-outline text-xs py-2.5 px-3.5 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40 self-start sm:self-auto"
+          title="Perbarui data kalender"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
+          <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -17,6 +17,7 @@ import {
   GraduationCap,
   Calendar,
   User as UserIcon,
+  RefreshCw,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { formatDate } from '@/lib/utils'
@@ -28,6 +29,7 @@ export default function AdminStudentsPage() {
   const [places, setPlaces] = useState<any[]>([])
   const [mentors, setMentors] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
 
   // Modals state
@@ -54,32 +56,37 @@ export default function AdminStudentsPage() {
   const [submitting, setSubmitting] = useState(false)
 
   const loadData = useCallback(async () => {
-    setLoading(true)
     try {
       const [resStudents, resPlaces, resMentors] = await Promise.all([
         fetch('/api/students'),
         fetch('/api/internship-places'),
         fetch('/api/mentors'),
       ])
-
       if (resStudents.ok) {
-        const d = await resStudents.json()
-        setStudents(d.students || [])
+        const s = await resStudents.json()
+        setStudents(s.students || [])
       }
       if (resPlaces.ok) {
-        const d = await resPlaces.json()
-        setPlaces(d.places || [])
+        const p = await resPlaces.json()
+        setPlaces(p.places || [])
       }
       if (resMentors.ok) {
-        const d = await resMentors.json()
-        setMentors(d.mentors || [])
+        const m = await resMentors.json()
+        setMentors(m.mentors || [])
       }
     } catch (err) {
-      console.error('Failed to load data:', err)
+      console.error(err)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }, [])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadData()
+    showToast('Data peserta didik berhasil diperbarui!', 'success')
+  }
 
   useEffect(() => {
     loadData()
@@ -224,13 +231,25 @@ export default function AdminStudentsPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenCreate}
-          className="btn-primary text-xs py-2.5 px-4 flex items-center gap-1.5 self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Siswa Baru</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="btn-outline text-xs py-2.5 px-3.5 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40"
+            title="Perbarui data siswa"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
+            <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
+          </button>
+
+          <button
+            onClick={handleOpenCreate}
+            className="btn-primary text-xs py-2.5 px-4 flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Siswa Baru</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search */}

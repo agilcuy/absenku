@@ -49,9 +49,10 @@ function LoginActivityPageContent() {
     return () => clearInterval(interval)
   }, [activeFilter])
 
-  const handleManualRefresh = () => {
+  const handleManualRefresh = async () => {
     setRefreshing(true)
-    loadSessions()
+    await loadSessions()
+    showToast('Data aktivitas login berhasil diperbarui!', 'success')
   }
 
   const handleTerminateSession = async (sessionId: string) => {

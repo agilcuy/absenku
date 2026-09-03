@@ -223,14 +223,16 @@ function PembimbingPortalContent() {
           </div>
 
           <button
-            onClick={() => {
+            onClick={async () => {
               setRefreshing(true)
-              loadData()
+              await loadData()
+              showToast('Data bimbingan berhasil diperbarui!', 'success')
             }}
             disabled={refreshing}
-            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 self-start sm:self-auto"
+            className="btn-outline text-xs py-2 px-3.5 flex items-center gap-1.5 self-start sm:self-auto border-purple-500/30 hover:bg-purple-500/15"
+            title="Perbarui data bimbingan"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-purple-400' : 'text-gray-400'}`} />
             <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
           </button>
         </div>

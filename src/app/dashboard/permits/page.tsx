@@ -14,6 +14,7 @@ import {
   X,
   AlertCircle,
   Eye,
+  RefreshCw,
 } from 'lucide-react'
 import StudentNavbar from '@/components/StudentNavbar'
 import { formatDate } from '@/lib/utils'
@@ -24,6 +25,7 @@ function StudentPermitsContent() {
   const [userProfile, setUserProfile] = useState<any>(null)
   const [permits, setPermits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Submit Modal
   const [modalOpen, setModalOpen] = useState(false)
@@ -59,7 +61,14 @@ function StudentPermitsContent() {
       console.error(err)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadData()
+    showToast('Riwayat pengajuan berhasil diperbarui!', 'success')
   }
 
   useEffect(() => {
@@ -138,13 +147,25 @@ function StudentPermitsContent() {
             </p>
           </div>
 
-          <button
-            onClick={() => setModalOpen(true)}
-            className="btn-primary text-xs py-2.5 px-4 flex items-center gap-1.5 self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Buat Pengajuan Baru</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="btn-outline text-xs py-2.5 px-3.5 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40"
+              title="Perbarui riwayat pengajuan"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
+              <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
+            </button>
+
+            <button
+              onClick={() => setModalOpen(true)}
+              className="btn-primary text-xs py-2.5 px-4 flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Buat Pengajuan Baru</span>
+            </button>
+          </div>
         </div>
 
         {/* Permits History */}

@@ -12,6 +12,7 @@ import {
   AlertCircle,
   X,
   Building,
+  RefreshCw,
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useToast, ToastProvider } from '@/components/Toast'
@@ -20,6 +21,7 @@ function PermitsAdminPageContent() {
   const { showToast } = useToast()
   const [permits, setPermits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'all' | 'menunggu' | 'disetujui' | 'ditolak'>('all')
   const [search, setSearch] = useState('')
 
@@ -44,7 +46,14 @@ function PermitsAdminPageContent() {
       console.error(err)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadPermits()
+    showToast('Data izin & sakit berhasil diperbarui!', 'success')
   }
 
   useEffect(() => {
@@ -111,6 +120,16 @@ function PermitsAdminPageContent() {
             Tinjau surat bukti, setujui, atau tolak permohonan ketidakhadiran siswa PKL
           </p>
         </div>
+
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="btn-outline text-xs py-2.5 px-3.5 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40 self-start sm:self-auto"
+          title="Perbarui data izin & sakit"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
+          <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
+        </button>
       </div>
 
       {/* Filter Tabs & Search */}
