@@ -21,12 +21,13 @@ export async function GET(req: NextRequest) {
     const format = searchParams.get('format') || 'xlsx' // 'xlsx' or 'csv'
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    const placeId = searchParams.get('placeId')
     const studentId = searchParams.get('studentId')
     const status = searchParams.get('status')
 
     let query = adminClient
       .from('attendances')
-      .select('*, users(full_name, email, phone)')
+      .select('*, users(full_name, email, phone, class_name, major, internship_place_id, internship_places(name))')
       .order('date', { ascending: false })
 
     if (startDate) query = query.gte('date', startDate)
@@ -34,14 +35,30 @@ export async function GET(req: NextRequest) {
     if (studentId) query = query.eq('user_id', studentId)
     if (status) query = query.eq('check_in_status', status)
 
+    if (placeId && !studentId) {
+      const { data: placeStudents } = await adminClient
+        .from('users')
+        .select('id')
+        .eq('internship_place_id', placeId)
+
+      const studentIds = (placeStudents || []).map((s: any) => s.id)
+      if (studentIds.length === 0) {
+        query = query.in('user_id', ['00000000-0000-0000-0000-000000000000'])
+      } else {
+        query = query.in('user_id', studentIds)
+      }
+    }
+
     const { data: records, error } = await query
     if (error) throw error
 
-    // Transform into rows
+    // Transform into rows with rich data
     const rows = (records || []).map((r: any, idx: number) => ({
       No: idx + 1,
       Tanggal: r.date,
       'Nama Siswa': r.users?.full_name || '-',
+      'Kelas & Jurusan': [r.users?.class_name, r.users?.major].filter(Boolean).join(' - ') || '-',
+      'Tempat PKL': r.users?.internship_places?.name || '-',
       'Email Siswa': r.users?.email || '-',
       'No. Telepon': r.users?.phone || '-',
       'Jam Masuk': r.check_in_time ? formatTime(r.check_in_time) : '-',
@@ -58,7 +75,19 @@ export async function GET(req: NextRequest) {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Absensi')
 
     const dateStr = new Date().toISOString().split('T')[0]
-    const filename = `rekap-absensi-${dateStr}`
+    let filenamePrefix = 'rekap-absensi'
+    if (placeId) {
+      const { data: pData } = await adminClient
+        .from('internship_places')
+        .select('name')
+        .eq('id', placeId)
+        .maybeSingle()
+      if (pData?.name) {
+        const sanitized = pData.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
+        filenamePrefix = `rekap-absensi-${sanitized}`
+      }
+    }
+    const filename = `${filenamePrefix}-${dateStr}`
 
     if (format === 'csv') {
       const csvOutput = XLSX.utils.sheet_to_csv(worksheet)
