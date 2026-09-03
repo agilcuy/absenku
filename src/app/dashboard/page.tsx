@@ -63,13 +63,16 @@ function StudentDashboardContent() {
     title: '',
   })
 
-  // Fetch today's data
+  // Fetch today's data and user profile
   const loadDashboardData = useCallback(async () => {
     try {
       const res = await fetch('/api/attendance/today')
       if (res.ok) {
         const json = await res.json()
         setData(json)
+        if (json.userProfile) {
+          setUserProfile(json.userProfile)
+        }
       }
     } catch (err) {
       console.error('Error loading dashboard:', err)
@@ -149,6 +152,7 @@ function StudentDashboardContent() {
       showToast(err.message, 'error', 'Gagal Absen')
     } finally {
       setSubmitting(false)
+      setCameraModalOpen(false) // Tutup modal setelah selesai (sukses atau gagal)
     }
   }
 
@@ -380,6 +384,7 @@ function StudentDashboardContent() {
         isOpen={cameraModalOpen}
         onClose={() => setCameraModalOpen(false)}
         onConfirm={handlePhotoConfirmed}
+        loading={submitting}
         title={activeAction === 'check_in' ? 'Foto Absensi Masuk' : 'Foto Absensi Pulang'}
       />
 

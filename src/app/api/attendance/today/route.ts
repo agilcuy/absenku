@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getTodayJakarta, getNowJakarta, isWorkingDay } from '@/lib/utils'
 
 export async function GET() {
@@ -10,11 +10,19 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const adminClient = createAdminClient()
   const todayStr = getTodayJakarta()
   const now = getNowJakarta()
 
-  // 1. Get system settings
-  const { data: settings } = await supabase
+  // 1. Get user profile
+  const { data: userProfile } = await adminClient
+    .from('users')
+    .select('id, full_name, email, avatar_url, role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  // 2. Get system settings
+  const { data: settings } = await adminClient
     .from('settings')
     .select('*')
     .limit(1)
@@ -29,8 +37,8 @@ export async function GET() {
   }
   const activeSettings = settings || defaultSettings
 
-  // 2. Check if today is a holiday
-  const { data: holiday } = await supabase
+  // 3. Check if today is a holiday
+  const { data: holiday } = await adminClient
     .from('holidays')
     .select('*')
     .eq('date', todayStr)
@@ -39,16 +47,16 @@ export async function GET() {
   const isTodayHoliday = !!holiday
   const isTodayWorkingDay = isWorkingDay(now, activeSettings.working_days)
 
-  // 3. Get student attendance for today
-  const { data: attendance } = await supabase
+  // 4. Get student attendance for today
+  const { data: attendance } = await adminClient
     .from('attendances')
     .select('*, attendance_photos(*)')
     .eq('user_id', user.id)
     .eq('date', todayStr)
     .maybeSingle()
 
-  // 4. Get student statistics
-  const { data: allAttendances } = await supabase
+  // 5. Get student statistics
+  const { data: allAttendances } = await adminClient
     .from('attendances')
     .select('check_in_status')
     .eq('user_id', user.id)
@@ -76,6 +84,12 @@ export async function GET() {
     today: todayStr,
     attendance,
     settings: activeSettings,
+    userProfile: userProfile || {
+      id: user.id,
+      email: user.email,
+      full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+      avatar_url: user.user_metadata?.avatar_url,
+    },
     isHoliday: isTodayHoliday,
     holidayName: holiday?.name || null,
     isWorkingDay: isTodayWorkingDay,

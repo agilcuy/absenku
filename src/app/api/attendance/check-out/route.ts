@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getTodayJakarta, isCheckOutAllowed, formatTime } from '@/lib/utils'
 import { getAddressFromCoords } from '@/lib/geo'
 
@@ -12,10 +12,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const adminClient = createAdminClient()
     const todayStr = getTodayJakarta()
 
     // 1. Get settings
-    const { data: settings } = await supabase
+    const { data: settings } = await adminClient
       .from('settings')
       .select('*')
       .limit(1)
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Check existing attendance record for today
-    const { data: attendance } = await supabase
+    const { data: attendance } = await adminClient
       .from('attendances')
       .select('*')
       .eq('user_id', user.id)
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
       address = await getAddressFromCoords(lat, lng)
     }
 
-    // Upload photo
+    // Upload photo via adminClient
     let photoUrl = ''
     try {
       const arrayBuffer = await photoFile.arrayBuffer()
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
       const fileExt = photoFile.name ? photoFile.name.split('.').pop() || 'jpg' : 'jpg'
       const filePath = `${user.id}/${todayStr}-checkout-${Date.now()}.${fileExt}`
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await adminClient.storage
         .from('attendance-photos')
         .upload(filePath, buffer, {
           contentType: photoFile.type || 'image/jpeg',
@@ -90,19 +91,21 @@ export async function POST(req: NextRequest) {
         })
 
       if (!uploadError) {
-        const { data: publicUrlData } = supabase.storage
+        const { data: publicUrlData } = adminClient.storage
           .from('attendance-photos')
           .getPublicUrl(filePath)
         photoUrl = publicUrlData.publicUrl
       } else {
-        photoUrl = `data:${photoFile.type || 'image/jpeg'};base64,${buffer.toString('base64')}`
+        console.error('Storage upload error:', uploadError)
+        throw new Error(`Gagal menyimpan foto ke server: ${uploadError.message}`)
       }
-    } catch (e) {
-      console.warn('Storage upload error, using fallback:', e)
+    } catch (e: any) {
+      console.error('Photo upload error:', e)
+      throw new Error(e.message || 'Gagal memproses foto absensi.')
     }
 
-    // Update attendance record with check-out
-    const { error: updateErr } = await supabase
+    // Update attendance record with check-out via adminClient
+    const { error: updateErr } = await adminClient
       .from('attendances')
       .update({
         check_out_time: new Date().toISOString(),
@@ -114,9 +117,9 @@ export async function POST(req: NextRequest) {
 
     if (updateErr) throw updateErr
 
-    // Save photo record
+    // Save photo record via adminClient
     if (photoUrl) {
-      await supabase.from('attendance_photos').insert({
+      await adminClient.from('attendance_photos').insert({
         attendance_id: attendance.id,
         type: 'check_out',
         photo_url: photoUrl,

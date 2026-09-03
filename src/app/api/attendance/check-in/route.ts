@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getTodayJakarta, getNowJakarta, getAttendanceStatus, isWorkingDay } from '@/lib/utils'
 import { getAddressFromCoords } from '@/lib/geo'
 
@@ -12,11 +12,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const adminClient = createAdminClient()
     const todayStr = getTodayJakarta()
     const now = getNowJakarta()
 
     // 1. Get settings
-    const { data: settings } = await supabase
+    const { data: settings } = await adminClient
       .from('settings')
       .select('*')
       .limit(1)
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     const workingDays = settings?.working_days || [1, 2, 3, 4, 5]
 
     // 2. Check holiday
-    const { data: holiday } = await supabase
+    const { data: holiday } = await adminClient
       .from('holidays')
       .select('name')
       .eq('date', todayStr)
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Check existing attendance
-    const { data: existing } = await supabase
+    const { data: existing } = await adminClient
       .from('attendances')
       .select('*')
       .eq('user_id', user.id)
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
     // Determine status (on_time or late)
     const status = getAttendanceStatus(now, checkInConfig)
 
-    // Handle photo upload
+    // Handle photo upload via adminClient (bypasses RLS)
     let photoUrl = ''
     try {
       const arrayBuffer = await photoFile.arrayBuffer()
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
       const fileExt = photoFile.name ? photoFile.name.split('.').pop() || 'jpg' : 'jpg'
       const filePath = `${user.id}/${todayStr}-checkin-${Date.now()}.${fileExt}`
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await adminClient.storage
         .from('attendance-photos')
         .upload(filePath, buffer, {
           contentType: photoFile.type || 'image/jpeg',
@@ -99,19 +100,20 @@ export async function POST(req: NextRequest) {
         })
 
       if (!uploadError) {
-        const { data: publicUrlData } = supabase.storage
+        const { data: publicUrlData } = adminClient.storage
           .from('attendance-photos')
           .getPublicUrl(filePath)
         photoUrl = publicUrlData.publicUrl
       } else {
-        // Fallback: use data URI if bucket upload failed
-        photoUrl = `data:${photoFile.type || 'image/jpeg'};base64,${buffer.toString('base64')}`
+        console.error('Storage upload error:', uploadError)
+        throw new Error(`Gagal menyimpan foto ke server: ${uploadError.message}`)
       }
-    } catch (e) {
-      console.warn('Storage upload error, using fallback:', e)
+    } catch (e: any) {
+      console.error('Photo upload error:', e)
+      throw new Error(e.message || 'Gagal memproses foto absensi.')
     }
 
-    // Save attendance record
+    // Save attendance record via adminClient
     const attendancePayload = {
       user_id: user.id,
       date: todayStr,
@@ -125,7 +127,7 @@ export async function POST(req: NextRequest) {
 
     let attendanceId = ''
     if (existing) {
-      const { data: updated, error: updateErr } = await supabase
+      const { data: updated, error: updateErr } = await adminClient
         .from('attendances')
         .update(attendancePayload)
         .eq('id', existing.id)
@@ -134,7 +136,7 @@ export async function POST(req: NextRequest) {
       if (updateErr) throw updateErr
       attendanceId = updated.id
     } else {
-      const { data: inserted, error: insertErr } = await supabase
+      const { data: inserted, error: insertErr } = await adminClient
         .from('attendances')
         .insert(attendancePayload)
         .select()
@@ -143,9 +145,9 @@ export async function POST(req: NextRequest) {
       attendanceId = inserted.id
     }
 
-    // Save photo record
+    // Save photo record via adminClient
     if (photoUrl) {
-      await supabase.from('attendance_photos').insert({
+      await adminClient.from('attendance_photos').insert({
         attendance_id: attendanceId,
         type: 'check_in',
         photo_url: photoUrl,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,11 +10,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: profile } = await supabase
+    const adminClient = createAdminClient()
+
+    const { data: profile } = await adminClient
       .from('users')
       .select('role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     const isSuperAdmin = profile?.role === 'superadmin'
 
@@ -26,7 +28,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status')
     const studentId = searchParams.get('studentId')
 
-    let query = supabase
+    let query = adminClient
       .from('attendances')
       .select('*, users(id, full_name, email, avatar_url), attendance_photos(*)')
       .order('date', { ascending: false })

@@ -1,6 +1,4 @@
-import { type ClassValue, clsx } from 'clsx'
-
-// Simple classname utility (without clsx dependency, use manual concat)
+// Simple classname utility
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ')
 }

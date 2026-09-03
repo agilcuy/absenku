@@ -140,8 +140,8 @@ drop policy if exists "users_delete_admin" on public.users;
 create policy "users_select_own" on public.users
   for select using (auth.uid() = id);
 
-create policy "users_select_admin" on public.users
-  for select using (public.is_admin());
+create policy "users_select_authenticated" on public.users
+  for select using (auth.role() = 'authenticated');
 
 create policy "users_insert_admin" on public.users
   for insert with check (public.is_admin());

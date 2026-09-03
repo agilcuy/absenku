@@ -1,14 +1,15 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Camera, Image as ImageIcon, RotateCw, X, Check } from 'lucide-react'
-import { validateImageFile } from '@/lib/geo'
+import { Camera, Image as ImageIcon, RotateCw, X, Check, AlertCircle, Loader2 } from 'lucide-react'
+import { validateImageFile, compressImageFile } from '@/lib/geo'
 
 interface CameraCaptureModalProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: (file: File) => void
   title?: string
+  loading?: boolean
 }
 
 export default function CameraCaptureModal({
@@ -16,11 +17,14 @@ export default function CameraCaptureModal({
   onClose,
   onConfirm,
   title = 'Ambil Foto Absensi',
+  loading = false,
 }: CameraCaptureModalProps) {
   const [mode, setMode] = useState<'camera' | 'gallery'>('camera')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
+  const [galleryError, setGalleryError] = useState<string | null>(null)
+  const [processingImage, setProcessingImage] = useState(false)
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
   const [streamActive, setStreamActive] = useState(false)
 
@@ -79,62 +83,88 @@ export default function CameraCaptureModal({
 
   // Capture photo from video stream
   const handleCapture = () => {
+    setCameraError(null)
     if (!videoRef.current || !canvasRef.current) return
     const video = videoRef.current
     const canvas = canvasRef.current
 
-    canvas.width = video.videoWidth || 640
-    canvas.height = video.videoHeight || 480
+    const width = video.videoWidth || 640
+    const height = video.videoHeight || 480
+    canvas.width = width
+    canvas.height = height
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    ctx.drawImage(video, 0, 0, width, height)
 
-    canvas.toBlob((blob) => {
-      if (!blob) return
-      const file = new File([blob], `absensi-${Date.now()}.jpg`, { type: 'image/jpeg' })
-      setSelectedFile(file)
-      setPreviewUrl(URL.createObjectURL(blob))
-      stopCamera()
-    }, 'image/jpeg', 0.85)
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          setCameraError('Gagal mengambil foto dari kamera. Silakan coba lagi.')
+          return
+        }
+        const file = new File([blob], `absensi-${Date.now()}.jpg`, { type: 'image/jpeg' })
+        setSelectedFile(file)
+        setPreviewUrl(URL.createObjectURL(blob))
+        stopCamera()
+      },
+      'image/jpeg',
+      0.85
+    )
   }
 
-  // Handle gallery file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle gallery file selection with client-side compression
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGalleryError(null)
     const file = e.target.files?.[0]
     if (!file) return
 
     const validation = validateImageFile(file)
     if (!validation.valid) {
-      alert(validation.error)
+      setGalleryError(validation.error || 'Format berkas tidak valid.')
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
 
-    setSelectedFile(file)
-    setPreviewUrl(URL.createObjectURL(file))
+    setProcessingImage(true)
+    try {
+      const compressed = await compressImageFile(file)
+      setSelectedFile(compressed)
+      setPreviewUrl(URL.createObjectURL(compressed))
+    } catch (err: any) {
+      console.error('Failed to compress image:', err)
+      setGalleryError('Gagal memproses gambar. Silakan gunakan foto lain.')
+    } finally {
+      setProcessingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   // Retake photo
   const handleRetake = () => {
     setPreviewUrl(null)
     setSelectedFile(null)
+    setGalleryError(null)
+    setCameraError(null)
     if (mode === 'camera') {
       startCamera()
     }
   }
 
-  // Confirm photo selection
+  // Confirm photo selection — parent controls modal close after submit done
   const handleConfirm = () => {
-    if (selectedFile) {
+    if (selectedFile && !loading) {
       onConfirm(selectedFile)
-      handleClose()
     }
   }
 
   const handleClose = () => {
+    if (loading) return // Prevent closing while submitting
     stopCamera()
     setPreviewUrl(null)
     setSelectedFile(null)
+    setGalleryError(null)
+    setCameraError(null)
     onClose()
   }
 
@@ -249,28 +279,48 @@ export default function CameraCaptureModal({
             </div>
           ) : (
             /* Gallery File Input */
-            <div className="w-full max-w-sm p-6 border-2 border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center gap-4 bg-white/5 hover:border-indigo-500/50 transition">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/jpg"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                <ImageIcon className="w-8 h-8" />
+            <div className="w-full max-w-sm flex flex-col items-center gap-3">
+              {galleryError && (
+                <div className="w-full p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-start gap-2 text-xs text-rose-300 animate-fade-in">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{galleryError}</span>
+                </div>
+              )}
+
+              <div className="w-full p-6 border-2 border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center gap-4 bg-white/5 hover:border-indigo-500/50 transition">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  {processingImage ? (
+                    <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+                  ) : (
+                    <ImageIcon className="w-8 h-8" />
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-white">
+                    {processingImage ? 'Sedang Memproses Foto...' : 'Upload Foto Bukti'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {processingImage
+                      ? 'Mengompres foto agar pengiriman cepat & hemat data'
+                      : 'Mendukung format JPG, PNG, WEBP dari galeri perangkat'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={processingImage}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn-primary text-xs py-2 px-5 disabled:opacity-50"
+                >
+                  {processingImage ? 'Memproses...' : 'Pilih Berkas Foto'}
+                </button>
               </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold text-white">Upload Foto Bukti</p>
-                <p className="text-xs text-gray-400 mt-1">Mendukung format JPG, PNG, WEBP (Maks. 5MB)</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="btn-primary text-xs py-2 px-5"
-              >
-                Pilih Berkas Foto
-              </button>
             </div>
           )}
         </div>
@@ -281,15 +331,25 @@ export default function CameraCaptureModal({
             <>
               <button
                 onClick={handleRetake}
-                className="btn-outline text-xs flex-1 py-3"
+                disabled={loading}
+                className="btn-outline text-xs flex-1 py-3 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Foto Ulang
               </button>
               <button
                 onClick={handleConfirm}
-                className="btn-primary text-xs flex-1 py-3 justify-center"
+                disabled={loading}
+                className="btn-primary text-xs flex-1 py-3 justify-center disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Gunakan Foto Ini
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Mengirim...
+                  </span>
+                ) : 'Gunakan Foto Ini'}
               </button>
             </>
           ) : mode === 'camera' && streamActive ? (
