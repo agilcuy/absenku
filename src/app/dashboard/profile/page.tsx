@@ -160,8 +160,10 @@ function StudentProfileContent() {
     }
   }
 
+  const isSuperadmin = profile?.role === 'superadmin'
   const isProfileIncomplete =
-    !profile?.class_name || !profile?.major || !profile?.phone || !profile?.username
+    !isSuperadmin &&
+    (!profile?.class_name || !profile?.major || !profile?.phone || !profile?.username)
 
   return (
     <div className="min-h-screen bg-[#06070d] text-gray-100 flex flex-col pb-12">
@@ -173,23 +175,36 @@ function StudentProfileContent() {
           <div>
             <h1 className="text-2xl font-black text-white flex items-center gap-2">
               <User className="w-6 h-6 text-indigo-400" />
-              Profil & Biodata Siswa
+              <span>{isSuperadmin ? 'Profil Superadmin & Pembimbing' : 'Profil & Biodata Siswa'}</span>
             </h1>
             <p className="text-xs text-gray-400 mt-1">
-              Data identitas diri, kelas, jurusan, penempatan PKL, dan rekap kehadiran
+              {isSuperadmin
+                ? 'Data akun pengelola sistem, instruktur pembimbing, dan absensi mandiri'
+                : 'Data identitas diri, kelas, jurusan, penempatan PKL, dan rekap kehadiran'}
             </p>
           </div>
 
-          <button
-            onClick={handleOpenEdit}
-            className="btn-primary text-xs py-2.5 px-4 flex items-center gap-1.5 self-start sm:self-auto shadow-lg shadow-indigo-500/20"
-          >
-            <Edit3 className="w-4 h-4" />
-            <span>Lengkapi / Edit Biodata</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {isSuperadmin && (
+              <a
+                href="/admin"
+                className="btn-outline border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/20 text-xs py-2 px-3 flex items-center gap-1.5 font-bold"
+              >
+                <span>⚡</span>
+                <span>Panel Admin</span>
+              </a>
+            )}
+            <button
+              onClick={handleOpenEdit}
+              className="btn-primary text-xs py-2.5 px-4 flex items-center gap-1.5 self-start sm:self-auto shadow-lg shadow-indigo-500/20"
+            >
+              <Edit3 className="w-4 h-4" />
+              <span>Edit Profil</span>
+            </button>
+          </div>
         </div>
 
-        {/* Biodata Incomplete Alert Banner */}
+        {/* Biodata Incomplete Alert Banner (Khusus Siswa) */}
         {isProfileIncomplete && (
           <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-xl">
             <div className="flex items-start gap-3">
@@ -252,13 +267,16 @@ function StudentProfileContent() {
                     <span className="text-xs text-indigo-400 font-mono">@{profile.username}</span>
                   )}
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                    {profile.internship_status || 'Aktif'}
+                    {isSuperadmin ? '👑 Superadmin' : profile.internship_status || 'Aktif'}
                   </span>
                 </div>
 
                 <p className="text-xs text-indigo-300 font-medium mb-3">
-                  {profile.class_name ? `${profile.class_name}` : 'Kelas belum diisi'} •{' '}
-                  {profile.major || 'Jurusan belum diisi'}
+                  {isSuperadmin
+                    ? 'Administrator Utama Sistem & Pembimbing Siswa PKL'
+                    : `${profile.class_name ? profile.class_name : 'Kelas belum diisi'} • ${
+                        profile.major || 'Jurusan belum diisi'
+                      }`}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-300">
@@ -275,37 +293,71 @@ function StudentProfileContent() {
             </div>
 
             {/* Placement & Mentor Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="glass-card p-5 border border-white/10 flex items-start gap-3.5">
-                <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex-shrink-0">
-                  <Building className="w-5 h-5" />
+            {isSuperadmin ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="glass-card p-5 border border-indigo-500/20 flex items-start gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex-shrink-0">
+                    <Building className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] text-gray-400 font-semibold uppercase">Instansi Induk</p>
+                    <p className="text-sm font-bold text-white mt-0.5 truncate">
+                      {profile.internship_places?.name || 'Kominfo Tanggamus (egov)'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Pusat Manajemen Sistem Absensi & E-Government
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] text-gray-400 font-semibold uppercase">Instansi / Tempat PKL</p>
-                  <p className="text-sm font-bold text-white mt-0.5 truncate">
-                    {profile.internship_places?.name || 'Belum Ditentukan'}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                    {profile.internship_places?.address || 'Pilih tempat PKL pada menu edit biodata'}
-                  </p>
-                </div>
-              </div>
 
-              <div className="glass-card p-5 border border-white/10 flex items-start gap-3.5">
-                <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex-shrink-0">
-                  <GraduationCap className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] text-gray-400 font-semibold uppercase">Pembimbing PKL</p>
-                  <p className="text-sm font-bold text-white mt-0.5 truncate">
-                    {profile.mentor?.full_name || 'Ditugaskan oleh Admin'}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1 truncate">
-                    {profile.mentor?.email || 'Hubungi admin sekolah jika belum ada pembimbing'}
-                  </p>
+                <div className="glass-card p-5 border border-purple-500/20 flex items-start gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex-shrink-0">
+                    <GraduationCap className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] text-gray-400 font-semibold uppercase">Peran Pembimbing</p>
+                    <p className="text-sm font-bold text-white mt-0.5 truncate">
+                      Pembimbing Siswa PKL
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Membimbing siswa dan meninjau surat izin di Portal Pembimbing.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="glass-card p-5 border border-white/10 flex items-start gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex-shrink-0">
+                    <Building className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-gray-400 font-semibold uppercase">Instansi / Tempat PKL</p>
+                    <p className="text-sm font-bold text-white mt-0.5 truncate">
+                      {profile.internship_places?.name || 'Belum Ditentukan'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                      {profile.internship_places?.address || 'Pilih tempat PKL pada menu edit biodata'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="glass-card p-5 border border-white/10 flex items-start gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex-shrink-0">
+                    <GraduationCap className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-gray-400 font-semibold uppercase">Pembimbing PKL</p>
+                    <p className="text-sm font-bold text-white mt-0.5 truncate">
+                      {profile.mentor?.full_name || 'Ditugaskan oleh Admin'}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1 truncate">
+                      {profile.mentor?.email || 'Hubungi admin sekolah jika belum ada pembimbing'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* PKL Period Timeline */}
             <div className="glass-card p-5 border border-white/10 flex items-center justify-between">
@@ -366,16 +418,27 @@ function StudentProfileContent() {
       {editModalOpen && (
         <div className="modal-overlay">
           <div className="glass-card w-full max-w-md p-6 border border-white/10 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
-              <h3 className="font-bold text-white flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-indigo-400" />
-                Lengkapi & Edit Biodata Diri
-              </h3>
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+                  <User className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    {isSuperadmin ? 'Edit Data Profil Pengguna' : 'Lengkapi / Edit Biodata Diri'}
+                  </h3>
+                  <p className="text-[11px] text-gray-400">
+                    {isSuperadmin
+                      ? 'Perbarui identitas, username, dan kontak WhatsApp Anda'
+                      : 'Pastikan data valid untuk keperluan absensi & penempatan PKL'}
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => setEditModalOpen(false)}
-                className="text-gray-400 hover:text-white p-1 rounded-lg"
+                className="p-1 rounded-lg text-gray-400 hover:text-white transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -416,7 +479,7 @@ function StudentProfileContent() {
                 <input
                   type="text"
                   required
-                  placeholder="Nama Lengkap Siswa"
+                  placeholder="Nama Lengkap"
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   className="input-field w-full text-xs"
@@ -449,10 +512,12 @@ function StudentProfileContent() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">Kelas *</label>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Kelas {isSuperadmin ? '(Opsional)' : '*'}
+                  </label>
                   <input
                     type="text"
-                    required
+                    required={!isSuperadmin}
                     placeholder="Contoh: XII RPL 1"
                     value={formData.class_name}
                     onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
@@ -460,10 +525,12 @@ function StudentProfileContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">Jurusan *</label>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Jurusan {isSuperadmin ? '(Opsional)' : '*'}
+                  </label>
                   <input
                     type="text"
-                    required
+                    required={!isSuperadmin}
                     placeholder="Contoh: Rekayasa Perangkat Lunak"
                     value={formData.major}
                     onChange={(e) => setFormData({ ...formData, major: e.target.value })}
@@ -474,7 +541,7 @@ function StudentProfileContent() {
 
               <div>
                 <label className="block text-gray-300 font-medium mb-1">
-                  Tempat / Instansi PKL
+                  Tempat / Instansi PKL {isSuperadmin ? '(Opsional)' : ''}
                 </label>
                 <select
                   value={formData.internship_place_id}
@@ -489,7 +556,9 @@ function StudentProfileContent() {
                   ))}
                 </select>
                 <p className="text-[10px] text-gray-400 mt-1">
-                  Pilih tempat instansi PKL yang sudah disediakan oleh admin sekolah.
+                  {isSuperadmin
+                    ? 'Dapat memilih Kominfo Tanggamus (egov) atau membiarkannya default'
+                    : 'Pilih tempat instansi PKL yang sudah disediakan oleh admin sekolah.'}
                 </p>
               </div>
 

@@ -183,10 +183,20 @@ function StudentDashboardContent() {
             <div>
               <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-1">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Portal Peserta Didik PKL</span>
+                <span>
+                  {userProfile?.role === 'superadmin'
+                    ? 'Absensi Mandiri • Superadmin & Pembimbing'
+                    : 'Portal Peserta Didik PKL'}
+                </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-white">
-                Selamat Datang, {userProfile?.full_name ? userProfile.full_name.split(' ')[0] : 'Siswa'}!
+                Selamat Datang,{' '}
+                {userProfile?.role === 'superadmin'
+                  ? userProfile?.full_name || 'Superadmin'
+                  : userProfile?.full_name
+                  ? userProfile.full_name.split(' ')[0]
+                  : 'Peserta Didik'}
+                !
               </h1>
               <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-gray-400" />
@@ -195,28 +205,50 @@ function StudentDashboardContent() {
             </div>
 
             <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-2xl shadow-inner">
-              ⚡
+              {userProfile?.role === 'superadmin' ? '👑' : '⚡'}
             </div>
           </div>
 
-          {/* Pengingat Lengkapi Biodata jika belum terisi */}
-          {userProfile && (!userProfile.class_name || !userProfile.major || !userProfile.phone) && (
-            <div className="mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+          {/* Quick Return to Admin Panel for Superadmin */}
+          {userProfile?.role === 'superadmin' && (
+            <div className="mt-4 p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in">
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">👑</span>
                 <div>
-                  <span className="font-bold text-amber-300 block">Biodata Anda Belum Lengkap</span>
-                  <span className="text-amber-200/80">Silakan lengkapi kelas, jurusan, no WA, dan tempat PKL Anda.</span>
+                  <span className="font-bold text-indigo-300 block">Akun Superadmin & Pembimbing PKL</span>
+                  <span className="text-indigo-200/80">Anda dapat melakukan absensi mandiri, mengelola sistem, dan memantau siswa bimbingan.</span>
                 </div>
               </div>
               <Link
-                href="/dashboard/profile?edit=true"
-                className="btn-outline border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-[11px] py-1.5 px-3 whitespace-nowrap self-start sm:self-auto font-bold"
+                href="/admin"
+                className="btn-outline border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/20 text-[11px] py-1.5 px-3 whitespace-nowrap self-start sm:self-auto font-bold flex items-center gap-1"
               >
-                Lengkapi Sekarang ➔
+                <span>Panel Admin</span>
+                <span>➔</span>
               </Link>
             </div>
           )}
+
+          {/* Pengingat Lengkapi Biodata jika belum terisi (HANYA untuk Siswa) */}
+          {userProfile?.role !== 'superadmin' &&
+            userProfile &&
+            (!userProfile.class_name || !userProfile.major || !userProfile.phone) && (
+              <div className="mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-amber-300 block">Biodata Anda Belum Lengkap</span>
+                    <span className="text-amber-200/80">Silakan lengkapi kelas, jurusan, no WA, dan tempat PKL Anda.</span>
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard/profile?edit=true"
+                  className="btn-outline border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-[11px] py-1.5 px-3 whitespace-nowrap self-start sm:self-auto font-bold"
+                >
+                  Lengkapi Sekarang ➔
+                </Link>
+              </div>
+            )}
 
           {/* Holiday or Non-working day banner */}
           {isHoliday && (

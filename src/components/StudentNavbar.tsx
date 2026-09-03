@@ -37,8 +37,8 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
           <div>
             <div className="font-bold text-base tracking-tight text-white flex items-center gap-1.5">
               ABSENKU
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                PKL
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold">
+                {user?.role === 'superadmin' ? 'ADMIN & PEMBIMBING' : 'PKL'}
               </span>
             </div>
             <p className="text-[10px] text-gray-400">Kominfo Tanggamus</p>
