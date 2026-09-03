@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     let query = adminClient
       .from('permits')
       .select(
-        '*, users(id, full_name, email, class_name, major, avatar_url, mentor_id, internship_places(name)), reviewer:reviewed_by(full_name, email)'
+        '*, users!permits_user_id_fkey(id, full_name, email, class_name, major, avatar_url, mentor_id, internship_places(name)), reviewer:reviewed_by(full_name, email)'
       )
       .order('created_at', { ascending: false })
 
@@ -130,14 +130,15 @@ export async function POST(req: NextRequest) {
         proof_url: proofUrl,
         status: 'menunggu',
       })
-      .select('*, users(full_name, mentor_id)')
+      .select('*, users!permits_user_id_fkey(full_name, mentor_id)')
       .single()
 
     if (insertErr) throw insertErr
 
     // Send notification to Mentor and Superadmin
-    const studentName = newPermit.users?.full_name || 'Siswa'
-    const mentorId = newPermit.users?.mentor_id
+    const studentUser = (newPermit as any)?.users
+    const studentName = studentUser?.full_name || 'Siswa'
+    const mentorId = studentUser?.mentor_id
 
     const notifPayloads = []
     if (mentorId) {

@@ -51,7 +51,7 @@ export async function PUT(
     // Get the permit details
     const { data: permit, error: pErr } = await adminClient
       .from('permits')
-      .select('*, users(id, full_name, mentor_id)')
+      .select('*, users!permits_user_id_fkey(id, full_name, mentor_id)')
       .eq('id', id)
       .single()
 
