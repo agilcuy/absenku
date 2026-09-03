@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -181,6 +182,17 @@ function PembimbingPortalContent() {
         </div>
 
         <div className="flex items-center gap-3">
+          {mentor?.role === 'superadmin' && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-1.5 text-xs text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 px-3 py-1.5 rounded-xl transition font-bold"
+              title="Kembali ke Panel Superadmin"
+            >
+              <span>⚡</span>
+              <span>Panel Superadmin</span>
+            </Link>
+          )}
+
           <NotificationCenter />
           <button
             onClick={handleSignOut}

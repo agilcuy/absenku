@@ -22,6 +22,7 @@ import {
 
 const MENU_ITEMS = [
   { label: 'Monitoring Live', href: '/admin', icon: LayoutDashboard },
+  { label: 'Portal Pembimbing (Saya)', href: '/pembimbing', icon: GraduationCap },
   { label: 'Absen Saya (Kamera)', href: '/dashboard', icon: Camera },
   { label: 'Peserta Didik', href: '/admin/students', icon: Users },
   { label: 'Pembimbing PKL', href: '/admin/mentors', icon: GraduationCap },

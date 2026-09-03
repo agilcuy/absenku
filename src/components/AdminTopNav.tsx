@@ -65,6 +65,16 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
         {/* Notification Center */}
         <NotificationCenter />
 
+        {/* Portal Pembimbing Button for Superadmin */}
+        <a
+          href="/pembimbing"
+          className="flex items-center gap-1.5 text-xs text-purple-300 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 px-3 py-1.5 rounded-xl transition font-semibold"
+          title="Buka Portal Bimbingan Siswa PKL Anda"
+        >
+          <span>🎓</span>
+          <span className="hidden md:inline">Portal Pembimbing</span>
+        </a>
+
         {/* Superadmin Absen Mandiri Button */}
         <a
           href="/dashboard"

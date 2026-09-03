@@ -12,11 +12,11 @@ export async function GET() {
 
     const adminClient = createAdminClient()
 
-    // 1. Get all mentors
+    // 1. Get all mentors, including superadmins who also serve as mentors
     const { data: mentors, error: mError } = await adminClient
       .from('users')
       .select('id, full_name, email, phone, avatar_url, role, is_active, created_at')
-      .eq('role', 'pembimbing')
+      .in('role', ['pembimbing', 'superadmin'])
       .order('full_name', { ascending: true })
 
     if (mError) throw mError

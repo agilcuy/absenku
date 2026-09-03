@@ -498,7 +498,7 @@ export default function AdminStudentsPage() {
                     <option value="">-- Pilih Pembimbing --</option>
                     {mentors.map((m) => (
                       <option key={m.id} value={m.id}>
-                        {m.full_name}
+                        {m.full_name} {m.role === 'superadmin' ? '• (Superadmin & Pembimbing)' : ''}
                       </option>
                     ))}
                   </select>
@@ -665,7 +665,7 @@ export default function AdminStudentsPage() {
                     <option value="">-- Pilih Pembimbing --</option>
                     {mentors.map((m) => (
                       <option key={m.id} value={m.id}>
-                        {m.full_name}
+                        {m.full_name} {m.role === 'superadmin' ? '• (Superadmin & Pembimbing)' : ''}
                       </option>
                     ))}
                   </select>
