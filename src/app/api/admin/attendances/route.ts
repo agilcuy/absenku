@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { isUserSuperadmin } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 
 export async function GET(req: NextRequest) {
@@ -8,13 +9,10 @@ export async function GET(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const adminClient = createAdminClient()
+    const isAdmin = await isUserSuperadmin(user, adminClient)
 
-    if (profile?.role !== 'superadmin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -25,7 +23,7 @@ export async function GET(req: NextRequest) {
     const month = searchParams.get('month')
     const year = searchParams.get('year')
 
-    let query = supabase
+    let query = adminClient
       .from('attendances')
       .select('*, users(id, full_name, email, avatar_url), attendance_photos(*)')
       .order('date', { ascending: false })
@@ -71,13 +69,10 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const adminClient = createAdminClient()
+    const isAdmin = await isUserSuperadmin(user, adminClient)
 
-    if (profile?.role !== 'superadmin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -92,7 +87,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Insert or update attendance record
-    const { data: newRecord, error } = await supabase
+    const { data: newRecord, error } = await adminClient
       .from('attendances')
       .upsert({
         user_id,

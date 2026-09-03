@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { isUserSuperadmin } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 
 export async function PUT(
@@ -12,31 +13,28 @@ export async function PUT(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const adminClient = createAdminClient()
+    const isAdmin = await isUserSuperadmin(user, adminClient)
 
-    if (profile?.role !== 'superadmin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const body = await req.json()
     const { full_name, phone, is_active } = body
 
-    const { data: oldData } = await supabase
+    const { data: oldData } = await adminClient
       .from('users')
       .select('*')
       .eq('id', id)
       .single()
 
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await adminClient
       .from('users')
       .update({
-        full_name: full_name !== undefined ? full_name : oldData.full_name,
-        phone: phone !== undefined ? phone : oldData.phone,
-        is_active: is_active !== undefined ? is_active : oldData.is_active,
+        full_name: full_name !== undefined ? full_name : oldData?.full_name,
+        phone: phone !== undefined ? phone : oldData?.phone,
+        is_active: is_active !== undefined ? is_active : oldData?.is_active,
       })
       .eq('id', id)
       .select()
@@ -68,25 +66,29 @@ export async function DELETE(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const adminClient = createAdminClient()
+    const isAdmin = await isUserSuperadmin(user, adminClient)
 
-    if (profile?.role !== 'superadmin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Fetch old data for audit
-    const { data: oldData } = await supabase
+    const { data: oldData } = await adminClient
       .from('users')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
-    const { error } = await supabase.from('users').delete().eq('id', id)
+    const { error } = await adminClient.from('users').delete().eq('id', id)
     if (error) throw error
+
+    // Also delete from auth.users if exists
+    try {
+      await adminClient.auth.admin.deleteUser(id)
+    } catch {
+      // Ignore if not in auth.users
+    }
 
     await logAudit({
       action: 'DELETE_STUDENT',

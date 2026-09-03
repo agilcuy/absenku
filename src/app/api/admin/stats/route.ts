@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { isUserSuperadmin } from '@/lib/auth'
 import { getTodayJakarta, getNowJakarta, isWorkingDay, parseTime } from '@/lib/utils'
 
 export async function GET() {
@@ -8,13 +9,10 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const adminClient = createAdminClient()
+    const isAdmin = await isUserSuperadmin(user, adminClient)
 
-    if (profile?.role !== 'superadmin') {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -22,7 +20,7 @@ export async function GET() {
     const now = getNowJakarta()
 
     // 1. Settings & Holiday
-    const { data: settings } = await supabase
+    const { data: settings } = await adminClient
       .from('settings')
       .select('*')
       .limit(1)
@@ -31,7 +29,7 @@ export async function GET() {
     const checkOutConfig = settings?.check_out_time || '16:30:00'
     const workingDays = settings?.working_days || [1, 2, 3, 4, 5]
 
-    const { data: holiday } = await supabase
+    const { data: holiday } = await adminClient
       .from('holidays')
       .select('name')
       .eq('date', todayStr)
@@ -40,7 +38,7 @@ export async function GET() {
     const isTodayWorkDay = isWorkingDay(now, workingDays) && !holiday
 
     // 2. All active students
-    const { data: students } = await supabase
+    const { data: students } = await adminClient
       .from('users')
       .select('id, full_name, email, avatar_url')
       .eq('role', 'student')
@@ -49,7 +47,7 @@ export async function GET() {
     const totalStudents = students?.length || 0
 
     // 3. Today's attendances
-    const { data: todayAttendances } = await supabase
+    const { data: todayAttendances } = await adminClient
       .from('attendances')
       .select('*, users(full_name, email, avatar_url)')
       .eq('date', todayStr)
