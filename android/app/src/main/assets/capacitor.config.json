@@ -4,15 +4,21 @@
 	"webDir": "public",
 	"server": {
 		"url": "https://absenku-three.vercel.app",
-		"cleartext": false
+		"cleartext": false,
+		"allowNavigation": [
+			"absenku-three.vercel.app",
+			"*.supabase.co",
+			"accounts.google.com",
+			"*.google.com",
+			"*.google.co.id",
+			"*.gstatic.com",
+			"*.googleapis.com",
+			"content.googleapis.com",
+			"apis.google.com"
+		]
 	},
 	"android": {
-		"allowMixedContent": false,
-		"appendUserAgent": "AbsenkuNativeApp"
-	},
-	"plugins": {
-		"Browser": {
-			"presentationStyle": "popover"
-		}
+		"allowMixedContent": true,
+		"overrideUserAgent": "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
 	}
 }
