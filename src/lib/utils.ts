@@ -62,8 +62,20 @@ export function getAttendanceStatus(
   return 'late'
 }
 
-// Check if checkout is allowed
-export function isCheckOutAllowed(checkOutTime: string): boolean {
+// Check if check-in is allowed (Dibuka mulai jam 06:00 pagi WIB)
+export function isCheckInAllowed(openTime: string = '06:00:00'): boolean {
+  const now = getNowJakarta()
+  const { hours, minutes } = parseTime(openTime)
+  const currentHours = now.getHours()
+  const currentMinutes = now.getMinutes()
+
+  if (currentHours > hours) return true
+  if (currentHours === hours && currentMinutes >= minutes) return true
+  return false
+}
+
+// Check if checkout is allowed (Jam 16:30 s.d 24:00 / 12 malam)
+export function isCheckOutAllowed(checkOutTime: string = '16:30:00'): boolean {
   const now = getNowJakarta()
   const { hours, minutes } = parseTime(checkOutTime)
   const currentHours = now.getHours()

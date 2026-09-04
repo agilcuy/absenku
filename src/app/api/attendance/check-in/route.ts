@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { getTodayJakarta, getNowJakarta, getAttendanceStatus, isWorkingDay } from '@/lib/utils'
+import { getTodayJakarta, getNowJakarta, getAttendanceStatus, isWorkingDay, isCheckInAllowed } from '@/lib/utils'
 import { getAddressFromCoords } from '@/lib/geo'
 
 export async function POST(req: NextRequest) {
@@ -49,6 +49,16 @@ export async function POST(req: NextRequest) {
 
     const checkInConfig = settings?.check_in_time || '07:30:00'
     const workingDays = settings?.working_days || [1, 2, 3, 4, 5]
+
+    // 1b. Check if check-in is open (mulai jam 06:00 pagi WIB)
+    if (!isCheckInAllowed('06:00:00')) {
+      return NextResponse.json(
+        {
+          error: 'Absensi masuk belum dibuka. Absensi masuk dibuka mulai pukul 06:00 s.d 07:30 WIB.',
+        },
+        { status: 400 }
+      )
+    }
 
     // 2. Check holiday
     const { data: holiday } = await adminClient

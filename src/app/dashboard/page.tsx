@@ -17,6 +17,7 @@ import {
   getStatusBadge,
   getStatusEmoji,
   getStatusLabel,
+  isCheckInAllowed,
   isCheckOutAllowed,
 } from '@/lib/utils'
 import {
@@ -180,12 +181,23 @@ function StudentDashboardContent() {
       return
     }
 
+    if (action === 'check_in') {
+      if (!isCheckInAllowed('06:00:00')) {
+        showToast(
+          'Absensi masuk belum dibuka. Absensi pagi dibuka mulai pukul 06:00 s.d 07:30 WIB.',
+          'warning',
+          'Belum Waktunya Masuk'
+        )
+        return
+      }
+    }
+
     if (action === 'check_out') {
       const checkOutConfig = data?.settings?.check_out_time || '16:30:00'
       if (!isCheckOutAllowed(checkOutConfig)) {
         const timeStr = checkOutConfig.substring(0, 5)
         showToast(
-          `Absensi pulang belum tersedia. Absensi pulang dapat dilakukan mulai pukul ${timeStr} WIB.`,
+          `Absensi pulang belum tersedia. Absensi pulang dapat dilakukan mulai pukul ${timeStr} s.d 24:00 (12 malam) WIB.`,
           'warning',
           'Belum Waktunya Pulang'
         )
@@ -417,7 +429,7 @@ function StudentDashboardContent() {
                       {attendance?.check_in_time ? formatTime(attendance.check_in_time) : '--:--'}
                     </div>
                     <div className="text-[10px] text-gray-400 mt-0.5">
-                      Target: {settings?.check_in_time ? settings.check_in_time.substring(0, 5) : '07:30'} WIB
+                      Jadwal: 06:00 - {settings?.check_in_time ? settings.check_in_time.substring(0, 5) : '07:30'} WIB
                     </div>
                   </div>
 
@@ -465,7 +477,7 @@ function StudentDashboardContent() {
                       {attendance?.check_out_time ? formatTime(attendance.check_out_time) : '--:--'}
                     </div>
                     <div className="text-[10px] text-gray-400 mt-0.5">
-                      Mulai: {settings?.check_out_time ? settings.check_out_time.substring(0, 5) : '16:30'} WIB
+                      Jadwal: {settings?.check_out_time ? settings.check_out_time.substring(0, 5) : '16:30'} - 24:00 (12 Malam)
                     </div>
                   </div>
 

@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       const displayTime = checkOutConfig.substring(0, 5)
       return NextResponse.json(
         {
-          error: `Absensi pulang belum tersedia. Absensi pulang dapat dilakukan mulai pukul ${displayTime} WIB.`,
+          error: `Absensi pulang belum tersedia. Absensi pulang dapat dilakukan mulai pukul ${displayTime} s.d 24:00 (12 malam) WIB.`,
         },
         { status: 400 }
       )

@@ -467,7 +467,7 @@ function AdminStudentsContent() {
           <div className="leading-relaxed">
             <p className="font-bold text-white">Cara Praktis Membuatkan Akun Siswa:</p>
             <p className="text-gray-300 text-[11px] mt-0.5">
-              Klik <b>"+ Buat Akun Siswa Baru"</b>, lalu masukkan <b>Nama</b> dan <b>Username</b> (misal: <code>silvi</code>) dengan password (default <code>123</code>). Berikan ke siswa atau klik tombol <b>Salin</b> / <b>WhatsApp</b> di tabel untuk membagikan akun ke HP siswa!
+              Klik <b>"+ Buat Akun Siswa Baru"</b>, lalu masukkan <b>Nama</b> dan <b>Username</b> (contoh bebas: <code>budi</code> / <code>siswa1</code>) dengan password (default <code>123</code>). Berikan ke siswa atau klik tombol <b>Salin</b> / <b>WhatsApp</b> di tabel untuk membagikan akun ke HP siswa!
             </p>
           </div>
         </div>
@@ -774,7 +774,7 @@ function AdminStudentsContent() {
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Silvi Agustina"
+                    placeholder="Nama lengkap siswa"
                     value={formData.full_name}
                     onChange={(e) => handleNameChange(e.target.value)}
                     className="input-field w-full text-xs rounded-xl"
@@ -792,7 +792,7 @@ function AdminStudentsContent() {
                     <input
                       type="text"
                       required
-                      placeholder="silvi"
+                      placeholder="username"
                       value={formData.username}
                       onChange={(e) =>
                         setFormData({

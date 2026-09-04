@@ -125,8 +125,8 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setCheckInTime(e.target.value)}
                 className="input-field"
               />
-              <p className="text-[10px] text-gray-500 mt-1">
-                Siswa yang absen ≤ jam ini berstatus <b>Tepat Waktu</b>. Lewat dari jam ini berstatus <b>Terlambat</b>. Default: 07:30.
+              <p className="text-[10px] text-gray-400 mt-1">
+                Absensi pagi dibuka mulai pukul <b>06:00 WIB</b>. Siswa yang absen ≤ jam ini berstatus <b>Tepat Waktu</b>. Lewat dari jam ini berstatus <b>Terlambat</b>. (Jadwal: 06:00 - 07:30 WIB).
               </p>
             </div>
 
@@ -141,8 +141,8 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setCheckOutTime(e.target.value)}
                 className="input-field"
               />
-              <p className="text-[10px] text-gray-500 mt-1">
-                Siswa <b>tidak diizinkan</b> absen pulang sebelum jam ini. Default: 16:30.
+              <p className="text-[10px] text-gray-400 mt-1">
+                Absensi pulang dibuka mulai jam ini sampai pukul <b>24:00 (12 malam) WIB</b>. Siswa tidak diizinkan absen sebelum pukul 16:30.
               </p>
             </div>
           </div>
