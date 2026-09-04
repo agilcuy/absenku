@@ -151,8 +151,8 @@ function LoginContent() {
         <form onSubmit={handleCredentialsLogin} className="space-y-3.5 text-xs">
           <div>
             <label className="block text-gray-300 font-medium mb-1.5">Username</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 text-gray-400 pointer-events-none flex items-center">
                 <User className="w-4 h-4" />
               </div>
               <input
@@ -161,19 +161,20 @@ function LoginContent() {
                 required
                 autoComplete="username"
                 autoCapitalize="none"
-                placeholder="Username akun (contoh: silvi)"
+                placeholder="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={anyLoading}
-                className="input-field w-full pl-10 pr-3 py-3 text-xs bg-white/5 border border-white/10 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                style={{ paddingLeft: '40px' }}
+                className="input-field w-full py-3 text-xs bg-white/5 border border-white/10 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
               />
             </div>
           </div>
 
           <div>
             <label className="block text-gray-300 font-medium mb-1.5">Password</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 text-gray-400 pointer-events-none flex items-center">
                 <Lock className="w-4 h-4" />
               </div>
               <input
@@ -181,16 +182,17 @@ function LoginContent() {
                 type={showPassword ? 'text' : 'password'}
                 required
                 autoComplete="current-password"
-                placeholder="Password akun Anda"
+                placeholder="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={anyLoading}
-                className="input-field w-full pl-10 pr-10 py-3 text-xs bg-white/5 border border-white/10 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono"
+                style={{ paddingLeft: '40px', paddingRight: '40px' }}
+                className="input-field w-full py-3 text-xs bg-white/5 border border-white/10 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition touch-target"
+                className="absolute right-3 text-gray-400 hover:text-white transition touch-target flex items-center justify-center p-1"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

@@ -436,7 +436,7 @@ export default function AdminStudentsPage() {
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Silvi Agustina"
+                    placeholder="Nama lengkap siswa"
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                     className="input-field w-full text-xs"
@@ -449,7 +449,7 @@ export default function AdminStudentsPage() {
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: silvi"
+                    placeholder="username"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     className="input-field w-full text-xs"
@@ -466,12 +466,12 @@ export default function AdminStudentsPage() {
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: 123"
+                    placeholder="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="input-field w-full text-xs font-mono"
                   />
-                  <p className="text-[10px] text-gray-400 mt-0.5">Password yang diberikan ke siswa (misal: 123)</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Password akun untuk siswa login</p>
                 </div>
                 <div>
                   <label className="block text-gray-300 font-medium mb-1">Email (Opsional)</label>
