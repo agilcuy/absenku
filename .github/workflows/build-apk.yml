@@ -38,17 +38,29 @@ jobs:
       - name: Build Debug APK with Gradle
         run: |
           cd android
-          ./gradlew assembleDebug -x lint -x test --stacktrace
+          ./gradlew assembleDebug -x lint -x test --stacktrace 2>&1 | tee ../gradle.log
+        continue-on-error: true
 
-      - name: Verify APK Location
+      - name: Publish Gradle Log to Step Summary
+        if: always()
         run: |
-          echo "=== Searching for generated APK files ==="
-          find android/ -name "*.apk"
+          echo "### Gradle Build Log (Last 60 Lines)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 60 gradle.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Verify APK Generated
+        run: |
+          if [ ! -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            echo "ERROR: app-debug.apk was not generated!"
+            exit 1
+          fi
+          echo "SUCCESS: APK file verified at android/app/build/outputs/apk/debug/app-debug.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ABSENKU-PKL-Debug-APK
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
 
