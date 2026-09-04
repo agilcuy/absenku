@@ -556,8 +556,16 @@ function StudentDashboardContent() {
               </div>
             </div>
 
-            {/* GPS Sensor Badge */}
-            <GpsLocationBadge onLocationFound={(found) => setCoords(found)} />
+            {/* GPS Sensor & Geofencing Badge */}
+            <GpsLocationBadge
+              onLocationFound={(found) => setCoords(found)}
+              targetCoords={{
+                lat: userProfile?.internship_places?.latitude || -5.4988,
+                lng: userProfile?.internship_places?.longitude || 104.7088,
+                radiusMeters: userProfile?.internship_places?.radius_meters || 200,
+                name: userProfile?.internship_places?.name || 'Kominfo Tanggamus',
+              }}
+            />
           </div>
 
           {/* =========================================
@@ -633,13 +641,20 @@ function StudentDashboardContent() {
       />
 
 
-      {/* Camera Capture Modal */}
+      {/* Camera Capture Modal (Strict Live Camera with Auto Watermarking) */}
       <CameraCaptureModal
         isOpen={cameraModalOpen}
         onClose={handleCameraModalClose}
         onConfirm={handlePhotoConfirmed}
         loading={submitting}
-        title={activeAction === 'check_in' ? 'Foto Absensi Masuk' : 'Foto Absensi Pulang'}
+        title={activeAction === 'check_in' ? 'Foto Absensi Masuk (Live)' : 'Foto Absensi Pulang (Live)'}
+        allowGallery={false}
+        watermarkData={{
+          studentName: userProfile?.full_name,
+          actionTitle: activeAction === 'check_in' ? 'ABSENSI MASUK' : 'ABSENSI PULANG',
+          coords,
+          placeName: userProfile?.internship_places?.name || 'Kominfo Tanggamus',
+        }}
       />
 
       {/* Biodata Incomplete Alert Modal */}

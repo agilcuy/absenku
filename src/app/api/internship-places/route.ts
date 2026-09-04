@@ -86,25 +86,41 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { name, address, phone, pic_name, pic_phone } = body
+    const { name, address, phone, pic_name, pic_phone, latitude, longitude, radius_meters } = body
 
     if (!name?.trim()) {
       return NextResponse.json({ error: 'Nama instansi/perusahaan wajib diisi.' }, { status: 400 })
     }
 
-    const { data: newPlace, error } = await adminClient
+    const insertPayload: any = {
+      name: name.trim(),
+      address: address?.trim() || null,
+      phone: phone?.trim() || null,
+      pic_name: pic_name?.trim() || null,
+      pic_phone: pic_phone?.trim() || null,
+    }
+    if (latitude !== undefined && latitude !== null && latitude !== '') insertPayload.latitude = parseFloat(latitude)
+    if (longitude !== undefined && longitude !== null && longitude !== '') insertPayload.longitude = parseFloat(longitude)
+    if (radius_meters !== undefined && radius_meters !== null && radius_meters !== '') insertPayload.radius_meters = parseInt(radius_meters)
+
+    let { data: newPlace, error } = await adminClient
       .from('internship_places')
-      .insert({
-        name: name.trim(),
-        address: address?.trim() || null,
-        phone: phone?.trim() || null,
-        pic_name: pic_name?.trim() || null,
-        pic_phone: pic_phone?.trim() || null,
-      })
+      .insert(insertPayload)
       .select()
       .single()
 
-    if (error) {
+    if (error && (error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema'))) {
+      delete insertPayload.latitude
+      delete insertPayload.longitude
+      delete insertPayload.radius_meters
+      const retry = await adminClient
+        .from('internship_places')
+        .insert(insertPayload)
+        .select()
+        .single()
+      if (retry.error) throw retry.error
+      newPlace = retry.data
+    } else if (error) {
       if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
         return NextResponse.json(
           {

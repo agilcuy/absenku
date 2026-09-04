@@ -48,7 +48,7 @@ export async function PUT(
     }
 
     const body = await req.json()
-    const { name, address, phone, pic_name, pic_phone } = body
+    const { name, address, phone, pic_name, pic_phone, latitude, longitude, radius_meters } = body
 
     const { data: oldData } = await adminClient
       .from('internship_places')
@@ -56,21 +56,40 @@ export async function PUT(
       .eq('id', id)
       .single()
 
-    const { data: updated, error } = await adminClient
+    const updatePayload: any = {
+      name: name !== undefined ? name.trim() : oldData?.name,
+      address: address !== undefined ? address?.trim() || null : oldData?.address,
+      phone: phone !== undefined ? phone?.trim() || null : oldData?.phone,
+      pic_name: pic_name !== undefined ? pic_name?.trim() || null : oldData?.pic_name,
+      pic_phone: pic_phone !== undefined ? pic_phone?.trim() || null : oldData?.pic_phone,
+      updated_at: new Date().toISOString(),
+    }
+    if (latitude !== undefined) updatePayload.latitude = latitude !== null && latitude !== '' ? parseFloat(latitude) : null
+    if (longitude !== undefined) updatePayload.longitude = longitude !== null && longitude !== '' ? parseFloat(longitude) : null
+    if (radius_meters !== undefined) updatePayload.radius_meters = radius_meters !== null && radius_meters !== '' ? parseInt(radius_meters) : 200
+
+    let { data: updated, error } = await adminClient
       .from('internship_places')
-      .update({
-        name: name !== undefined ? name.trim() : oldData?.name,
-        address: address !== undefined ? address?.trim() || null : oldData?.address,
-        phone: phone !== undefined ? phone?.trim() || null : oldData?.phone,
-        pic_name: pic_name !== undefined ? pic_name?.trim() || null : oldData?.pic_name,
-        pic_phone: pic_phone !== undefined ? pic_phone?.trim() || null : oldData?.pic_phone,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single()
 
-    if (error) throw error
+    if (error && (error.code === '42703' || error.message?.includes('column') || error.message?.includes('schema'))) {
+      delete updatePayload.latitude
+      delete updatePayload.longitude
+      delete updatePayload.radius_meters
+      const retry = await adminClient
+        .from('internship_places')
+        .update(updatePayload)
+        .eq('id', id)
+        .select()
+        .single()
+      if (retry.error) throw retry.error
+      updated = retry.data
+    } else if (error) {
+      throw error
+    }
 
     await logAudit({
       action: 'UPDATE_PLACE',

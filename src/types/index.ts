@@ -17,6 +17,9 @@ export interface InternshipPlace {
   phone?: string
   pic_name?: string
   pic_phone?: string
+  latitude?: number
+  longitude?: number
+  radius_meters?: number
   created_at: string
   updated_at?: string
   // Computed / joined fields

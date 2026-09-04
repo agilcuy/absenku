@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getTodayJakarta, isCheckOutAllowed, formatTime } from '@/lib/utils'
-import { getAddressFromCoords } from '@/lib/geo'
+import { getAddressFromCoords, calculateDistanceMeters, DEFAULT_OFFICE_COORDS } from '@/lib/geo'
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     // 0. Check student profile completeness (mandatory for role === 'student')
     const { data: userProfile } = await adminClient
       .from('users')
-      .select('id, role, class_name, major, phone, internship_place_id')
+      .select('id, role, class_name, major, phone, internship_place_id, internship_places(*)')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -105,6 +105,20 @@ export async function POST(req: NextRequest) {
       address = await getAddressFromCoords(lat, lng)
     }
 
+    // Geofencing calculation against student's internship place
+    const place = (userProfile as any)?.internship_places || null
+    const placeLat = place?.latitude || DEFAULT_OFFICE_COORDS.lat
+    const placeLng = place?.longitude || DEFAULT_OFFICE_COORDS.lng
+    const placeRadius = place?.radius_meters || DEFAULT_OFFICE_COORDS.radiusMeters
+    const placeName = place?.name || DEFAULT_OFFICE_COORDS.name
+
+    let distanceMeters: number | null = null
+    let isWithinRadius: boolean = true
+    if (lat !== null && lng !== null) {
+      distanceMeters = calculateDistanceMeters(lat, lng, placeLat, placeLng)
+      isWithinRadius = distanceMeters <= placeRadius
+    }
+
     // Upload photo via adminClient
     let photoUrl = ''
     try {
@@ -163,6 +177,9 @@ export async function POST(req: NextRequest) {
       message: 'Absensi pulang berhasil dicatat.',
       time: new Date().toISOString(),
       address,
+      distanceMeters,
+      isWithinRadius,
+      placeName,
     })
   } catch (error: any) {
     console.error('Check-out error:', error)

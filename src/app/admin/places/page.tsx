@@ -36,7 +36,11 @@ function PlacesPageContent() {
     phone: '',
     pic_name: '',
     pic_phone: '',
+    latitude: '',
+    longitude: '',
+    radius_meters: '200',
   })
+  const [detectingGps, setDetectingGps] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   // Students in place modal
@@ -71,9 +75,44 @@ function PlacesPageContent() {
     loadPlaces()
   }, [])
 
+  const handleDetectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      showToast('Browser Anda tidak mendukung geolokasi GPS.', 'error')
+      return
+    }
+    setDetectingGps(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: pos.coords.latitude.toFixed(6),
+          longitude: pos.coords.longitude.toFixed(6),
+        }))
+        setDetectingGps(false)
+        showToast('Koordinat GPS berhasil diambil dari posisi Anda saat ini!', 'success')
+      },
+      (err) => {
+        setDetectingGps(false)
+        let msg = 'Gagal mendeteksi lokasi GPS.'
+        if (err.code === 1) msg = 'Izin lokasi ditolak pada peramban/browser.'
+        showToast(msg, 'error')
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
   const handleOpenAdd = () => {
     setEditingPlace(null)
-    setFormData({ name: '', address: '', phone: '', pic_name: '', pic_phone: '' })
+    setFormData({
+      name: '',
+      address: '',
+      phone: '',
+      pic_name: '',
+      pic_phone: '',
+      latitude: '-5.498800',
+      longitude: '104.708800',
+      radius_meters: '200',
+    })
     setModalOpen(true)
   }
 
@@ -85,6 +124,9 @@ function PlacesPageContent() {
       phone: place.phone || '',
       pic_name: place.pic_name || '',
       pic_phone: place.pic_phone || '',
+      latitude: place.latitude !== undefined && place.latitude !== null ? String(place.latitude) : '-5.498800',
+      longitude: place.longitude !== undefined && place.longitude !== null ? String(place.longitude) : '104.708800',
+      radius_meters: place.radius_meters !== undefined && place.radius_meters !== null ? String(place.radius_meters) : '200',
     })
     setModalOpen(true)
   }
@@ -292,6 +334,19 @@ function PlacesPageContent() {
                       </span>
                     </div>
                   )}
+
+                  {/* Geofencing Coordinates Tag */}
+                  <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-400 font-mono">
+                    <span className="flex items-center gap-1 truncate">
+                      <MapPin className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                      {place.latitude && place.longitude
+                        ? `${Number(place.latitude).toFixed(4)}, ${Number(place.longitude).toFixed(4)}`
+                        : '-5.4988, 104.7088'}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+                      R: {place.radius_meters || 200}m
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -384,6 +439,58 @@ function PlacesPageContent() {
                   onChange={(e) => setFormData({ ...formData, pic_phone: e.target.value })}
                   className="input-field w-full text-xs"
                 />
+              </div>
+
+              {/* Geofencing Coordinates & Radius Section */}
+              <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-indigo-300 block">Koordinat GPS & Geofencing</span>
+                    <span className="text-[10px] text-gray-400">Titik validasi radius absensi siswa PKL</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDetectCurrentLocation}
+                    disabled={detectingGps}
+                    className="text-[10px] px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium flex items-center gap-1 transition active:scale-95 disabled:opacity-50"
+                  >
+                    <MapPin className="w-3 h-3" />
+                    <span>{detectingGps ? 'Mendeteksi...' : 'Ambil Lokasi Saya'}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-gray-400 text-[10px] mb-1">Latitude</label>
+                    <input
+                      type="text"
+                      placeholder="-5.498800"
+                      value={formData.latitude}
+                      onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                      className="input-field w-full text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-[10px] mb-1">Longitude</label>
+                    <input
+                      type="text"
+                      placeholder="104.708800"
+                      value={formData.longitude}
+                      onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                      className="input-field w-full text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-[10px] mb-1">Radius (M)</label>
+                    <input
+                      type="number"
+                      placeholder="200"
+                      value={formData.radius_meters}
+                      onChange={(e) => setFormData({ ...formData, radius_meters: e.target.value })}
+                      className="input-field w-full text-xs font-mono"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">

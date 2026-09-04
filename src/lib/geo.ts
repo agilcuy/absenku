@@ -1,4 +1,39 @@
 // Helper for reverse geocoding using OpenStreetMap Nominatim (Free)
+export const DEFAULT_OFFICE_COORDS = {
+  lat: -5.4988,
+  lng: 104.7088,
+  radiusMeters: 200,
+  name: 'Kominfo Tanggamus (egov)',
+}
+
+// Calculate distance between two coordinates in meters using Haversine formula
+export function calculateDistanceMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371000 // Earth's radius in meters
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return Math.round(R * c)
+}
+
+// Format distance in a human-friendly Indonesian string
+export function formatDistanceMeters(meters: number): string {
+  if (meters < 1000) {
+    return `${Math.round(meters)} meter`
+  }
+  return `${(meters / 1000).toFixed(1)} km`
+}
+
 export async function getAddressFromCoords(lat: number, lng: number): Promise<string> {
   try {
     const controller = new AbortController()
