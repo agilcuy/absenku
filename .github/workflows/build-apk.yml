@@ -44,10 +44,22 @@ jobs:
       - name: Publish Gradle Log to Step Summary
         if: always()
         run: |
-          echo "### Gradle Build Log (Last 60 Lines)" >> $GITHUB_STEP_SUMMARY
+          echo "### Gradle Build Log Summary" >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
-          tail -n 60 gradle.log >> $GITHUB_STEP_SUMMARY
+          if grep -q "FAILURE:" gradle.log; then
+            grep -B 5 -A 40 "FAILURE:" gradle.log >> $GITHUB_STEP_SUMMARY
+          else
+            tail -n 60 gradle.log >> $GITHUB_STEP_SUMMARY
+          fi
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Gradle Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-full-log
+          path: gradle.log
+          retention-days: 7
 
       - name: Verify APK Generated
         run: |
