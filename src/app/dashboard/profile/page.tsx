@@ -127,6 +127,25 @@ function StudentProfileContent() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Strict validation for students
+    if (!isSuperadmin) {
+      if (
+        !formData.full_name.trim() ||
+        !formData.phone.trim() ||
+        !formData.class_name.trim() ||
+        !formData.major.trim() ||
+        !formData.internship_place_id
+      ) {
+        showToast(
+          'Semua kolom bertanda bintang (*) termasuk Tempat PKL wajib diisi!',
+          'error',
+          'Biodata Wajib Lengkap'
+        )
+        return
+      }
+    }
+
     setSubmitting(true)
 
     try {
@@ -164,11 +183,11 @@ function StudentProfileContent() {
   const isSuperadmin = profile?.role === 'superadmin'
   const isProfileIncomplete =
     !isSuperadmin &&
-    (!profile?.class_name || !profile?.major || !profile?.phone || !profile?.username)
+    (!profile?.class_name || !profile?.major || !profile?.phone || !profile?.internship_place_id)
 
   return (
     <div className="min-h-screen bg-[#06070d] text-gray-100 flex flex-col pb-12">
-      <StudentNavbar user={profile} />
+      <StudentNavbar user={profile} isProfileIncomplete={isProfileIncomplete} />
 
       <main className="max-w-3xl w-full mx-auto p-4 sm:p-6 space-y-6 flex-1">
         {/* Header */}
@@ -568,9 +587,10 @@ function StudentProfileContent() {
 
               <div>
                 <label className="block text-gray-300 font-medium mb-1">
-                  Tempat / Instansi PKL {isSuperadmin ? '(Opsional)' : ''}
+                  Tempat / Instansi PKL {isSuperadmin ? '(Opsional)' : '*'}
                 </label>
                 <select
+                  required={!isSuperadmin}
                   value={formData.internship_place_id}
                   onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
                   className="input-field w-full text-xs"
@@ -585,7 +605,7 @@ function StudentProfileContent() {
                 <p className="text-[10px] text-gray-400 mt-1">
                   {isSuperadmin
                     ? 'Dapat memilih Kominfo Tanggamus (egov) atau membiarkannya default'
-                    : 'Pilih tempat instansi PKL yang sudah disediakan oleh admin sekolah.'}
+                    : 'Pilih tempat instansi PKL yang telah ditentukan oleh sekolah.'}
                 </p>
               </div>
 

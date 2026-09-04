@@ -15,6 +15,30 @@ export async function POST(req: NextRequest) {
     const adminClient = createAdminClient()
     const todayStr = getTodayJakarta()
 
+    // 0. Check student profile completeness (mandatory for role === 'student')
+    const { data: userProfile } = await adminClient
+      .from('users')
+      .select('id, role, class_name, major, phone, internship_place_id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (userProfile && userProfile.role === 'student') {
+      const missingFields: string[] = []
+      if (!userProfile.class_name?.trim()) missingFields.push('Kelas')
+      if (!userProfile.major?.trim()) missingFields.push('Jurusan')
+      if (!userProfile.phone?.trim()) missingFields.push('Nomor WhatsApp')
+      if (!userProfile.internship_place_id) missingFields.push('Tempat PKL')
+
+      if (missingFields.length > 0) {
+        return NextResponse.json(
+          {
+            error: `Biodata Anda belum lengkap (${missingFields.join(', ')}). Harap lengkapi data profil Anda terlebih dahulu agar absensi dapat dicatat.`,
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     // 1. Get settings
     const { data: settings } = await adminClient
       .from('settings')
@@ -63,8 +87,14 @@ export async function POST(req: NextRequest) {
     const latStr = formData.get('lat') as string | null
     const lngStr = formData.get('lng') as string | null
 
-    if (!photoFile) {
-      return NextResponse.json({ error: 'Foto absensi pulang wajib disertakan.' }, { status: 400 })
+    // Strict photo validation
+    if (!photoFile || !(photoFile instanceof File) || photoFile.size === 0) {
+      return NextResponse.json(
+        {
+          error: 'Foto bukti kehadiran pulang wajib dilampirkan! Absensi tidak akan dicatat oleh sistem tanpa lampiran foto.',
+        },
+        { status: 400 }
+      )
     }
 
     const lat = latStr ? parseFloat(latStr) : null

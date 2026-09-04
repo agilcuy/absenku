@@ -187,6 +187,17 @@ export default function CameraCaptureModal({
           </button>
         </div>
 
+        {/* Mandatory Photo Warning Notice */}
+        <div className="mx-4 mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-200">
+          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold text-amber-300 block">Pemberitahuan Wajib Absensi Siswa</span>
+            <span className="text-amber-200/90 text-[11px] leading-relaxed">
+              Siswa PKL <b>wajib menyertakan foto bukti kehadiran</b> (swafoto di lokasi). Jika foto tidak diambil atau tidak diunggah, <b>absensi Anda TIDAK AKAN TERCATAT</b> oleh sistem.
+            </span>
+          </div>
+        </div>
+
         {/* Mode Selector Tabs */}
         {!previewUrl && (
           <div className="flex border-b border-white/10 p-2 gap-2 bg-black/20">
@@ -338,8 +349,8 @@ export default function CameraCaptureModal({
               </button>
               <button
                 onClick={handleConfirm}
-                disabled={loading}
-                className="btn-primary text-xs flex-1 py-3 justify-center disabled:opacity-70 disabled:cursor-not-allowed"
+                disabled={loading || !selectedFile}
+                className="btn-primary text-xs flex-1 py-3 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">

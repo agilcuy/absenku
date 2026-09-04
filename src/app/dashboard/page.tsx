@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import StudentNavbar from '@/components/StudentNavbar'
 import CameraCaptureModal from '@/components/CameraCaptureModal'
+import BiodataAlertModal from '@/components/BiodataAlertModal'
 import GpsLocationBadge from '@/components/GpsLocationBadge'
 import LeafletMapModal from '@/components/LeafletMapModal'
 import MentorContactCard from '@/components/MentorContactCard'
@@ -27,6 +28,7 @@ import {
   Eye,
   Info,
   RefreshCw,
+  ShieldAlert,
 } from 'lucide-react'
 
 function StudentDashboardContent() {
@@ -42,6 +44,8 @@ function StudentDashboardContent() {
   const [cameraModalOpen, setCameraModalOpen] = useState(false)
   const [activeAction, setActiveAction] = useState<'check_in' | 'check_out'>('check_in')
   const [submitting, setSubmitting] = useState(false)
+  const [biodataModalOpen, setBiodataModalOpen] = useState(false)
+  const [hasAutoOpenedBiodata, setHasAutoOpenedBiodata] = useState(false)
 
   // Map & Photo Preview modal
   const [mapModal, setMapModal] = useState<{
@@ -90,6 +94,49 @@ function StudentDashboardContent() {
     loadDashboardData()
   }, [loadDashboardData])
 
+  // Student profile completeness evaluation
+  const isStudent = userProfile && userProfile.role !== 'superadmin'
+  const missingBiodata: { key: string; label: string; desc: string }[] = []
+  if (isStudent) {
+    if (!userProfile?.class_name?.trim()) {
+      missingBiodata.push({
+        key: 'class_name',
+        label: 'Kelas',
+        desc: 'Contoh: XII RPL 1, XII TKJ 2',
+      })
+    }
+    if (!userProfile?.major?.trim()) {
+      missingBiodata.push({
+        key: 'major',
+        label: 'Jurusan',
+        desc: 'Contoh: Rekayasa Perangkat Lunak, Multimedia',
+      })
+    }
+    if (!userProfile?.phone?.trim()) {
+      missingBiodata.push({
+        key: 'phone',
+        label: 'No. WhatsApp / HP',
+        desc: 'Nomor WhatsApp aktif untuk koordinasi pembimbing PKL',
+      })
+    }
+    if (!userProfile?.internship_place_id) {
+      missingBiodata.push({
+        key: 'internship_place_id',
+        label: 'Tempat / Instansi PKL',
+        desc: 'Instansi tempat pelaksanaan Praktik Kerja Lapangan Anda',
+      })
+    }
+  }
+  const isProfileIncomplete = isStudent && missingBiodata.length > 0
+
+  // Auto-alert student upon login / initial dashboard load if biodata is incomplete
+  useEffect(() => {
+    if (isProfileIncomplete && !hasAutoOpenedBiodata && !loading) {
+      setBiodataModalOpen(true)
+      setHasAutoOpenedBiodata(true)
+    }
+  }, [isProfileIncomplete, hasAutoOpenedBiodata, loading])
+
   const handleRefresh = async () => {
     setRefreshing(true)
     await loadDashboardData()
@@ -98,6 +145,17 @@ function StudentDashboardContent() {
 
   // Handle Action Trigger
   const handleInitiateAction = (action: 'check_in' | 'check_out') => {
+    // 0. Strict check: Student must complete biodata before attendance
+    if (isProfileIncomplete) {
+      showToast(
+        `Anda wajib melengkapi biodata diri (${missingBiodata.map((m) => m.label).join(', ')}) di menu Profil sebelum dapat melakukan absensi!`,
+        'error',
+        '⚠️ Biodata Belum Lengkap'
+      )
+      setBiodataModalOpen(true)
+      return
+    }
+
     if (action === 'check_out') {
       const checkOutConfig = data?.settings?.check_out_time || '16:30:00'
       if (!isCheckOutAllowed(checkOutConfig)) {
@@ -120,8 +178,27 @@ function StudentDashboardContent() {
     setCameraModalOpen(true)
   }
 
+  // Handle Camera Modal Cancelled / Closed without photo
+  const handleCameraModalClose = () => {
+    setCameraModalOpen(false)
+    showToast(
+      'Absensi belum tercatat. Anda wajib menyertakan foto bukti kehadiran di lokasi PKL agar absensi dapat dicatat.',
+      'warning',
+      '⚠️ Foto Wajib Disertakan'
+    )
+  }
+
   // Handle Photo Confirmed & Submit Attendance
   const handlePhotoConfirmed = async (photoFile: File) => {
+    if (!photoFile || photoFile.size === 0) {
+      showToast(
+        'Foto kehadiran wajib dilampirkan! Absensi Anda tidak akan tercatat tanpa foto.',
+        'error',
+        'Foto Wajib'
+      )
+      return
+    }
+
     setSubmitting(true)
     try {
       const formData = new FormData()
@@ -182,9 +259,41 @@ function StudentDashboardContent() {
 
   return (
     <div className="min-h-screen bg-[#06070d] text-slate-100 pb-20">
-      <StudentNavbar user={userProfile} />
+      <StudentNavbar user={userProfile} isProfileIncomplete={isProfileIncomplete} />
 
       <main className="max-w-xl mx-auto px-4 pt-6 flex flex-col gap-5">
+        {/* Urgent Mandatory Biodata Alert Banner */}
+        {isProfileIncomplete && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-amber-500/20 border-2 border-amber-500/50 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex-shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-black text-amber-300">
+                    PERINGATAN: WAJIB LENGKAPI BIODATA SISWA
+                  </h3>
+                  <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full font-bold">
+                    {missingBiodata.length} Data Belum Lengkap
+                  </span>
+                </div>
+                <p className="text-xs text-amber-200/90 mt-1 leading-relaxed">
+                  Anda belum mengisi: <b className="text-white">{missingBiodata.map((m) => m.label).join(', ')}</b>. Sesuai ketentuan, Anda <b>tidak dapat melakukan absensi</b> sebelum biodata diri diisi lengkap.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setBiodataModalOpen(true)}
+              className="btn-primary text-xs py-2.5 px-4 font-bold whitespace-nowrap shadow-lg shadow-amber-500/20 flex items-center justify-center gap-1.5 self-start sm:self-auto"
+            >
+              <span>Lengkapi Sekarang</span>
+              <span>➔</span>
+            </button>
+          </div>
+        )}
+
         {/* Welcome Greeting Card */}
         <div className="glass-card p-5 relative overflow-hidden border border-indigo-500/20 shadow-xl animate-fade-in-up">
           <div className="orb orb-purple w-40 h-40 top-[-20px] right-[-20px]" />
@@ -252,25 +361,27 @@ function StudentDashboardContent() {
           )}
 
           {/* Pengingat Lengkapi Biodata jika belum terisi (HANYA untuk Siswa) */}
-          {userProfile?.role !== 'superadmin' &&
-            userProfile &&
-            (!userProfile.class_name || !userProfile.major || !userProfile.phone) && (
-              <div className="mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in">
-                <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-amber-300 block">Biodata Anda Belum Lengkap</span>
-                    <span className="text-amber-200/80">Silakan lengkapi kelas, jurusan, no WA, dan tempat PKL Anda.</span>
-                  </div>
+          {isProfileIncomplete && (
+            <div className="mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-amber-300 block">
+                    Biodata Anda Belum Lengkap ({missingBiodata.length} kolom)
+                  </span>
+                  <span className="text-amber-200/80">
+                    Silakan lengkapi {missingBiodata.map((m) => m.label).join(', ')} Anda di profil.
+                  </span>
                 </div>
-                <Link
-                  href="/dashboard/profile?edit=true"
-                  className="btn-outline border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-[11px] py-1.5 px-3 whitespace-nowrap self-start sm:self-auto font-bold"
-                >
-                  Lengkapi Sekarang ➔
-                </Link>
               </div>
-            )}
+              <button
+                onClick={() => setBiodataModalOpen(true)}
+                className="btn-outline border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-[11px] py-1.5 px-3 whitespace-nowrap self-start sm:self-auto font-bold"
+              >
+                Lengkapi Sekarang ➔
+              </button>
+            </div>
+          )}
 
           {/* Holiday or Non-working day banner */}
           {isHoliday && (
@@ -431,6 +542,13 @@ function StudentDashboardContent() {
                 <span>Absensi Hari Ini Lengkap (Masuk & Pulang)</span>
               </div>
             )}
+
+            {isProfileIncomplete && (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center gap-2 text-center text-xs text-amber-300">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 animate-pulse text-amber-400" />
+                <span>Wajib melengkapi biodata profil sebelum dapat melakukan absensi</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -467,10 +585,18 @@ function StudentDashboardContent() {
       {/* Camera Capture Modal */}
       <CameraCaptureModal
         isOpen={cameraModalOpen}
-        onClose={() => setCameraModalOpen(false)}
+        onClose={handleCameraModalClose}
         onConfirm={handlePhotoConfirmed}
         loading={submitting}
         title={activeAction === 'check_in' ? 'Foto Absensi Masuk' : 'Foto Absensi Pulang'}
+      />
+
+      {/* Biodata Incomplete Alert Modal */}
+      <BiodataAlertModal
+        isOpen={biodataModalOpen}
+        onClose={() => setBiodataModalOpen(false)}
+        studentName={userProfile?.full_name}
+        missingFields={missingBiodata}
       />
 
       {/* Leaflet Map Modal */}

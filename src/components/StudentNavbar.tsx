@@ -14,9 +14,10 @@ interface StudentNavbarProps {
     avatar_url?: string
     role?: string
   }
+  isProfileIncomplete?: boolean
 }
 
-export default function StudentNavbar({ user }: StudentNavbarProps) {
+export default function StudentNavbar({ user, isProfileIncomplete = false }: StudentNavbarProps) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -89,7 +90,7 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
           <Link
             href="/dashboard/profile"
             prefetch={true}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition active:scale-[0.98] ${
+            className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition active:scale-[0.98] ${
               pathname === '/dashboard/profile'
                 ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -97,6 +98,12 @@ export default function StudentNavbar({ user }: StudentNavbarProps) {
           >
             <UserCircle className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Profil</span>
+            {isProfileIncomplete && (
+              <span
+                className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse ring-2 ring-black"
+                title="Biodata belum lengkap!"
+              />
+            )}
           </Link>
 
           {/* Return to Admin Panel for Superadmin */}
