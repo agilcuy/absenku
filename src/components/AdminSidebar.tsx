@@ -17,11 +17,13 @@ import {
   ShieldAlert,
   Smartphone,
   Camera,
+  Network,
   X,
 } from 'lucide-react'
 
 const MENU_ITEMS = [
   { label: 'Monitoring Live', href: '/admin', icon: LayoutDashboard },
+  { label: 'Topologi & Tupoksi', href: '/admin/structure', icon: Network },
   { label: 'Portal Pembimbing (Saya)', href: '/pembimbing', icon: GraduationCap },
   { label: 'Absen Saya (Kamera)', href: '/dashboard', icon: Camera },
   { label: 'Peserta Didik', href: '/admin/students', icon: Users },

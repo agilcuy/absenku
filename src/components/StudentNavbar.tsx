@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LogOut, Calendar, Home, User as UserIcon, FileText, UserCircle, ChevronLeft } from 'lucide-react'
+import { LogOut, Calendar, Home, User as UserIcon, FileText, UserCircle, ChevronLeft, Network } from 'lucide-react'
 import NotificationCenter from '@/components/NotificationCenter'
 
 interface StudentNavbarProps {
@@ -33,6 +33,7 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
   if (pathname === '/dashboard/permits') mobileTitle = 'Izin & Sakit'
   else if (pathname === '/dashboard/history') mobileTitle = 'Riwayat Absensi'
   else if (pathname === '/dashboard/profile') mobileTitle = 'Profil Siswa'
+  else if (pathname === '/dashboard/structure') mobileTitle = 'Topologi & Tupoksi'
 
   return (
     <header
@@ -175,6 +176,19 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
                   title="Biodata belum lengkap!"
                 />
               )}
+            </Link>
+
+            <Link
+              href="/dashboard/structure"
+              prefetch={true}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition active:scale-[0.98] ${
+                pathname === '/dashboard/structure'
+                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-sm'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Network className="w-4 h-4" />
+              <span>Topologi & Tupoksi</span>
             </Link>
 
             {/* Return to Admin Panel for Superadmin */}
