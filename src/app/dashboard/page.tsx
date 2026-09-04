@@ -6,6 +6,7 @@ import StudentNavbar from '@/components/StudentNavbar'
 import CameraCaptureModal from '@/components/CameraCaptureModal'
 import GpsLocationBadge from '@/components/GpsLocationBadge'
 import LeafletMapModal from '@/components/LeafletMapModal'
+import MentorContactCard from '@/components/MentorContactCard'
 import { ToastProvider, useToast } from '@/components/Toast'
 import {
   formatDate,
@@ -432,6 +433,15 @@ function StudentDashboardContent() {
             )}
           </div>
         </div>
+
+        {/* Mentor Contact & Direct WhatsApp Card (Khusus Siswa) */}
+        {userProfile?.role !== 'superadmin' && (
+          <MentorContactCard
+            mentor={userProfile?.mentor}
+            studentName={userProfile?.full_name}
+            placeName={userProfile?.internship_places?.name}
+          />
+        )}
 
         {/* Attendance Statistics Grid */}
         <div className="grid grid-cols-4 gap-2.5">

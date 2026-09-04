@@ -187,3 +187,22 @@ export const MONTH_NAMES = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ]
+
+// Generate direct WhatsApp chat URL
+export function formatWhatsAppUrl(
+  phone: string,
+  mentorName?: string,
+  studentName?: string,
+  placeName?: string
+): string {
+  if (!phone) return '#'
+  let cleaned = phone.replace(/[^0-9]/g, '')
+  if (cleaned.startsWith('0')) {
+    cleaned = '62' + cleaned.slice(1)
+  } else if (!cleaned.startsWith('62')) {
+    cleaned = '62' + cleaned
+  }
+
+  const text = `Halo Bapak/Ibu ${mentorName || 'Pembimbing'}, saya ${studentName || 'siswa PKL'}${placeName ? ` dari ${placeName}` : ''}. Saya ingin berkonsultasi mengenai kegiatan PKL.`
+  return `https://wa.me/${cleaned}?text=${encodeURIComponent(text)}`
+}

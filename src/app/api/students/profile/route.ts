@@ -16,14 +16,23 @@ export async function GET() {
     try {
       const { data, error } = await adminClient
         .from('users')
-        .select('*, internship_places(*), mentor:mentor_id(*)')
+        .select('*, internship_places(*), mentor:mentor_id(*, internship_places(*))')
         .eq('id', user.id)
         .single()
       if (!error && data) {
         profile = data
       }
     } catch {
-      // Ignore relation error if tables not yet migrated
+      try {
+        const { data } = await adminClient
+          .from('users')
+          .select('*, internship_places(*), mentor:mentor_id(*)')
+          .eq('id', user.id)
+          .single()
+        profile = data
+      } catch {
+        // Ignore
+      }
     }
 
     if (!profile) {
@@ -37,6 +46,19 @@ export async function GET() {
         return NextResponse.json({ error: 'Profil tidak ditemukan' }, { status: 404 })
       }
       profile = data
+    }
+
+    // Fallback: If mentor not directly assigned via mentor_id, check mentor assigned to the student's internship place
+    if (profile && !profile.mentor && profile.internship_place_id) {
+      const { data: placeMentor } = await adminClient
+        .from('users')
+        .select('id, full_name, email, phone, role, avatar_url, internship_places(*)')
+        .eq('internship_place_id', profile.internship_place_id)
+        .eq('role', 'pembimbing')
+        .maybeSingle()
+      if (placeMentor) {
+        profile.mentor = placeMentor
+      }
     }
 
     // 2. Get available internship places for selection

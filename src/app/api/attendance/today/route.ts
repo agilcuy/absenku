@@ -19,14 +19,23 @@ export async function GET() {
   try {
     const { data, error } = await adminClient
       .from('users')
-      .select('*, internship_places(*), mentor:mentor_id(*)')
+      .select('*, internship_places(*), mentor:mentor_id(*, internship_places(*))')
       .eq('id', user.id)
       .maybeSingle()
     if (!error && data) {
       userProfile = data
     }
   } catch {
-    // Ignore relation error
+    try {
+      const { data } = await adminClient
+        .from('users')
+        .select('*, internship_places(*), mentor:mentor_id(*)')
+        .eq('id', user.id)
+        .maybeSingle()
+      userProfile = data
+    } catch {
+      // Ignore
+    }
   }
 
   if (!userProfile) {
@@ -36,6 +45,19 @@ export async function GET() {
       .eq('id', user.id)
       .maybeSingle()
     userProfile = data
+  }
+
+  // Fallback: If mentor not assigned directly via mentor_id, check mentor assigned to the student's internship place
+  if (userProfile && !userProfile.mentor && userProfile.internship_place_id) {
+    const { data: placeMentor } = await adminClient
+      .from('users')
+      .select('id, full_name, email, phone, role, avatar_url, internship_places(*)')
+      .eq('internship_place_id', userProfile.internship_place_id)
+      .eq('role', 'pembimbing')
+      .maybeSingle()
+    if (placeMentor) {
+      userProfile.mentor = placeMentor
+    }
   }
 
   // 2. Get system settings

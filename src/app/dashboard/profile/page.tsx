@@ -19,9 +19,10 @@ import {
   X,
   AlertTriangle,
   Sparkles,
+  MessageCircle,
 } from 'lucide-react'
 import StudentNavbar from '@/components/StudentNavbar'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatWhatsAppUrl } from '@/lib/utils'
 import { useToast, ToastProvider } from '@/components/Toast'
 
 function StudentProfileContent() {
@@ -342,19 +343,45 @@ function StudentProfileContent() {
                   </div>
                 </div>
 
-                <div className="glass-card p-5 border border-white/10 flex items-start gap-3.5">
-                  <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex-shrink-0">
-                    <GraduationCap className="w-5 h-5" />
+                <div className="glass-card p-5 border border-white/10 flex flex-col justify-between gap-3">
+                  <div className="flex items-start gap-3.5">
+                    <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex-shrink-0">
+                      <GraduationCap className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] text-gray-400 font-semibold uppercase">Pembimbing PKL</p>
+                      <p className="text-sm font-bold text-white mt-0.5 truncate">
+                        {profile.mentor?.full_name || 'Ditugaskan oleh Admin'}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1 truncate">
+                        {profile.mentor?.email || 'Hubungi admin sekolah jika belum ada pembimbing'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] text-gray-400 font-semibold uppercase">Pembimbing PKL</p>
-                    <p className="text-sm font-bold text-white mt-0.5 truncate">
-                      {profile.mentor?.full_name || 'Ditugaskan oleh Admin'}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1 truncate">
-                      {profile.mentor?.email || 'Hubungi admin sekolah jika belum ada pembimbing'}
-                    </p>
-                  </div>
+
+                  {profile.mentor?.phone && (
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-[11px] text-gray-300 font-mono flex items-center gap-1">
+                        <Phone className="w-3 h-3 text-emerald-400" />
+                        {profile.mentor.phone}
+                      </span>
+                      <a
+                        href={formatWhatsAppUrl(
+                          profile.mentor.phone,
+                          profile.mentor.full_name,
+                          profile.full_name,
+                          profile.internship_places?.name
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition active:scale-95"
+                        title="Chat WhatsApp Pembimbing"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400/20" />
+                        <span>Chat WhatsApp</span>
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
