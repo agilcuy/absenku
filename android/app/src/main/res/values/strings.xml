@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ABSENKU PKL</string>
+    <string name="title_activity_main">ABSENKU PKL</string>
+    <string name="package_name">com.absenku.app</string>
+    <string name="custom_url_scheme">com.absenku.app</string>
+</resources>
