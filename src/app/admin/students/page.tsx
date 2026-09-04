@@ -44,6 +44,7 @@ export default function AdminStudentsPage() {
     email: '',
     full_name: '',
     username: '',
+    password: '',
     phone: '',
     class_name: '',
     major: '',
@@ -93,6 +94,7 @@ export default function AdminStudentsPage() {
       email: '',
       full_name: '',
       username: '',
+      password: '123',
       phone: '',
       class_name: '',
       major: '',
@@ -138,6 +140,7 @@ export default function AdminStudentsPage() {
       email: student.email,
       full_name: student.full_name,
       username: student.username || '',
+      password: '',
       phone: student.phone || '',
       class_name: student.class_name || '',
       major: student.major || '',
@@ -310,10 +313,16 @@ export default function AdminStudentsPage() {
                         </div>
                         <div>
                           <p className="font-semibold text-white">{s.full_name}</p>
-                          <p className="text-[10px] text-gray-400">
-                            {s.username ? `@${s.username} • ` : ''}
-                            {s.email}
-                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {s.username && (
+                              <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono font-bold text-[10px] border border-indigo-500/30">
+                                @{s.username}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-gray-400 truncate max-w-[140px]">
+                              {s.email}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -427,36 +436,57 @@ export default function AdminStudentsPage() {
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Ahmad Rizki Pratama"
+                    placeholder="Contoh: Silvi Agustina"
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                     className="input-field w-full text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">Username (Opsional)</label>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Username Siswa *
+                  </label>
                   <input
                     type="text"
-                    placeholder="Bisa diisi sendiri oleh siswa"
+                    required
+                    placeholder="Contoh: silvi"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     className="input-field w-full text-xs"
                   />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Digunakan siswa untuk login ke aplikasi</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">Email Google Login *</label>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Password Akun Siswa *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: 123"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="input-field w-full text-xs font-mono"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Password yang diberikan ke siswa (misal: 123)</p>
+                </div>
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Email (Opsional)</label>
                   <input
                     type="email"
-                    required
-                    placeholder="siswa@gmail.com"
+                    placeholder="Kosongkan jika dibuat otomatis"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="input-field w-full text-xs"
                   />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Otomatis dibuat jika dikosongkan</p>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-gray-300 font-medium mb-1">No. WhatsApp / HP (Opsional)</label>
                   <input
@@ -467,29 +497,27 @@ export default function AdminStudentsPage() {
                     className="input-field w-full text-xs"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-gray-300 font-medium mb-1">Kelas (Opsional)</label>
                   <input
                     type="text"
-                    placeholder="Contoh: XII TKJ 1 (Bisa diisi siswa)"
+                    placeholder="Contoh: XII TKJ 1"
                     value={formData.class_name}
                     onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
                     className="input-field w-full text-xs"
                   />
                 </div>
-                <div>
-                  <label className="block text-gray-300 font-medium mb-1">Jurusan (Opsional)</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: RPL (Bisa diisi siswa)"
-                    value={formData.major}
-                    onChange={(e) => setFormData({ ...formData, major: e.target.value })}
-                    className="input-field w-full text-xs"
-                  />
-                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-medium mb-1">Jurusan (Opsional)</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: RPL"
+                  value={formData.major}
+                  onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                  className="input-field w-full text-xs"
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -619,7 +647,7 @@ export default function AdminStudentsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-300 font-medium mb-1">Email</label>
+                  <label className="block text-gray-300 font-medium mb-1">Email Siswa</label>
                   <input
                     type="email"
                     disabled
@@ -636,6 +664,22 @@ export default function AdminStudentsPage() {
                     className="input-field w-full text-xs"
                   />
                 </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                <label className="block text-indigo-300 font-medium mb-1">
+                  Ganti / Reset Password Siswa (Opsional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Kosongkan jika tidak ingin mengubah password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="input-field w-full text-xs font-mono"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Isi jika ingin mereset password siswa (misal: 123 atau 123456). Siswa dapat langsung login dengan password baru ini.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

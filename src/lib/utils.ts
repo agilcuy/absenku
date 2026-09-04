@@ -206,3 +206,14 @@ export function formatWhatsAppUrl(
   const text = `Halo Bapak/Ibu ${mentorName || 'Pembimbing'}, saya ${studentName || 'siswa PKL'}${placeName ? ` dari ${placeName}` : ''}. Saya ingin berkonsultasi mengenai kegiatan PKL.`
   return `https://wa.me/${cleaned}?text=${encodeURIComponent(text)}`
 }
+
+// Ensure password meets Supabase Auth minimum 6-character requirement seamlessly
+export function formatAuthPassword(rawPassword: string): string {
+  if (!rawPassword) return ''
+  const trimmed = String(rawPassword).trim()
+  if (trimmed.length < 6) {
+    return `${trimmed}#absenku`
+  }
+  return trimmed
+}
+

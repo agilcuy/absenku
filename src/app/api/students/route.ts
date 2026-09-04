@@ -2,47 +2,48 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isUserSuperadmin } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { formatAuthPassword } from '@/lib/utils'
 
-// GET all students
-export async function GET() {
+// GET all students with filters, relations, and pagination
+export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const adminClient = createAdminClient()
-    const { data: profile } = await adminClient
-      .from('users')
-      .select('role, internship_place_id')
-      .eq('id', user.id)
-      .maybeSingle()
+    const isAdmin = await isUserSuperadmin(user, adminClient)
 
-    const isSuperAdmin = await isUserSuperadmin(user, adminClient)
-    const isMentor = profile?.role === 'pembimbing'
-
-    if (!isSuperAdmin && !isMentor) {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const { searchParams } = new URL(req.url)
+    const placeId = searchParams.get('place_id')
+    const mentorId = searchParams.get('mentor_id')
+    const status = searchParams.get('status')
+    const search = searchParams.get('search')
+
     let query = adminClient
       .from('users')
-      .select('*, internship_places(id, name, address, pic_name, pic_phone), mentor:mentor_id(id, full_name, email, phone)')
+      .select('*, internship_places(id, name), mentor:mentor_id(id, full_name)')
       .eq('role', 'student')
-      .order('created_at', { ascending: false })
+      .order('full_name', { ascending: true })
 
-    if (isMentor && !isSuperAdmin) {
-      if (profile?.internship_place_id) {
-        query = query.or(`internship_place_id.eq.${profile.internship_place_id},mentor_id.eq.${user.id}`)
-      } else {
-        query = query.eq('mentor_id', user.id)
-      }
+    if (placeId) query = query.eq('internship_place_id', placeId)
+    if (mentorId) query = query.eq('mentor_id', mentorId)
+    if (status) query = query.eq('internship_status', status)
+    if (search) {
+      query = query.or(
+        `full_name.ilike.%${search}%,email.ilike.%${search}%,class_name.ilike.%${search}%,username.ilike.%${search}%`
+      )
     }
 
     const { data: students, error } = await query
 
     if (error) throw error
 
-    return NextResponse.json({ students: students || [] })
+    return NextResponse.json({ students })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
@@ -75,17 +76,25 @@ export async function POST(req: NextRequest) {
       start_date,
       end_date,
       internship_status,
+      password,
     } = body
 
-    if (!email || !full_name) {
+    if (!full_name || (!email && !username)) {
       return NextResponse.json(
-        { error: 'Email dan Nama Lengkap wajib diisi.' },
+        { error: 'Nama Lengkap dan Username wajib diisi.' },
         { status: 400 }
       )
     }
 
-    const normalizedEmail = email.trim().toLowerCase()
     const normalizedUsername = username?.trim().toLowerCase() || null
+    // If no email provided, generate an internal system email using username
+    const normalizedEmail = email?.trim()
+      ? email.trim().toLowerCase()
+      : `${normalizedUsername}@absenku.local`
+
+    // Format password ensuring it meets auth criteria
+    const rawPassword = (password && String(password).trim()) ? String(password).trim() : '123456'
+    const studentPassword = formatAuthPassword(rawPassword)
 
     // Check if email already exists in users table
     const { data: existingEmail } = await adminClient
@@ -96,7 +105,7 @@ export async function POST(req: NextRequest) {
 
     if (existingEmail) {
       return NextResponse.json(
-        { error: 'Email ini sudah terdaftar di sistem.' },
+        { error: 'Email atau username ini sudah terdaftar di sistem.' },
         { status: 400 }
       )
     }
@@ -111,20 +120,29 @@ export async function POST(req: NextRequest) {
 
       if (existingUser) {
         return NextResponse.json(
-          { error: 'Username ini sudah digunakan siswa lain.' },
+          { error: 'Username ini sudah digunakan siswa lain. Pilih username lain.' },
           { status: 400 }
         )
       }
     }
 
-    // 1. First attempt: Create user in Supabase Auth
+    // 1. Create user in Supabase Auth with Password
     let studentId = ''
     try {
-      const { data: authUser } = await adminClient.auth.admin.createUser({
+      const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
         email: normalizedEmail,
-        user_metadata: { full_name: full_name.trim(), phone: phone?.trim() || null },
+        password: studentPassword,
+        user_metadata: {
+          full_name: full_name.trim(),
+          username: normalizedUsername,
+          phone: phone?.trim() || null
+        },
         email_confirm: true,
       })
+
+      if (authErr) {
+        console.warn('Supabase auth.admin.createUser error:', authErr.message)
+      }
 
       if (authUser?.user) {
         studentId = authUser.user.id

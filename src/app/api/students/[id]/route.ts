@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isUserSuperadmin } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { formatAuthPassword } from '@/lib/utils'
 
 // GET single student detail with relations and attendance stats
 export async function GET(
@@ -105,6 +106,29 @@ export async function PUT(
     if (end_date !== undefined) updatePayload.end_date = end_date || null
     if (internship_status !== undefined) updatePayload.internship_status = internship_status
     if (is_active !== undefined) updatePayload.is_active = is_active
+
+    // If a new password is provided, update it in Supabase Auth
+    if (body.password && String(body.password).trim()) {
+      const newPassword = formatAuthPassword(String(body.password).trim())
+      try {
+        const { error: passErr } = await adminClient.auth.admin.updateUserById(id, {
+          password: newPassword,
+        })
+        if (passErr) {
+          console.warn('Could not update password in auth.users, attempting to create auth user:', passErr.message)
+          // If the user doesn't exist in auth.users yet, create them
+          if (oldData?.email) {
+            await adminClient.auth.admin.createUser({
+              email: oldData.email,
+              password: newPassword,
+              email_confirm: true,
+            })
+          }
+        }
+      } catch (authErr: any) {
+        console.warn('Error updating student password in auth:', authErr)
+      }
+    }
 
     const { data: updated, error } = await adminClient
       .from('users')
