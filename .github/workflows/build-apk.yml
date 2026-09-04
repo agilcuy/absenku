@@ -9,6 +9,9 @@ on:
       - 'android/**'
       - '.github/workflows/build-apk.yml'
 
+permissions:
+  contents: write
+
 jobs:
   build-apk:
     name: Generate APK
@@ -68,6 +71,17 @@ jobs:
             exit 1
           fi
           echo "SUCCESS: APK file verified at android/app/build/outputs/apk/debug/app-debug.apk"
+
+      - name: Push Error Log to Branch
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B debug-log
+          cp gradle.log debug-log.txt
+          git add debug-log.txt
+          git commit -m "ci: gradle debug log"
+          git push -u origin debug-log --force
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
