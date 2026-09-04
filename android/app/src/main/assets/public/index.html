@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABSENKU PKL</title>
+  <style>
+    body {
+      margin: 0;
+      background: #06070d;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(99, 102, 241, 0.2);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader"></div>
+  <h2>Menghubungkan ke ABSENKU...</h2>
+  <p style="color: #94a3b8; font-size: 13px;">Memuat sistem absensi digital...</p>
+</body>
+</html>

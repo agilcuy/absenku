@@ -1,0 +1,12 @@
+{
+  "appId": "com.absenku.app",
+  "appName": "ABSENKU PKL",
+  "webDir": "public",
+  "server": {
+    "url": "https://absenku-three.vercel.app",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
