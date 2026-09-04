@@ -4,9 +4,15 @@
 	"webDir": "public",
 	"server": {
 		"url": "https://absenku-three.vercel.app",
-		"cleartext": true
+		"cleartext": false
 	},
 	"android": {
-		"allowMixedContent": true
+		"allowMixedContent": false,
+		"appendUserAgent": "AbsenkuNativeApp"
+	},
+	"plugins": {
+		"Browser": {
+			"presentationStyle": "popover"
+		}
 	}
 }

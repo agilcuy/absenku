@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { isNativeApp, getOAuthRedirectUrl, openInAppBrowser } from '@/lib/capacitor/platform'
 
 const ERROR_MESSAGES: Record<string, string> = {
   not_registered: 'Akun Google kamu belum terdaftar sebagai peserta PKL. Hubungi admin untuk mendaftarkan email kamu.',
@@ -27,22 +28,50 @@ function LoginContent() {
     setError(null)
     const supabase = createClient()
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
+    if (isNativeApp()) {
+      // ── NATIVE APK: gunakan @capacitor/browser (in-app, tanpa Chrome) ──
+      const redirectTo = getOAuthRedirectUrl()
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true, // jangan buka browser eksternal — kita buka manual
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
-      },
-    })
+      })
 
-    if (error) {
-      setError('Gagal terhubung ke Google. Silakan coba lagi.')
-      setLoading(false)
+      if (oauthError || !data?.url) {
+        setError('Gagal terhubung ke Google. Silakan coba lagi.')
+        setLoading(false)
+        return
+      }
+
+      // Buka URL Google OAuth di in-app browser (Custom Chrome Tab)
+      await openInAppBrowser(data.url)
+      // setLoading akan tetap true sampai callback deep link terpanggil
+    } else {
+      // ── WEB BROWSER: pakai alur biasa ──
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      })
+
+      if (oauthError) {
+        setError('Gagal terhubung ke Google. Silakan coba lagi.')
+        setLoading(false)
+      }
     }
   }
+
 
   return (
     <div className="min-h-screen animated-bg flex items-center justify-center p-4 relative overflow-hidden">

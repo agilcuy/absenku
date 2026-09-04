@@ -5,12 +5,20 @@ const config: CapacitorConfig = {
   appName: 'ABSENKU PKL',
   webDir: 'public',
   server: {
-    // Membuka langsung server produksi Vercel agar fitur dinamis, API, kamera, dan database bekerja 100% realtime
+    // Load langsung dari server Vercel: SSR, API, kamera, dan DB bekerja 100% realtime
     url: 'https://absenku-three.vercel.app',
-    cleartext: true,
+    cleartext: false,
   },
   android: {
-    allowMixedContent: true,
+    allowMixedContent: false,
+    // Handle deep link com.absenku.app:// di dalam WebView app (bukan Chrome)
+    appendUserAgent: 'AbsenkuNativeApp',
+  },
+  plugins: {
+    // @capacitor/browser: tampilkan Google OAuth di Custom Chrome Tab (in-app)
+    Browser: {
+      presentationStyle: 'popover',
+    },
   },
 };
 
