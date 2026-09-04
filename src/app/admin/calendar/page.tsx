@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   CalendarDays,
   ChevronLeft,
@@ -11,10 +11,11 @@ import {
   Eye,
   RefreshCw,
   Sparkles,
-  Radio,
   Calendar as CalendarIcon,
   PartyPopper,
   CheckCircle,
+  Tag,
+  Info,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import {
@@ -25,7 +26,7 @@ import {
   getStatusLabel,
   MONTH_NAMES,
 } from '@/lib/utils'
-import { getHolidayInfo } from '@/lib/nationalHolidays'
+import { getHolidayInfo, getHolidaysForMonth } from '@/lib/nationalHolidays'
 
 export default function AdminCalendarPage() {
   const { showToast } = useToast()
@@ -60,7 +61,7 @@ export default function AdminCalendarPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // Fetch all attendances for the displayed month & load holidays
+  // Fetch all attendances for the displayed month & load custom holidays
   const loadMonthData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true)
     try {
@@ -184,6 +185,9 @@ export default function AdminCalendarPage() {
   const selectedDateObj = new Date(selectedDate + 'T00:00:00')
   const isSelectedDateSunday = !isNaN(selectedDateObj.getTime()) && selectedDateObj.getDay() === 0
 
+  // All holidays & cuti bersama in current month
+  const monthHolidays = getHolidaysForMonth(currentYear, currentMonth, customHolidays)
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header with Live Clock */}
@@ -202,10 +206,10 @@ export default function AdminCalendarPage() {
           </div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
             <CalendarDays className="w-6 h-6 text-indigo-400" />
-            Kalender Absensi Realtime
+            Kalender Absensi Realtime & Hari Libur
           </h1>
           <p className="text-xs text-gray-400 mt-1">
-            Pantau kehadiran harian seluruh siswa PKL dengan penanda Hari Libur Nasional resmi & tanggal merah
+            Pantau absensi harian peserta didik, tanggal merah, Hari Libur Nasional & Cuti Bersama resmi SKB 3 Menteri
           </p>
         </div>
 
@@ -288,12 +292,13 @@ export default function AdminCalendarPage() {
           <div className="grid grid-cols-7 gap-1.5 relative z-10">
             {calendarDays.map((cell, idx) => {
               if (!cell) {
-                return <div key={`empty-${idx}`} className="h-20 rounded-xl bg-transparent" />
+                return <div key={`empty-${idx}`} className="h-20 sm:h-22 rounded-xl bg-transparent" />
               }
 
               const isSelected = cell.dateStr === selectedDate
               const isToday = cell.dateStr === todayDateStr
               const isHoliday = cell.holiday.isHoliday
+              const isCuti = cell.holiday.isCutiBersama
               const isSunday = cell.isSunday
               const isTanggalMerah = isHoliday || isSunday
               const items = monthData[cell.dateStr] || []
@@ -312,12 +317,14 @@ export default function AdminCalendarPage() {
                 <div
                   key={cell.dateStr}
                   onClick={() => setSelectedDate(cell.dateStr)}
-                  className={`h-20 p-2 rounded-xl border transition cursor-pointer flex flex-col justify-between relative group ${
+                  className={`h-20 sm:h-22 p-1.5 sm:p-2 rounded-xl border transition cursor-pointer flex flex-col justify-between relative group ${
                     isSelected
                       ? 'border-indigo-400 bg-indigo-500/25 shadow-lg shadow-indigo-500/25 ring-2 ring-indigo-400/50'
                       : isToday
                       ? 'border-indigo-500/60 bg-indigo-500/10 shadow-md shadow-indigo-500/10 ring-1 ring-indigo-500/40'
-                      : isTanggalMerah
+                      : isHoliday && isCuti
+                      ? 'border-amber-500/30 bg-amber-500/10 hover:border-amber-500/60 hover:bg-amber-500/15'
+                      : isHoliday || isSunday
                       ? 'border-rose-500/30 bg-rose-500/10 hover:border-rose-500/60 hover:bg-rose-500/15'
                       : 'border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]'
                   }`}
@@ -326,7 +333,9 @@ export default function AdminCalendarPage() {
                   <div className="flex items-start justify-between">
                     <span
                       className={`text-xs font-black ${
-                        isTanggalMerah
+                        isHoliday && isCuti
+                          ? 'text-amber-400'
+                          : isTanggalMerah
                           ? 'text-rose-400'
                           : isToday
                           ? 'text-indigo-300'
@@ -340,30 +349,34 @@ export default function AdminCalendarPage() {
 
                     {/* Today Badge */}
                     {isToday && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-500 text-white shadow">
+                      <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-indigo-500 text-white shadow">
                         Kini
                       </span>
                     )}
 
-                    {/* National Holiday Icon */}
+                    {/* Holiday Icon */}
                     {isHoliday && !isToday && (
                       <span className="text-[10px]" title={cell.holiday.name || 'Hari Libur'}>
-                        🔴
+                        {isCuti ? '🌴' : '🔴'}
                       </span>
                     )}
                   </div>
 
-                  {/* Middle Holiday Name Snippet (If holiday) */}
+                  {/* Middle Holiday Name Label (Always Visible & Informative) */}
                   {isHoliday ? (
                     <div
-                      className="text-[9px] font-semibold text-rose-300 leading-tight line-clamp-1 bg-rose-500/20 px-1 py-0.5 rounded border border-rose-500/30 truncate"
+                      className={`text-[8px] sm:text-[9px] font-semibold leading-tight line-clamp-2 px-1 py-0.5 rounded border truncate ${
+                        isCuti
+                          ? 'text-amber-200 bg-amber-500/20 border-amber-500/30'
+                          : 'text-rose-200 bg-rose-500/20 border-rose-500/30'
+                      }`}
                       title={cell.holiday.name || 'Hari Libur'}
                     >
                       {cell.holiday.name}
                     </div>
                   ) : (
                     items.length > 0 && (
-                      <span className="text-[10px] text-gray-400 font-mono">
+                      <span className="text-[9px] sm:text-[10px] text-gray-400 font-mono">
                         {items.length} hadir
                       </span>
                     )
@@ -395,7 +408,13 @@ export default function AdminCalendarPage() {
               <span className="w-2.5 h-2.5 rounded bg-rose-500/20 border border-rose-500/40 text-[9px] font-bold text-rose-400 flex items-center justify-center">
                 M
               </span>
-              <span className="text-rose-300 font-medium">Tanggal Merah / Libur Nasional</span>
+              <span className="text-rose-300 font-medium">Libur Nasional / Tanggal Merah</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded bg-amber-500/20 border border-amber-500/40 text-[9px] font-bold text-amber-400 flex items-center justify-center">
+                C
+              </span>
+              <span className="text-amber-300 font-medium">Cuti Bersama Resmi</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -413,6 +432,80 @@ export default function AdminCalendarPage() {
               <span className="w-2.5 h-2.5 rounded bg-indigo-500/30 border border-indigo-400" />
               <span>Hari Ini (Aktif)</span>
             </div>
+          </div>
+
+          {/* Section Daftar Hari Libur & Cuti Bersama Bulan Ini */}
+          <div className="pt-4 border-t border-white/10 relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                <PartyPopper className="w-4 h-4 text-rose-400" />
+                <span>
+                  Daftar Libur Nasional & Cuti Bersama — {MONTH_NAMES[currentMonth]} {currentYear}
+                </span>
+              </h3>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                {monthHolidays.length} Agenda Libur
+              </span>
+            </div>
+
+            {monthHolidays.length === 0 ? (
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+                <Info className="w-4 h-4 text-gray-500" />
+                <span>Tidak ada agenda hari libur nasional atau cuti bersama pada bulan ini (hanya libur rutin akhir pekan).</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {monthHolidays.map((h) => {
+                  const isSelected = selectedDate === h.dateStr
+                  const isCuti = h.type === 'cuti_bersama'
+
+                  return (
+                    <button
+                      key={h.dateStr}
+                      type="button"
+                      onClick={() => setSelectedDate(h.dateStr)}
+                      className={`p-2.5 rounded-xl border text-left transition flex items-center gap-3 ${
+                        isSelected
+                          ? 'border-indigo-400 bg-indigo-500/20 shadow-md ring-1 ring-indigo-400/40'
+                          : isCuti
+                          ? 'border-amber-500/30 bg-amber-500/10 hover:border-amber-500/50'
+                          : 'border-rose-500/30 bg-rose-500/10 hover:border-rose-500/50'
+                      }`}
+                    >
+                      <div
+                        className={`w-10 h-10 rounded-xl font-bold flex flex-col items-center justify-center text-center flex-shrink-0 ${
+                          isCuti
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        }`}
+                      >
+                        <span className="text-sm font-black leading-none">{h.day}</span>
+                        <span className="text-[8px] uppercase tracking-wider mt-0.5">
+                          {MONTH_NAMES[currentMonth].substring(0, 3)}
+                        </span>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded ${
+                              isCuti
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                            }`}
+                          >
+                            {isCuti ? '🌴 Cuti Bersama' : '🔴 Libur Nasional'}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-white mt-1 truncate">
+                          {h.name}
+                        </p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -438,20 +531,51 @@ export default function AdminCalendarPage() {
             </p>
           </div>
 
-          {/* Holiday Banner if Selected Date is Holiday */}
+          {/* Holiday or Cuti Bersama Banner if Selected Date is Holiday */}
           {selectedHolidayInfo.isHoliday && (
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-500/20 to-red-600/10 border border-rose-500/30 text-xs text-rose-200 animate-fade-in shadow-lg">
-              <div className="flex items-start gap-2.5">
-                <PartyPopper className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-rose-400 block">
-                    {selectedHolidayInfo.isNational ? '🇮🇩 Hari Libur Nasional' : '📌 Libur Khusus / Instansi'}
-                  </span>
-                  <p className="text-sm font-black text-white mt-0.5">
+            <div
+              className={`p-4 rounded-2xl border text-xs animate-fade-in shadow-xl ${
+                selectedHolidayInfo.isCutiBersama
+                  ? 'bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-amber-600/10 border-amber-500/40 text-amber-200'
+                  : 'bg-gradient-to-r from-rose-500/25 via-red-500/15 to-rose-600/15 border-rose-500/40 text-rose-200'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl flex-shrink-0 mt-0.5">
+                  {selectedHolidayInfo.name?.toLowerCase().includes('fitri') ||
+                  selectedHolidayInfo.name?.toLowerCase().includes('adha') ||
+                  selectedHolidayInfo.name?.toLowerCase().includes('islam') ||
+                  selectedHolidayInfo.name?.toLowerCase().includes('mi\'raj')
+                    ? '🕌'
+                    : selectedHolidayInfo.name?.toLowerCase().includes('kemerdekaan')
+                    ? '🇮🇩'
+                    : selectedHolidayInfo.isCutiBersama
+                    ? '🌴'
+                    : '🎉'}
+                </span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                        selectedHolidayInfo.isCutiBersama
+                          ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                          : 'bg-rose-500/30 text-rose-300 border border-rose-500/40'
+                      }`}
+                    >
+                      {selectedHolidayInfo.isCutiBersama
+                        ? '🌴 Cuti Bersama Resmi'
+                        : selectedHolidayInfo.isNational
+                        ? '🇮🇩 Hari Libur Nasional Resmi'
+                        : '📌 Libur Khusus / Instansi'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-white mt-1">
                     {selectedHolidayInfo.name}
-                  </p>
-                  <p className="text-[11px] text-rose-200/90 mt-1 leading-relaxed">
-                    Hari libur resmi. Peserta didik PKL tidak diwajibkan melakukan absensi kehadiran.
+                  </h4>
+                  <p className="text-[11px] opacity-90 mt-1 leading-relaxed">
+                    {selectedHolidayInfo.isCutiBersama
+                      ? 'Sesuai Keputusan Bersama SKB 3 Menteri, hari ini ditetapkan sebagai Cuti Bersama. Seluruh kegiatan PKL diliburkan.'
+                      : 'Sesuai Kalender Nasional Republik Indonesia, hari ini adalah Hari Libur Nasional resmi. Peserta didik PKL tidak diwajibkan melakukan absensi.'}
                   </p>
                 </div>
               </div>
@@ -469,13 +593,13 @@ export default function AdminCalendarPage() {
           )}
 
           {/* Students List on that Date */}
-          <div className="flex-1 overflow-y-auto max-h-[480px] space-y-2.5 pr-0.5">
+          <div className="flex-1 overflow-y-auto max-h-[440px] space-y-2.5 pr-0.5">
             {selectedAttendances.length === 0 ? (
               <div className="py-12 text-center text-xs text-gray-500 flex flex-col items-center gap-2">
                 <Clock className="w-8 h-8 opacity-20" />
                 <span>
                   {selectedHolidayInfo.isHoliday || isSelectedDateSunday
-                    ? 'Tidak ada absensi karena hari libur.'
+                    ? 'Tidak ada absensi karena hari libur / cuti bersama.'
                     : 'Belum ada catatan absensi pada tanggal ini.'}
                 </span>
               </div>
