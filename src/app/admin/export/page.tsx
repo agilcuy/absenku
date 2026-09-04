@@ -140,7 +140,7 @@ export default function AdminExportPage() {
           <div>
             <label className="text-gray-300 font-medium block mb-1 flex items-center gap-1.5">
               <Building className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Lokasi / Tempat PKL (Filter Utama)</span>
+              <span>Lokasi / Tempat PKL (Pilih Dahulu) *</span>
             </label>
             <select
               value={selectedPlace}
@@ -150,7 +150,7 @@ export default function AdminExportPage() {
               }}
               className="input-field"
             >
-              <option value="">Semua Lokasi Tempat PKL ({students.length} Siswa)</option>
+              <option value="">-- Pilih Lokasi Tempat PKL Terlebih Dahulu --</option>
               {places.map((p) => {
                 const countInPlace = students.filter(
                   (s) => s.internship_place_id === p.id || s.internship_places?.id === p.id
@@ -163,38 +163,54 @@ export default function AdminExportPage() {
               })}
             </select>
             <p className="text-[10px] text-indigo-300/80 mt-1">
-              💡 Pilih tempat PKL untuk mempersempit daftar siswa di bawahnya atau mengunduh rekap seluruh siswa pada instansi tersebut.
+              💡 Pilih lokasi tempat PKL terlebih dahulu untuk memunculkan kolom peserta didik dan mengunduh rekap.
             </p>
           </div>
 
-          {/* Student Filter (Menyesuaikan Tempat PKL) */}
-          <div>
-            <label className="text-gray-300 font-medium block mb-1 flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Peserta Didik Tertentu (Menyesuaikan Lokasi PKL)</span>
-            </label>
-            <select
-              value={selectedStudent}
-              onChange={(e) => setSelectedStudent(e.target.value)}
-              className="input-field"
-            >
-              <option value="">
-                {selectedPlace
-                  ? `Semua Siswa di Lokasi Ini (${filteredStudents.length} Siswa)`
-                  : `Semua Siswa (${students.length} Siswa)`}
-              </option>
-              {filteredStudents.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.full_name} {s.class_name ? `• ${s.class_name}` : ''} ({s.email})
+          {/* Student Filter (HANYA MUNCUL JIKA TEMPAT PKL SUDAH DIPILIH) */}
+          {selectedPlace ? (
+            <div className="animate-fade-in p-3.5 rounded-xl bg-indigo-500/5 border border-indigo-500/30 flex flex-col gap-2">
+              <label className="text-gray-300 font-medium block flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-indigo-300">
+                  <Users className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Peserta Didik (Siswa di Tempat PKL Terpilih)</span>
+                </span>
+                <span className="text-[10px] text-indigo-300 font-mono bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">
+                  {filteredStudents.length} Siswa
+                </span>
+              </label>
+              <select
+                value={selectedStudent}
+                onChange={(e) => setSelectedStudent(e.target.value)}
+                className="input-field"
+              >
+                <option value="">
+                  Semua Siswa di Lokasi Ini ({filteredStudents.length} Siswa)
                 </option>
-              ))}
-            </select>
-            {selectedPlace && filteredStudents.length === 0 && (
-              <p className="text-[10px] text-amber-400 mt-1">
-                ⚠️ Belum ada siswa yang ditempatkan di lokasi PKL ini.
-              </p>
-            )}
-          </div>
+                {filteredStudents.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.full_name} {s.class_name ? `• ${s.class_name}` : ''} ({s.email})
+                  </option>
+                ))}
+              </select>
+              {filteredStudents.length === 0 ? (
+                <p className="text-[10px] text-amber-400">
+                  ⚠️ Belum ada siswa yang ditempatkan di lokasi PKL ini.
+                </p>
+              ) : (
+                <p className="text-[10px] text-gray-400">
+                  Pilih "Semua Siswa di Lokasi Ini" untuk rekap kolektif, atau pilih satu siswa untuk rekap individu.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-dashed border-white/15 flex items-center gap-2.5 text-gray-400 text-xs">
+              <Building className="w-4 h-4 text-indigo-400/60 flex-shrink-0" />
+              <span>
+                <b>Kolom Peserta Didik Terkunci:</b> Silakan pilih <b>Lokasi / Tempat PKL</b> di atas terlebih dahulu untuk memunculkan kolom peserta didik.
+              </span>
+            </div>
+          )}
 
           {/* Status Filter */}
           <div>
@@ -262,11 +278,17 @@ export default function AdminExportPage() {
         <div className="pt-3 border-t border-white/10 flex items-center justify-end">
           <button
             onClick={handleExport}
-            disabled={downloading}
-            className="btn-primary py-3 px-6 text-xs font-bold flex items-center gap-2"
+            disabled={downloading || !selectedPlace}
+            className="btn-primary py-3 px-6 text-xs font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
           >
             <Download className="w-4 h-4" />
-            <span>{downloading ? 'Memproses Berkas...' : 'Download Rekapitulasi'}</span>
+            <span>
+              {!selectedPlace
+                ? 'Pilih Tempat PKL Terlebih Dahulu'
+                : downloading
+                ? 'Memproses Berkas...'
+                : `Download Rekapitulasi (${exportFormat.toUpperCase()})`}
+            </span>
           </button>
         </div>
       </div>
