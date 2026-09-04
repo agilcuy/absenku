@@ -7,8 +7,6 @@ on:
       - main
     paths:
       - 'android/**'
-      - 'capacitor.config.ts'
-      - 'capacitor.config.json'
       - '.github/workflows/build-apk.yml'
 
 jobs:
@@ -26,21 +24,9 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
-
       - name: Accept Android SDK Licenses
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
-      - name: Sync Capacitor
-        run: npx cap sync android || echo "Capacitor sync finished with warnings"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -59,3 +45,4 @@ jobs:
           name: ABSENKU-PKL-Debug-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
+
