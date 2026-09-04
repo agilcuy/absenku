@@ -18,6 +18,7 @@ import {
   Smartphone,
   Camera,
   Network,
+  UserCheck,
   X,
 } from 'lucide-react'
 
@@ -26,7 +27,7 @@ const MENU_ITEMS = [
   { label: 'Topologi & Tupoksi', href: '/admin/structure', icon: Network },
   { label: 'Portal Pembimbing (Saya)', href: '/pembimbing', icon: GraduationCap },
   { label: 'Absen Saya (Kamera)', href: '/dashboard', icon: Camera },
-  { label: 'Peserta Didik', href: '/admin/students', icon: Users },
+  { label: 'Akun Login Siswa', href: '/admin/students', icon: UserCheck },
   { label: 'Pembimbing PKL', href: '/admin/mentors', icon: GraduationCap },
   { label: 'Tempat PKL', href: '/admin/places', icon: Building },
   { label: 'Izin & Sakit', href: '/admin/permits', icon: FileText },

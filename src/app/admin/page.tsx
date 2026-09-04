@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   Users,
   UserCheck,
+  UserPlus,
   Clock,
   AlertTriangle,
   UserX,
@@ -136,8 +137,17 @@ export default function AdminDashboardPage() {
         {/* Quick Actions */}
         <div className="flex items-center gap-2 flex-wrap relative z-10">
           <Link
+            href="/admin/students?action=create"
+            className="btn-primary text-xs py-2 px-3.5 flex items-center gap-1.5 font-bold shadow-lg shadow-indigo-500/25 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-xl"
+            title="Buatkan akun username & password untuk siswa baru"
+          >
+            <UserPlus className="w-3.5 h-3.5 stroke-[2.2]" />
+            <span>+ Buat Akun Siswa</span>
+          </Link>
+
+          <Link
             href="/dashboard"
-            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/15 font-semibold"
+            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/15 font-semibold rounded-xl"
             title="Buka kamera absensi mandiri untuk Anda"
           >
             <span>📸</span>
@@ -147,16 +157,16 @@ export default function AdminDashboardPage() {
           <button
             onClick={handleManualRefresh}
             disabled={refreshing}
-            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5"
+            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 rounded-xl"
             title="Refresh data sekarang"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
           </button>
 
-          <Link href="/admin/permits" className="btn-primary text-xs py-2 px-3 flex items-center gap-1.5">
+          <Link href="/admin/permits" className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 rounded-xl border-white/10 hover:border-indigo-500/40">
             <FileText className="w-3.5 h-3.5" />
-            <span>Review Izin & Sakit</span>
+            <span>Review Izin</span>
           </Link>
         </div>
       </div>
