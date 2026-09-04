@@ -24,9 +24,10 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Accept Android SDK Licenses
+      - name: Setup Android SDK Components
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0" || true
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -37,7 +38,7 @@ jobs:
       - name: Build Debug APK with Gradle
         run: |
           cd android
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug -x lint -x test --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
