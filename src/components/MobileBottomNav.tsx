@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Network, Calendar, UserCircle, Camera } from 'lucide-react'
+import { Home, BookOpen, Calendar, UserCircle, Camera } from 'lucide-react'
 
 interface MobileBottomNavProps {
   isProfileIncomplete?: boolean
@@ -33,10 +33,10 @@ export default function MobileBottomNav({
       isActive: pathname === '/dashboard',
     },
     {
-      label: 'Topologi',
-      href: '/dashboard/structure',
-      icon: Network,
-      isActive: pathname === '/dashboard/structure',
+      label: 'Jurnal',
+      href: '/dashboard/journals',
+      icon: BookOpen,
+      isActive: pathname === '/dashboard/journals',
     },
     // Center FAB placeholder (index 2)
     {
