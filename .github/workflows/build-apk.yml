@@ -90,3 +90,20 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
 
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: success()
+        with:
+          tag_name: v1.0.0-apk
+          name: "ABSENKU PKL Android App (Latest)"
+          body: |
+            ### 📱 Download APK ABSENKU PKL Terbaru
+            - Login terintegrasi In-App Browser (tidak perlu lempar ke aplikasi Chrome eksternal)
+            - Deep link auto-redirect
+            - Kamera absen, GPS & fitur realtime
+          files: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
