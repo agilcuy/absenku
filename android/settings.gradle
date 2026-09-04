@@ -4,3 +4,6 @@ project(':capacitor-cordova-android-plugins').projectDir = new File(settingsDir,
 
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File(settingsDir, 'capacitor-android')
+
+include ':capacitor-browser'
+project(':capacitor-browser').projectDir = new File(settingsDir, 'capacitor-browser')
