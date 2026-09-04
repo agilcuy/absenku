@@ -33,6 +33,7 @@ import {
   RefreshCw,
   ShieldAlert,
   Network,
+  BookOpen,
   ChevronRight,
 } from 'lucide-react'
 
@@ -572,6 +573,30 @@ function StudentDashboardContent() {
               RIGHT COLUMN (Statistik, Pembimbing, Info)
              ========================================= */}
           <div className="lg:col-span-5 flex flex-col gap-5">
+            {/* Streak & Consistency Gamification Widget */}
+            {(stats?.streak || 0) > 0 && (
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/10 border border-amber-500/30 flex items-center justify-between shadow-lg shadow-orange-500/10 animate-fade-in">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center flex-shrink-0 text-xl shadow-inner">
+                    🔥
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-amber-300">
+                        {stats.streak} Hari Tepat Waktu Berturut-turut!
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-amber-200/80 mt-0.5">
+                      Pertahankan kedisiplinan Anda sebagai Teknisi PKL teladan.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
+                  +{stats.streak * 10} Poin
+                </span>
+              </div>
+            )}
+
             {/* Attendance Statistics Grid (Clickable to History) */}
             <Link
               href="/dashboard/history"
@@ -625,6 +650,32 @@ function StudentDashboardContent() {
                   </div>
                   <p className="text-[10px] text-gray-400 mt-0.5">
                     Hierarki tim, Rafi Agil (PJ) & Teknisi PKL (Tiyas & Silvi)
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition" />
+            </Link>
+
+            {/* Jurnal Kegiatan Harian PKL Link Card */}
+            <Link
+              href="/dashboard/journals"
+              className="glass-card p-4 rounded-2xl border border-indigo-500/20 hover:border-indigo-500/40 bg-gradient-to-br from-indigo-500/[0.04] to-violet-500/[0.02] transition flex items-center justify-between group shadow-sm hover:shadow-indigo-500/10"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-400 flex items-center justify-center font-bold group-hover:scale-105 transition">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-white group-hover:text-indigo-300 transition">
+                      Jurnal Kegiatan PKL
+                    </h4>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
+                      Logbook Harian
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    Catat tugas harian, lampirkan foto kerja & peroleh paraf pembimbing
                   </p>
                 </div>
               </div>

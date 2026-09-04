@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { FileSpreadsheet, Download, Filter, Calendar, Users, Building, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
+import { FileSpreadsheet, Download, Filter, Calendar, Users, Building, RefreshCw, Printer } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 
@@ -91,15 +92,25 @@ export default function AdminExportPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="btn-outline text-xs py-2 px-3.5 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40 self-start sm:self-auto"
-          title="Perbarui data filter"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
-          <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Link
+            href="/admin/export/print"
+            className="btn-primary text-xs py-2 px-3.5 flex items-center gap-1.5 font-bold shadow-lg shadow-indigo-500/20"
+            title="Cetak format fisik resmi A4 dengan kop dinas"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Cetak Rekap PDF Resmi (A4)</span>
+          </Link>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="btn-outline text-xs py-2 px-3.5 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40"
+            title="Perbarui data filter"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
+            <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Export Options Card */}

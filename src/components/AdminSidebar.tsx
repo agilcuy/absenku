@@ -19,6 +19,7 @@ import {
   Camera,
   Network,
   UserCheck,
+  BookOpen,
   X,
 } from 'lucide-react'
 
@@ -32,6 +33,7 @@ const MENU_ITEMS = [
   { label: 'Tempat PKL', href: '/admin/places', icon: Building },
   { label: 'Izin & Sakit', href: '/admin/permits', icon: FileText },
   { label: 'Data Absensi', href: '/admin/attendances', icon: ClipboardList },
+  { label: 'Jurnal Kegiatan PKL', href: '/admin/journals', icon: BookOpen },
   { label: 'Kalender Absensi', href: '/admin/calendar', icon: CalendarDays },
   { label: 'Aktivitas Login', href: '/admin/login-activity', icon: Smartphone },
   { label: 'Jam & Identitas', href: '/admin/settings', icon: Clock },

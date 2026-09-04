@@ -94,27 +94,33 @@ export async function GET() {
     .eq('date', todayStr)
     .maybeSingle()
 
-  // 5. Get student statistics
+  // 5. Get student statistics & consecutive on-time streak
   const { data: allAttendances } = await adminClient
     .from('attendances')
-    .select('check_in_status')
+    .select('date, check_in_status')
     .eq('user_id', user.id)
+    .order('date', { ascending: false })
 
   let totalPresent = 0
   let totalOnTime = 0
   let totalLate = 0
   let totalAlpha = 0
+  let streak = 0
+  let streakActive = true
 
   if (allAttendances) {
     allAttendances.forEach((a) => {
       if (a.check_in_status === 'on_time') {
         totalPresent++
         totalOnTime++
+        if (streakActive) streak++
       } else if (a.check_in_status === 'late') {
         totalPresent++
         totalLate++
+        streakActive = false
       } else if (a.check_in_status === 'alpha') {
         totalAlpha++
+        streakActive = false
       }
     })
   }
@@ -137,6 +143,7 @@ export async function GET() {
       totalOnTime,
       totalLate,
       totalAlpha,
+      streak,
     },
   })
 }

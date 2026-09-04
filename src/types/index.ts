@@ -129,6 +129,24 @@ export interface AttendancePhoto {
   uploaded_at: string
 }
 
+export interface DailyJournal {
+  id: string
+  user_id: string
+  date: string
+  title: string
+  description: string
+  photo_url?: string
+  mentor_rating?: number
+  mentor_notes?: string
+  reviewed_by?: string
+  reviewed_at?: string
+  created_at: string
+  updated_at: string
+  // Joined fields
+  users?: User
+  reviewer?: User
+}
+
 export interface UserSession {
   id: string
   user_id: string

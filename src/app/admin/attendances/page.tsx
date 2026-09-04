@@ -27,6 +27,15 @@ import {
 } from '@/lib/utils'
 import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 
+function getWhatsAppAlertUrl(phone: string, studentName: string): string {
+  if (!phone) return '#'
+  let cleaned = phone.replace(/[^0-9]/g, '')
+  if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1)
+  else if (!cleaned.startsWith('62')) cleaned = '62' + cleaned
+  const text = `Halo ${studentName}, sistem ABSENKU Kominfo Tanggamus mendeteksi Anda belum melakukan absensi masuk pagi ini. Batas waktu absensi s.d pukul 07:30 WIB. Harap segera lakukan swafoto di lokasi PKL. Terima kasih.`
+  return `https://wa.me/${cleaned}?text=${encodeURIComponent(text)}`
+}
+
 export default function AdminAttendancesPage() {
   const { showToast } = useToast()
 
@@ -260,6 +269,62 @@ export default function AdminAttendancesPage() {
           </button>
         </div>
       </div>
+
+      {/* Fast WhatsApp Reminder Banner for Students Not Checked In Today */}
+      {(!filterDate || filterDate === new Date().toISOString().split('T')[0]) && (() => {
+        const todayDate = new Date().toISOString().split('T')[0]
+        const absentList = students.filter((s) => {
+          return !attendances.some((a) => a.user_id === s.id && a.date === todayDate && a.check_in_time)
+        })
+
+        if (absentList.length === 0) return null
+
+        return (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 border border-amber-500/30 flex flex-col gap-3 shadow-lg animate-fade-in">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                <h3 className="text-xs font-bold text-amber-300">
+                  Peringatan Kehadiran Hari Ini: {absentList.length} Siswa Belum Absen Masuk
+                </h3>
+              </div>
+              <span className="text-[10px] text-gray-400">Jadwal Masuk: 06:00 - 07:30 WIB</span>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {absentList.slice(0, 8).map((st) => {
+                const waUrl = st.phone ? getWhatsAppAlertUrl(st.phone, st.full_name) : null
+                return (
+                  <div
+                    key={st.id}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-xs"
+                  >
+                    <span className="font-semibold text-white truncate max-w-[130px]">{st.full_name}</span>
+                    {waUrl ? (
+                      <a
+                        href={waUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 transition active:scale-95 shadow-sm shadow-emerald-600/30"
+                        title="Kirim teguran cepat via WhatsApp"
+                      >
+                        <span>💬 Tegur WA</span>
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-gray-500 italic">No WA -</span>
+                    )}
+                  </div>
+                )
+              })}
+              {absentList.length > 8 && (
+                <span className="text-[10px] text-gray-400 self-center">
+                  +{absentList.length - 8} siswa lainnya
+                </span>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Filters Toolbar */}
       <div className="glass-card p-4 border border-white/10 flex flex-wrap items-center gap-3">
