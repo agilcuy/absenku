@@ -38,19 +38,17 @@ jobs:
       - name: Build Debug APK with Gradle
         run: |
           cd android
-          ./gradlew assembleDebug -x lint -x test --stacktrace --info 2>&1 | tee ../build_output.log
+          ./gradlew assembleDebug -x lint -x test --stacktrace
 
-      - name: Upload Build Log on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-failure-log
-          path: build_output.log
+      - name: Verify APK Location
+        run: |
+          echo "=== Searching for generated APK files ==="
+          find android/ -name "*.apk"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ABSENKU-PKL-Debug-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 14
 
