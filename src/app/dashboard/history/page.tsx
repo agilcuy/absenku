@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
 import StudentNavbar from '@/components/StudentNavbar'
 import MobileBottomNav from '@/components/MobileBottomNav'
 import LeafletMapModal from '@/components/LeafletMapModal'
@@ -13,7 +14,7 @@ import {
   getStatusLabel,
   MONTH_NAMES,
 } from '@/lib/utils'
-import { Calendar, Filter, MapPin, Eye, Clock, CheckCircle2, RefreshCw } from 'lucide-react'
+import { Calendar, Filter, MapPin, Eye, Clock, CheckCircle2, RefreshCw, FileText } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 
 export default function StudentHistoryPage() {
@@ -108,6 +109,21 @@ export default function StudentHistoryPage() {
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
             <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
           </button>
+        </div>
+
+        {/* Sub-tab Switcher: Riwayat Absensi vs Izin & Sakit */}
+        <div className="flex items-center p-1 bg-white/5 border border-white/10 rounded-2xl w-fit">
+          <span className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-md shadow-indigo-500/20 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Riwayat Absensi</span>
+          </span>
+          <Link
+            href="/dashboard/permits"
+            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-gray-400 hover:text-white transition flex items-center gap-1.5"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Izin & Sakit</span>
+          </Link>
         </div>
 
         {/* Filters: Month Selector Pills & Year */}

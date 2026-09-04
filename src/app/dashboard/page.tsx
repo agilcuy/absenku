@@ -552,25 +552,29 @@ function StudentDashboardContent() {
               RIGHT COLUMN (Statistik, Pembimbing, Info)
              ========================================= */}
           <div className="lg:col-span-5 flex flex-col gap-5">
-            {/* Attendance Statistics Grid */}
-            <div className="grid grid-cols-4 gap-2.5">
-              <div className="glass-card p-3.5 rounded-2xl border border-white/5 text-center">
+            {/* Attendance Statistics Grid (Clickable to History) */}
+            <Link
+              href="/dashboard/history"
+              title="Lihat riwayat absensi lengkap"
+              className="grid grid-cols-4 gap-2.5 group"
+            >
+              <div className="glass-card p-3.5 rounded-2xl border border-white/5 text-center group-hover:border-indigo-500/30 transition">
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Hadir</span>
                 <p className="text-2xl font-black text-white mt-1">{stats?.totalPresent || 0}</p>
               </div>
-              <div className="glass-card p-3.5 rounded-2xl border border-emerald-500/20 text-center bg-emerald-500/[0.02]">
+              <div className="glass-card p-3.5 rounded-2xl border border-emerald-500/20 text-center bg-emerald-500/[0.02] group-hover:border-emerald-500/40 transition">
                 <span className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">Tepat</span>
                 <p className="text-2xl font-black text-emerald-400 mt-1">{stats?.totalOnTime || 0}</p>
               </div>
-              <div className="glass-card p-3.5 rounded-2xl border border-amber-500/20 text-center bg-amber-500/[0.02]">
+              <div className="glass-card p-3.5 rounded-2xl border border-amber-500/20 text-center bg-amber-500/[0.02] group-hover:border-amber-500/40 transition">
                 <span className="text-[10px] text-amber-400 uppercase font-bold tracking-wider">Telat</span>
                 <p className="text-2xl font-black text-amber-400 mt-1">{stats?.totalLate || 0}</p>
               </div>
-              <div className="glass-card p-3.5 rounded-2xl border border-rose-500/20 text-center bg-rose-500/[0.02]">
+              <div className="glass-card p-3.5 rounded-2xl border border-rose-500/20 text-center bg-rose-500/[0.02] group-hover:border-rose-500/40 transition">
                 <span className="text-[10px] text-rose-400 uppercase font-bold tracking-wider">Alpha</span>
                 <p className="text-2xl font-black text-rose-400 mt-1">{stats?.totalAlpha || 0}</p>
               </div>
-            </div>
+            </Link>
 
             {/* Mentor Contact & Direct WhatsApp Card (Khusus Siswa) */}
             {userProfile?.role !== 'superadmin' && (

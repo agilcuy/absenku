@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
+import Link from 'next/link'
 import {
   FileText,
   Plus,
@@ -137,6 +138,21 @@ function StudentPermitsContent() {
       <StudentNavbar user={userProfile} />
 
       <main className="max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6 flex-1">
+        {/* Sub-tab Switcher: Riwayat Absensi vs Izin & Sakit */}
+        <div className="flex items-center p-1 bg-white/5 border border-white/10 rounded-2xl w-fit">
+          <Link
+            href="/dashboard/history"
+            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-gray-400 hover:text-white transition flex items-center gap-1.5"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Riwayat Absensi</span>
+          </Link>
+          <span className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-md shadow-indigo-500/20 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" />
+            <span>Izin & Sakit</span>
+          </span>
+        </div>
+
         {/* Header */}
         <div className="glass-card p-5 sm:p-6 border border-indigo-500/20 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
