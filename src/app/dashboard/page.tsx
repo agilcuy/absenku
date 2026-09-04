@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import StudentNavbar from '@/components/StudentNavbar'
+import MobileBottomNav from '@/components/MobileBottomNav'
 import CameraCaptureModal from '@/components/CameraCaptureModal'
 import BiodataAlertModal from '@/components/BiodataAlertModal'
 import GpsLocationBadge from '@/components/GpsLocationBadge'
@@ -33,12 +35,32 @@ import {
 
 function StudentDashboardContent() {
   const { showToast } = useToast()
+  const searchParams = useSearchParams()
 
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [data, setData] = useState<any>(null)
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
+  const [currentTime, setCurrentTime] = useState<string>('')
+
+  // Live digital clock updater
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date()
+      setCurrentTime(
+        now.toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }) + ' WIB'
+      )
+    }
+    updateTime()
+    const timer = setInterval(updateTime, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
 
   // Modals state
   const [cameraModalOpen, setCameraModalOpen] = useState(false)
@@ -258,13 +280,13 @@ function StudentDashboardContent() {
   const hasCheckedOut = !!attendance?.check_out_time
 
   return (
-    <div className="min-h-screen bg-[#06070d] text-slate-100 pb-20">
+    <div className="min-h-screen bg-[#07090e] text-slate-100 pb-safe-nav">
       <StudentNavbar user={userProfile} isProfileIncomplete={isProfileIncomplete} />
 
-      <main className="max-w-xl mx-auto px-4 pt-6 flex flex-col gap-5">
+      <main className="max-w-6xl mx-auto px-4 pt-4 sm:pt-6">
         {/* Urgent Mandatory Biodata Alert Banner */}
         {isProfileIncomplete && (
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-amber-500/20 border-2 border-amber-500/50 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 animate-fade-in">
+          <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-amber-500/20 border-2 border-amber-500/50 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 animate-fade-in">
             <div className="flex items-start gap-3">
               <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex-shrink-0 mt-0.5">
                 <AlertTriangle className="w-5 h-5 animate-pulse" />
@@ -294,293 +316,278 @@ function StudentDashboardContent() {
           </div>
         )}
 
-        {/* Welcome Greeting Card */}
-        <div className="glass-card p-5 relative overflow-hidden border border-indigo-500/20 shadow-xl animate-fade-in-up">
-          <div className="orb orb-purple w-40 h-40 top-[-20px] right-[-20px]" />
+        {/* Dual Experience Layout: 2 Columns on Desktop, Clean 1 Column on Mobile */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* =========================================
+              LEFT COLUMN (Hero Absensi & Aksi Utama)
+             ========================================= */}
+          <div className="lg:col-span-7 flex flex-col gap-5">
+            {/* Welcome Greeting Card */}
+            <div className="glass-card p-5 relative overflow-hidden border border-indigo-500/20 shadow-xl animate-fade-in-up">
+              <div className="orb orb-purple w-40 h-40 top-[-20px] right-[-20px]" />
 
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-1">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>
-                  {userProfile?.role === 'superadmin'
-                    ? 'Absensi Mandiri • Superadmin & Pembimbing'
-                    : 'Portal Peserta Didik PKL'}
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white">
-                Selamat Datang,{' '}
-                {userProfile?.role === 'superadmin'
-                  ? userProfile?.full_name || 'Superadmin'
-                  : userProfile?.full_name
-                  ? userProfile.full_name.split(' ')[0]
-                  : 'Peserta Didik'}
-                !
-              </h1>
-              <div className="text-xs text-gray-400 mt-1.5 flex flex-wrap items-center gap-2">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                  {formatDate(new Date())}
-                </span>
-                <span>•</span>
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold transition"
-                  title="Perbarui status absensi"
-                >
-                  <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
-                  <span>{refreshing ? 'Memperbarui...' : 'Perbarui Status'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-2xl shadow-inner">
-              {userProfile?.role === 'superadmin' ? '👑' : '⚡'}
-            </div>
-          </div>
-
-          {/* Quick Return to Admin Panel for Superadmin */}
-          {userProfile?.role === 'superadmin' && (
-            <div className="mt-4 p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in">
-              <div className="flex items-center gap-2.5">
-                <span className="text-lg">👑</span>
+              <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-indigo-300 block">Akun Superadmin & Pembimbing PKL</span>
-                  <span className="text-indigo-200/80">Anda dapat melakukan absensi mandiri, mengelola sistem, dan memantau siswa bimbingan.</span>
-                </div>
-              </div>
-              <Link
-                href="/admin"
-                className="btn-outline border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/20 text-[11px] py-1.5 px-3 whitespace-nowrap self-start sm:self-auto font-bold flex items-center gap-1"
-              >
-                <span>Panel Admin</span>
-                <span>➔</span>
-              </Link>
-            </div>
-          )}
-
-          {/* Pengingat Lengkapi Biodata jika belum terisi (HANYA untuk Siswa) */}
-          {isProfileIncomplete && (
-            <div className="mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fade-in">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-amber-300 block">
-                    Biodata Anda Belum Lengkap ({missingBiodata.length} kolom)
-                  </span>
-                  <span className="text-amber-200/80">
-                    Silakan lengkapi {missingBiodata.map((m) => m.label).join(', ')} Anda di profil.
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setBiodataModalOpen(true)}
-                className="btn-outline border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-[11px] py-1.5 px-3 whitespace-nowrap self-start sm:self-auto font-bold"
-              >
-                Lengkapi Sekarang ➔
-              </button>
-            </div>
-          )}
-
-          {/* Holiday or Non-working day banner */}
-          {isHoliday && (
-            <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2 text-xs text-amber-300">
-              <Info className="w-4 h-4 flex-shrink-0" />
-              <span>Hari ini Libur: <b>{data.holidayName}</b>. Tidak wajib absensi.</span>
-            </div>
-          )}
-
-          {!isHoliday && !isWorkingDay && (
-            <div className="mt-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-2 text-xs text-blue-300">
-              <Info className="w-4 h-4 flex-shrink-0" />
-              <span>Hari ini bukan hari kerja PKL. Absensi tidak aktif.</span>
-            </div>
-          )}
-        </div>
-
-        {/* GPS Sensor Badge */}
-        <GpsLocationBadge onLocationFound={(found) => setCoords(found)} />
-
-        {/* Today Attendance Status Card */}
-        <div className="glass-card p-5 border border-white/10 flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <Clock className="w-4 h-4 text-indigo-400" />
-              Status Absensi Hari Ini
-            </h2>
-            <div className={`badge text-[11px] ${getStatusBadge(attendance?.check_in_status)}`}>
-              <span>{getStatusEmoji(attendance?.check_in_status)}</span>
-              <span>{getStatusLabel(attendance?.check_in_status)}</span>
-            </div>
-          </div>
-
-          {/* Dual Check-in / Check-out status cards */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Check-In Column */}
-            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
-              <div>
-                <span className="text-[11px] text-gray-400 font-medium">Absensi Masuk</span>
-                <div className="text-lg font-bold text-white mt-1">
-                  {attendance?.check_in_time ? formatTime(attendance.check_in_time) : '--:--'}
-                </div>
-                <div className="text-[10px] text-gray-400 mt-0.5">
-                  Target: {settings?.check_in_time ? settings.check_in_time.substring(0, 5) : '07:30'} WIB
-                </div>
-              </div>
-
-              {hasCheckedIn && (
-                <div className="mt-3 flex items-center gap-2 pt-2 border-t border-white/5">
-                  {checkInPhoto && (
+                  <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-1">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>
+                      {userProfile?.role === 'superadmin'
+                        ? 'Absensi Mandiri • Superadmin & Pembimbing'
+                        : 'Portal Peserta Didik PKL'}
+                    </span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black text-white">
+                    Selamat Datang,{' '}
+                    {userProfile?.role === 'superadmin'
+                      ? userProfile?.full_name || 'Superadmin'
+                      : userProfile?.full_name
+                      ? userProfile.full_name.split(' ')[0]
+                      : 'Peserta Didik'}
+                    !
+                  </h2>
+                  <div className="text-xs text-gray-400 mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                      {formatDate(new Date())}
+                    </span>
+                    {currentTime && (
+                      <>
+                        <span>•</span>
+                        <span className="font-mono text-indigo-300 font-bold bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                          {currentTime}
+                        </span>
+                      </>
+                    )}
+                    <span>•</span>
                     <button
-                      onClick={() =>
-                        setPhotoPreviewModal({
-                          isOpen: true,
-                          url: checkInPhoto.photo_url,
-                          title: 'Foto Absensi Masuk',
-                        })
-                      }
-                      className="p-1 rounded-md bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 text-[10px] flex items-center gap-1"
+                      onClick={handleRefresh}
+                      disabled={refreshing}
+                      className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold transition active:scale-95"
+                      title="Perbarui status absensi"
                     >
-                      <Eye className="w-3 h-3" /> Foto
+                      <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+                      <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
                     </button>
-                  )}
-                  {attendance?.check_in_lat && attendance?.check_in_lng && (
-                    <button
-                      onClick={() =>
-                        setMapModal({
-                          isOpen: true,
-                          lat: attendance.check_in_lat,
-                          lng: attendance.check_in_lng,
-                          title: 'Lokasi Absensi Masuk',
-                          address: attendance.check_in_address,
-                        })
-                      }
-                      className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[10px] flex items-center gap-1"
-                    >
-                      <MapPin className="w-3 h-3" /> Peta
-                    </button>
-                  )}
+                  </div>
+                </div>
+
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-2xl shadow-inner flex-shrink-0">
+                  {userProfile?.role === 'superadmin' ? '👑' : '⚡'}
+                </div>
+              </div>
+
+              {/* Holiday or Non-working day banner */}
+              {isHoliday && (
+                <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2 text-xs text-amber-300">
+                  <Info className="w-4 h-4 flex-shrink-0" />
+                  <span>Hari ini Libur: <b>{data.holidayName}</b>. Tidak wajib absensi.</span>
+                </div>
+              )}
+
+              {!isHoliday && !isWorkingDay && (
+                <div className="mt-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-2 text-xs text-blue-300">
+                  <Info className="w-4 h-4 flex-shrink-0" />
+                  <span>Hari ini bukan hari kerja PKL. Absensi tidak aktif.</span>
                 </div>
               )}
             </div>
 
-            {/* Check-Out Column */}
-            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
-              <div>
-                <span className="text-[11px] text-gray-400 font-medium">Absensi Pulang</span>
-                <div className="text-lg font-bold text-white mt-1">
-                  {attendance?.check_out_time ? formatTime(attendance.check_out_time) : '--:--'}
-                </div>
-                <div className="text-[10px] text-gray-400 mt-0.5">
-                  Mulai: {settings?.check_out_time ? settings.check_out_time.substring(0, 5) : '16:30'} WIB
+            {/* Today Attendance Status Card */}
+            <div className="glass-card p-5 border border-white/10 flex flex-col gap-4 shadow-xl">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-indigo-400" />
+                  Status Kehadiran Hari Ini
+                </h3>
+                <div className={`badge text-[11px] ${getStatusBadge(attendance?.check_in_status)}`}>
+                  <span>{getStatusEmoji(attendance?.check_in_status)}</span>
+                  <span>{getStatusLabel(attendance?.check_in_status)}</span>
                 </div>
               </div>
 
-              {hasCheckedOut && (
-                <div className="mt-3 flex items-center gap-2 pt-2 border-t border-white/5">
-                  {checkOutPhoto && (
-                    <button
-                      onClick={() =>
-                        setPhotoPreviewModal({
-                          isOpen: true,
-                          url: checkOutPhoto.photo_url,
-                          title: 'Foto Absensi Pulang',
-                        })
-                      }
-                      className="p-1 rounded-md bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 text-[10px] flex items-center gap-1"
-                    >
-                      <Eye className="w-3 h-3" /> Foto
-                    </button>
-                  )}
-                  {attendance?.check_out_lat && attendance?.check_out_lng && (
-                    <button
-                      onClick={() =>
-                        setMapModal({
-                          isOpen: true,
-                          lat: attendance.check_out_lat,
-                          lng: attendance.check_out_lng,
-                          title: 'Lokasi Absensi Pulang',
-                          address: attendance.check_out_address,
-                        })
-                      }
-                      className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[10px] flex items-center gap-1"
-                    >
-                      <MapPin className="w-3 h-3" /> Peta
-                    </button>
+              {/* Dual Check-in / Check-out status cards */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Check-In Column */}
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[11px] text-gray-400 font-medium">Absensi Masuk</span>
+                    <div className="text-xl font-black text-white mt-1">
+                      {attendance?.check_in_time ? formatTime(attendance.check_in_time) : '--:--'}
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">
+                      Target: {settings?.check_in_time ? settings.check_in_time.substring(0, 5) : '07:30'} WIB
+                    </div>
+                  </div>
+
+                  {hasCheckedIn && (
+                    <div className="mt-3 flex items-center gap-2 pt-2 border-t border-white/5">
+                      {checkInPhoto && (
+                        <button
+                          onClick={() =>
+                            setPhotoPreviewModal({
+                              isOpen: true,
+                              url: checkInPhoto.photo_url,
+                              title: 'Foto Absensi Masuk',
+                            })
+                          }
+                          className="px-2 py-1 rounded-lg bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 text-[11px] font-semibold flex items-center gap-1 active:scale-95 transition"
+                        >
+                          <Eye className="w-3 h-3" /> Foto
+                        </button>
+                      )}
+                      {attendance?.check_in_lat && attendance?.check_in_lng && (
+                        <button
+                          onClick={() =>
+                            setMapModal({
+                              isOpen: true,
+                              lat: attendance.check_in_lat,
+                              lng: attendance.check_in_lng,
+                              title: 'Lokasi Absensi Masuk',
+                              address: attendance.check_in_address,
+                            })
+                          }
+                          className="px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 text-[11px] font-semibold flex items-center gap-1 active:scale-95 transition"
+                        >
+                          <MapPin className="w-3 h-3" /> Peta
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+
+                {/* Check-Out Column */}
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[11px] text-gray-400 font-medium">Absensi Pulang</span>
+                    <div className="text-xl font-black text-white mt-1">
+                      {attendance?.check_out_time ? formatTime(attendance.check_out_time) : '--:--'}
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">
+                      Mulai: {settings?.check_out_time ? settings.check_out_time.substring(0, 5) : '16:30'} WIB
+                    </div>
+                  </div>
+
+                  {hasCheckedOut && (
+                    <div className="mt-3 flex items-center gap-2 pt-2 border-t border-white/5">
+                      {checkOutPhoto && (
+                        <button
+                          onClick={() =>
+                            setPhotoPreviewModal({
+                              isOpen: true,
+                              url: checkOutPhoto.photo_url,
+                              title: 'Foto Absensi Pulang',
+                            })
+                          }
+                          className="px-2 py-1 rounded-lg bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 text-[11px] font-semibold flex items-center gap-1 active:scale-95 transition"
+                        >
+                          <Eye className="w-3 h-3" /> Foto
+                        </button>
+                      )}
+                      {attendance?.check_out_lat && attendance?.check_out_lng && (
+                        <button
+                          onClick={() =>
+                            setMapModal({
+                              isOpen: true,
+                              lat: attendance.check_out_lat,
+                              lng: attendance.check_out_lng,
+                              title: 'Lokasi Absensi Pulang',
+                              address: attendance.check_out_address,
+                            })
+                          }
+                          className="px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 text-[11px] font-semibold flex items-center gap-1 active:scale-95 transition"
+                        >
+                          <MapPin className="w-3 h-3" /> Peta
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons (52px Touch-friendly for Mobile) */}
+              <div className="flex flex-col gap-2.5 mt-2">
+                {!hasCheckedIn ? (
+                  <button
+                    id="btn-absen-masuk"
+                    onClick={() => handleInitiateAction('check_in')}
+                    disabled={submitting}
+                    className="btn-primary w-full py-4 text-sm font-black justify-center rounded-2xl shadow-xl shadow-indigo-500/30 active:scale-95 transition tracking-wide touch-target"
+                  >
+                    <Camera className="w-5 h-5 stroke-[2.2]" />
+                    <span>ABSEN MASUK SEKARANG</span>
+                  </button>
+                ) : !hasCheckedOut ? (
+                  <button
+                    id="btn-absen-pulang"
+                    onClick={() => handleInitiateAction('check_out')}
+                    disabled={submitting}
+                    className="w-full py-4 text-sm font-black rounded-2xl justify-center flex items-center gap-2 transition active:scale-95 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xl shadow-emerald-500/25 tracking-wide touch-target"
+                  >
+                    <Camera className="w-5 h-5 stroke-[2.2]" />
+                    <span>ABSEN PULANG SEKARANG</span>
+                  </button>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center gap-2 text-xs text-emerald-400 font-bold">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>Absensi Hari Ini Telah Lengkap (Masuk & Pulang)</span>
+                  </div>
+                )}
+
+                {isProfileIncomplete && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center gap-2 text-center text-xs text-amber-300 font-medium">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 animate-pulse text-amber-400" />
+                    <span>Wajib melengkapi biodata profil sebelum dapat absensi</span>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* GPS Sensor Badge */}
+            <GpsLocationBadge onLocationFound={(found) => setCoords(found)} />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col gap-2.5 mt-2">
-            {!hasCheckedIn ? (
-              <button
-                id="btn-absen-masuk"
-                onClick={() => handleInitiateAction('check_in')}
-                disabled={submitting}
-                className="btn-primary w-full py-4 text-sm font-bold justify-center rounded-xl shadow-lg shadow-indigo-500/25"
-              >
-                <Camera className="w-5 h-5" />
-                <span>ABSEN MASUK SEKARANG</span>
-              </button>
-            ) : !hasCheckedOut ? (
-              <button
-                id="btn-absen-pulang"
-                onClick={() => handleInitiateAction('check_out')}
-                disabled={submitting}
-                className="w-full py-4 text-sm font-bold rounded-xl justify-center flex items-center gap-2 transition bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/20"
-              >
-                <Camera className="w-5 h-5" />
-                <span>ABSEN PULANG SEKARANG</span>
-              </button>
-            ) : (
-              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center gap-2 text-xs text-emerald-400 font-semibold">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Absensi Hari Ini Lengkap (Masuk & Pulang)</span>
+          {/* =========================================
+              RIGHT COLUMN (Statistik, Pembimbing, Info)
+             ========================================= */}
+          <div className="lg:col-span-5 flex flex-col gap-5">
+            {/* Attendance Statistics Grid */}
+            <div className="grid grid-cols-4 gap-2.5">
+              <div className="glass-card p-3.5 rounded-2xl border border-white/5 text-center">
+                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Hadir</span>
+                <p className="text-2xl font-black text-white mt-1">{stats?.totalPresent || 0}</p>
               </div>
-            )}
-
-            {isProfileIncomplete && (
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center gap-2 text-center text-xs text-amber-300">
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 animate-pulse text-amber-400" />
-                <span>Wajib melengkapi biodata profil sebelum dapat melakukan absensi</span>
+              <div className="glass-card p-3.5 rounded-2xl border border-emerald-500/20 text-center bg-emerald-500/[0.02]">
+                <span className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">Tepat</span>
+                <p className="text-2xl font-black text-emerald-400 mt-1">{stats?.totalOnTime || 0}</p>
               </div>
+              <div className="glass-card p-3.5 rounded-2xl border border-amber-500/20 text-center bg-amber-500/[0.02]">
+                <span className="text-[10px] text-amber-400 uppercase font-bold tracking-wider">Telat</span>
+                <p className="text-2xl font-black text-amber-400 mt-1">{stats?.totalLate || 0}</p>
+              </div>
+              <div className="glass-card p-3.5 rounded-2xl border border-rose-500/20 text-center bg-rose-500/[0.02]">
+                <span className="text-[10px] text-rose-400 uppercase font-bold tracking-wider">Alpha</span>
+                <p className="text-2xl font-black text-rose-400 mt-1">{stats?.totalAlpha || 0}</p>
+              </div>
+            </div>
+
+            {/* Mentor Contact & Direct WhatsApp Card (Khusus Siswa) */}
+            {userProfile?.role !== 'superadmin' && (
+              <MentorContactCard
+                mentor={userProfile?.mentor}
+                studentName={userProfile?.full_name}
+                placeName={userProfile?.internship_places?.name}
+              />
             )}
-          </div>
-        </div>
-
-        {/* Mentor Contact & Direct WhatsApp Card (Khusus Siswa) */}
-        {userProfile?.role !== 'superadmin' && (
-          <MentorContactCard
-            mentor={userProfile?.mentor}
-            studentName={userProfile?.full_name}
-            placeName={userProfile?.internship_places?.name}
-          />
-        )}
-
-        {/* Attendance Statistics Grid */}
-        <div className="grid grid-cols-4 gap-2.5">
-          <div className="glass-card p-3 rounded-xl border border-white/5 text-center">
-            <span className="text-[10px] text-gray-400 uppercase font-semibold">Hadir</span>
-            <p className="text-xl font-black text-white mt-1">{stats?.totalPresent || 0}</p>
-          </div>
-          <div className="glass-card p-3 rounded-xl border border-white/5 text-center">
-            <span className="text-[10px] text-emerald-400 uppercase font-semibold">Tepat</span>
-            <p className="text-xl font-black text-emerald-400 mt-1">{stats?.totalOnTime || 0}</p>
-          </div>
-          <div className="glass-card p-3 rounded-xl border border-white/5 text-center">
-            <span className="text-[10px] text-amber-400 uppercase font-semibold">Telat</span>
-            <p className="text-xl font-black text-amber-400 mt-1">{stats?.totalLate || 0}</p>
-          </div>
-          <div className="glass-card p-3 rounded-xl border border-white/5 text-center">
-            <span className="text-[10px] text-rose-400 uppercase font-semibold">Alpha</span>
-            <p className="text-xl font-black text-rose-400 mt-1">{stats?.totalAlpha || 0}</p>
           </div>
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation Bar (< lg) */}
+      <MobileBottomNav
+        isProfileIncomplete={isProfileIncomplete}
+        onQuickAbsen={() => handleInitiateAction(!hasCheckedIn ? 'check_in' : 'check_out')}
+      />
+
 
       {/* Camera Capture Modal */}
       <CameraCaptureModal
@@ -637,7 +644,15 @@ function StudentDashboardContent() {
 export default function StudentDashboardPage() {
   return (
     <ToastProvider>
-      <StudentDashboardContent />
+      <React.Suspense
+        fallback={
+          <div className="min-h-screen bg-[#06070d] flex items-center justify-center text-gray-400 text-xs">
+            Memuat dashboard...
+          </div>
+        }
+      >
+        <StudentDashboardContent />
+      </React.Suspense>
     </ToastProvider>
   )
 }

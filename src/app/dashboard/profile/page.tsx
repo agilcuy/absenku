@@ -22,8 +22,11 @@ import {
   MessageCircle,
 } from 'lucide-react'
 import StudentNavbar from '@/components/StudentNavbar'
+import MobileBottomNav from '@/components/MobileBottomNav'
+import MobileBottomSheet from '@/components/MobileBottomSheet'
 import { formatDate, formatWhatsAppUrl } from '@/lib/utils'
 import { useToast, ToastProvider } from '@/components/Toast'
+
 
 function StudentProfileContent() {
   const { showToast } = useToast()
@@ -186,7 +189,7 @@ function StudentProfileContent() {
     (!profile?.class_name || !profile?.major || !profile?.phone || !profile?.internship_place_id)
 
   return (
-    <div className="min-h-screen bg-[#06070d] text-gray-100 flex flex-col pb-12">
+    <div className="min-h-screen bg-[#06070d] text-gray-100 flex flex-col pb-safe-nav pb-24 lg:pb-12">
       <StudentNavbar user={profile} isProfileIncomplete={isProfileIncomplete} />
 
       <main className="max-w-3xl w-full mx-auto p-4 sm:p-6 space-y-6 flex-1">
@@ -460,175 +463,154 @@ function StudentProfileContent() {
         )}
       </main>
 
-      {/* Edit Biodata Modal */}
-      {editModalOpen && (
-        <div className="modal-overlay">
-          <div className="glass-card w-full max-w-md p-6 border border-white/10 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
-                  <User className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">
-                    {isSuperadmin ? 'Edit Data Profil Pengguna' : 'Lengkapi / Edit Biodata Diri'}
-                  </h3>
-                  <p className="text-[11px] text-gray-400">
-                    {isSuperadmin
-                      ? 'Perbarui identitas, username, dan kontak WhatsApp Anda'
-                      : 'Pastikan data valid untuk keperluan absensi & penempatan PKL'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setEditModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-white transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
+      {/* Edit Biodata Sheet / Modal */}
+      <MobileBottomSheet
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title={isSuperadmin ? 'Edit Data Profil Pengguna' : 'Lengkapi / Edit Biodata Diri'}
+      >
+        <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+          {/* Avatar Upload */}
+          <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/10">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 overflow-hidden flex items-center justify-center flex-shrink-0">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+              ) : profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-8 h-8 text-indigo-300" />
+              )}
             </div>
-
-            <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
-              {/* Avatar Upload */}
-              <div className="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/10">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 overflow-hidden flex items-center justify-center flex-shrink-0">
-                  {avatarPreview ? (
-                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-8 h-8 text-indigo-300" />
-                  )}
-                </div>
-                <div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarSelect}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn-outline text-xs py-1.5 px-3 flex items-center gap-1.5"
-                  >
-                    <Camera className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Pilih Foto Profil</span>
-                  </button>
-                  <p className="text-[10px] text-gray-400 mt-1">Maks. 5 MB (JPG, PNG)</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-300 font-medium mb-1">Nama Lengkap *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Nama Lengkap"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  className="input-field w-full text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-gray-300 font-medium mb-1">Username Unik</label>
-                  <input
-                    type="text"
-                    placeholder="contoh: ahmad_r"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="input-field w-full text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-300 font-medium mb-1">No. WhatsApp / HP *</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="08xxxxxxxxxx"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="input-field w-full text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-gray-300 font-medium mb-1">
-                    Kelas {isSuperadmin ? '(Opsional)' : '*'}
-                  </label>
-                  <input
-                    type="text"
-                    required={!isSuperadmin}
-                    placeholder="Contoh: XII RPL 1"
-                    value={formData.class_name}
-                    onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
-                    className="input-field w-full text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-300 font-medium mb-1">
-                    Jurusan {isSuperadmin ? '(Opsional)' : '*'}
-                  </label>
-                  <input
-                    type="text"
-                    required={!isSuperadmin}
-                    placeholder="Contoh: Rekayasa Perangkat Lunak"
-                    value={formData.major}
-                    onChange={(e) => setFormData({ ...formData, major: e.target.value })}
-                    className="input-field w-full text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-300 font-medium mb-1">
-                  Tempat / Instansi PKL {isSuperadmin ? '(Opsional)' : '*'}
-                </label>
-                <select
-                  required={!isSuperadmin}
-                  value={formData.internship_place_id}
-                  onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
-                  className="input-field w-full text-xs"
-                >
-                  <option value="">-- Pilih Instansi / Perusahaan PKL --</option>
-                  {availablePlaces.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} {p.pic_name ? `(PIC: ${p.pic_name})` : ''}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-gray-400 mt-1">
-                  {isSuperadmin
-                    ? 'Dapat memilih Kominfo Tanggamus (egov) atau membiarkannya default'
-                    : 'Pilih tempat instansi PKL yang telah ditentukan oleh sekolah.'}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setEditModalOpen(false)}
-                  className="btn-outline text-xs py-2 px-4"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn-primary text-xs py-2 px-5"
-                >
-                  {submitting ? 'Menyimpan...' : 'Simpan Biodata'}
-                </button>
-              </div>
-            </form>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarSelect}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 touch-target"
+              >
+                <Camera className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Pilih Foto Profil</span>
+              </button>
+              <p className="text-[10px] text-gray-400 mt-1">Maks. 5 MB (JPG, PNG)</p>
+            </div>
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-gray-300 font-medium mb-1">Nama Lengkap *</label>
+            <input
+              type="text"
+              required
+              placeholder="Nama Lengkap"
+              value={formData.full_name}
+              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              className="input-field w-full text-xs"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-gray-300 font-medium mb-1">Username Unik</label>
+              <input
+                type="text"
+                placeholder="contoh: ahmad_r"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                className="input-field w-full text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-300 font-medium mb-1">No. WhatsApp / HP *</label>
+              <input
+                type="tel"
+                required
+                placeholder="08xxxxxxxxxx"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="input-field w-full text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-gray-300 font-medium mb-1">
+                Kelas {isSuperadmin ? '(Opsional)' : '*'}
+              </label>
+              <input
+                type="text"
+                required={!isSuperadmin}
+                placeholder="Contoh: XII RPL 1"
+                value={formData.class_name}
+                onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
+                className="input-field w-full text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-300 font-medium mb-1">
+                Jurusan {isSuperadmin ? '(Opsional)' : '*'}
+              </label>
+              <input
+                type="text"
+                required={!isSuperadmin}
+                placeholder="Contoh: Rekayasa Perangkat Lunak"
+                value={formData.major}
+                onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                className="input-field w-full text-xs"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-gray-300 font-medium mb-1">
+              Tempat / Instansi PKL {isSuperadmin ? '(Opsional)' : '*'}
+            </label>
+            <select
+              required={!isSuperadmin}
+              value={formData.internship_place_id}
+              onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
+              className="input-field w-full text-xs"
+            >
+              <option value="">-- Pilih Instansi / Perusahaan PKL --</option>
+              {availablePlaces.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} {p.pic_name ? `(PIC: ${p.pic_name})` : ''}
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-gray-400 mt-1">
+              {isSuperadmin
+                ? 'Dapat memilih Kominfo Tanggamus (egov) atau membiarkannya default'
+                : 'Pilih tempat instansi PKL yang telah ditentukan oleh sekolah.'}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+            <button
+              type="button"
+              onClick={() => setEditModalOpen(false)}
+              className="btn-outline text-xs py-2.5 px-4 touch-target"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-primary text-xs py-2.5 px-5 touch-target font-bold"
+            >
+              {submitting ? 'Menyimpan...' : 'Simpan Biodata'}
+            </button>
+          </div>
+        </form>
+      </MobileBottomSheet>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav isProfileIncomplete={isProfileIncomplete} />
     </div>
   )
 }

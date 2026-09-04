@@ -48,7 +48,7 @@ function LoginContent() {
 
 
   return (
-    <div className="min-h-screen animated-bg flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen animated-bg flex items-center justify-center p-4 pt-safe pb-safe relative overflow-hidden">
       {/* Background Orbs */}
       <div className="orb orb-purple w-96 h-96 top-[-10%] left-[-10%]" />
       <div className="orb orb-blue w-72 h-72 bottom-[-5%] right-[-5%]" />
@@ -114,7 +114,7 @@ function LoginContent() {
           id="btn-google-login"
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-semibold text-base transition-all duration-300"
+          className="w-full min-h-[52px] touch-target active-press flex items-center justify-center gap-3 py-3.5 px-6 rounded-xl font-semibold text-base transition-all duration-300"
           style={{
             background: loading
               ? 'rgba(255,255,255,0.05)'

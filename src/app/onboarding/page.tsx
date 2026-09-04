@@ -184,7 +184,7 @@ function OnboardingContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#06070d] text-gray-100 flex flex-col justify-between p-4 sm:p-6 lg:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#06070d] text-gray-100 flex flex-col justify-between p-4 sm:p-6 lg:p-8 pt-safe pb-safe relative overflow-hidden">
       <div className="orb orb-purple w-96 h-96 top-[-50px] right-[-50px]" />
       <div className="orb orb-blue w-96 h-96 bottom-[-50px] left-[-50px]" />
 
@@ -367,7 +367,7 @@ function OnboardingContent() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-primary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 shadow-xl shadow-indigo-500/25"
+                className="btn-primary w-full py-3 min-h-[48px] text-xs font-bold flex items-center justify-center gap-2 shadow-xl shadow-indigo-500/25 active-press"
               >
                 {submitting ? (
                   <>

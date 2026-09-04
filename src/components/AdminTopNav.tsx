@@ -39,12 +39,13 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-[#06070d]/80 backdrop-blur-xl border-b border-white/5 px-4 lg:px-8 flex items-center justify-between">
+    <header className="sticky top-0 z-30 pt-safe bg-[#06070d]/80 backdrop-blur-xl border-b border-white/5 px-4 lg:px-8 flex items-center justify-between min-h-[56px] lg:h-16">
       {/* Mobile Toggle & Breadcrumb */}
       <div className="flex items-center gap-3">
         <button
           onClick={onOpenMobileSidebar}
-          className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5"
+          className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 touch-target flex items-center justify-center"
+          aria-label="Buka menu"
         >
           <Menu className="w-5 h-5" />
         </button>
