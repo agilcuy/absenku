@@ -116,6 +116,19 @@ export async function POST(req: NextRequest) {
     const lat = latStr ? parseFloat(latStr) : null
     const lng = lngStr ? parseFloat(lngStr) : null
 
+    const isStudent = userProfile?.role === 'student'
+
+    // Strict GPS requirement for students
+    if (isStudent && (lat === null || lng === null || isNaN(lat) || isNaN(lng))) {
+      return NextResponse.json(
+        {
+          error:
+            'Koordinat GPS wajib aktif! Harap izinkan akses lokasi (GPS) pada browser atau HP Anda agar absensi dapat diverifikasi.',
+        },
+        { status: 400 }
+      )
+    }
+
     let address = 'Lokasi tidak diketahui'
     if (lat !== null && lng !== null) {
       address = await getAddressFromCoords(lat, lng)
@@ -133,6 +146,20 @@ export async function POST(req: NextRequest) {
     if (lat !== null && lng !== null) {
       distanceMeters = calculateDistanceMeters(lat, lng, placeLat, placeLng)
       isWithinRadius = distanceMeters <= placeRadius
+    }
+
+    // Strict Geofencing enforcement for students
+    if (isStudent && distanceMeters !== null && !isWithinRadius) {
+      const roundedDistance = Math.round(distanceMeters)
+      return NextResponse.json(
+        {
+          error: `Anda terdeteksi berjarak ${roundedDistance} meter dari lokasi PKL (${placeName}). Batas maksimal absensi adalah radius ${placeRadius} meter. Harap lakukan absensi langsung di area kantor.`,
+          distanceMeters,
+          placeRadius,
+          placeName,
+        },
+        { status: 400 }
+      )
     }
 
     // Determine status (on_time or late)

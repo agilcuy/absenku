@@ -20,6 +20,7 @@ import {
   isCheckInAllowed,
   isCheckOutAllowed,
 } from '@/lib/utils'
+import { calculateDistanceMeters, DEFAULT_OFFICE_COORDS } from '@/lib/geo'
 import {
   Clock,
   MapPin,
@@ -207,8 +208,30 @@ function StudentDashboardContent() {
     }
 
     if (!coords) {
-      showToast('Mohon tunggu sinyal GPS aktif sebelum melakukan absensi.', 'error', 'GPS Diperlukan')
+      showToast(
+        'Sinyal GPS belum aktif! Harap izinkan akses lokasi (GPS) pada browser/HP Anda untuk melakukan absensi.',
+        'error',
+        'GPS Diperlukan'
+      )
       return
+    }
+
+    if (isStudent) {
+      const place = userProfile?.internship_places || null
+      const placeLat = place?.latitude || DEFAULT_OFFICE_COORDS.lat
+      const placeLng = place?.longitude || DEFAULT_OFFICE_COORDS.lng
+      const placeRadius = place?.radius_meters || DEFAULT_OFFICE_COORDS.radiusMeters
+      const placeName = place?.name || DEFAULT_OFFICE_COORDS.name
+
+      const distance = calculateDistanceMeters(coords.lat, coords.lng, placeLat, placeLng)
+      if (distance > placeRadius) {
+        showToast(
+          `Anda terdeteksi berjarak ${Math.round(distance)} meter dari ${placeName}. Batas maksimal absensi adalah radius ${placeRadius} meter. Harap lakukan absensi langsung di area kantor!`,
+          'error',
+          '⚠️ Di Luar Radius Lokasi PKL'
+        )
+        return
+      }
     }
 
     setActiveAction(action)

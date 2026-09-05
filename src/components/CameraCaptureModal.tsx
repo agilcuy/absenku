@@ -222,6 +222,31 @@ export default function CameraCaptureModal({
     // Draw original video frame
     ctx.drawImage(video, 0, 0, width, height)
 
+    // Anti-tamper: Check brightness before applying watermark to prevent black / covered-lens photos
+    try {
+      const imgData = ctx.getImageData(0, 0, width, height)
+      let colorSum = 0
+      const step = 4 * 16 // sample every 16th pixel for performance
+      let sampleCount = 0
+      for (let i = 0; i < imgData.data.length; i += step) {
+        const r = imgData.data[i]
+        const g = imgData.data[i + 1]
+        const b = imgData.data[i + 2]
+        colorSum += (r + g + b) / 3
+        sampleCount++
+      }
+      const avgBrightness = sampleCount > 0 ? colorSum / sampleCount : 100
+
+      if (avgBrightness < 18) {
+        setCameraError(
+          'Pencahayaan terlalu gelap atau lensa kamera tertutup! Pastikan wajah Anda terlihat jelas dengan pencahayaan yang cukup sebelum membidik foto.'
+        )
+        return
+      }
+    } catch (err) {
+      console.warn('Brightness check skipped:', err)
+    }
+
     // Apply digital watermark permanently
     applyWatermark(canvas, watermarkData)
 

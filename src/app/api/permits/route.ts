@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isUserSuperadmin } from '@/lib/auth'
+import { getTodayJakarta } from '@/lib/utils'
 
 // GET permits (role-filtered)
 export async function GET(req: NextRequest) {
@@ -92,6 +93,44 @@ export async function POST(req: NextRequest) {
     if (new Date(startDate) > new Date(endDate)) {
       return NextResponse.json(
         { error: 'Tanggal mulai tidak boleh melebihi tanggal selesai.' },
+        { status: 400 }
+      )
+    }
+
+    const todayStr = getTodayJakarta()
+
+    // 1. Izin cannot be submitted retroactively for past dates
+    if (type === 'izin' && startDate < todayStr) {
+      return NextResponse.json(
+        {
+          error:
+            'Pengajuan izin tidak dapat diajukan untuk tanggal lampau. Izin wajib diajukan maksimal pada hari H atau tanggal mendatang.',
+        },
+        { status: 400 }
+      )
+    }
+
+    // 2. Sakit can only be submitted up to yesterday (H-1) or today/future
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayStr = yesterday.toISOString().split('T')[0]
+    if (type === 'sakit' && startDate < yesterdayStr) {
+      return NextResponse.json(
+        {
+          error:
+            'Pengajuan sakit maksimal diajukan H-1 (kemarin) atau hari ini. Jika sakit lebih lampau, harap laporkan langsung ke admin / pembimbing lapangan.',
+        },
+        { status: 400 }
+      )
+    }
+
+    // 3. Sakit strictly requires a proof file (medical letter, prescription, etc.)
+    if (type === 'sakit' && (!proofFile || proofFile.size === 0)) {
+      return NextResponse.json(
+        {
+          error:
+            'Pengajuan sakit wajib melampirkan foto bukti surat keterangan dokter, resep obat, atau surat izin orang tua.',
+        },
         { status: 400 }
       )
     }
