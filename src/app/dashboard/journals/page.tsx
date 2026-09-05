@@ -20,6 +20,10 @@ import {
   ChevronRight,
   User,
   ShieldCheck,
+  X,
+  Maximize2,
+  Minimize2,
+  GripHorizontal,
 } from 'lucide-react'
 import StudentNavbar from '@/components/StudentNavbar'
 import MobileBottomNav from '@/components/MobileBottomNav'
@@ -47,6 +51,11 @@ function JournalsContent() {
 
   // Photo viewer modal
   const [viewerUrl, setViewerUrl] = useState<string | null>(null)
+
+  // Expandable Daily Activity Drawer & In-place expansion
+  const [activeDetailJournal, setActiveDetailJournal] = useState<DailyJournal | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [isExpandedEditor, setIsExpandedEditor] = useState(false)
 
   const loadJournals = useCallback(async () => {
     try {
@@ -303,12 +312,38 @@ function JournalsContent() {
 
                 {/* Content */}
                 <div>
-                  <h3 className="text-sm sm:text-base font-bold text-white mb-1.5">
-                    {journal.title}
-                  </h3>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
+                      {journal.title}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setActiveDetailJournal(journal)}
+                      className="text-[11px] font-semibold text-indigo-300 hover:text-white bg-indigo-500/15 hover:bg-indigo-600/30 border border-indigo-500/30 px-2.5 py-1 rounded-xl transition flex items-center gap-1.5 flex-shrink-0 active:scale-95 shadow-sm"
+                      title="Buka layar lebar aktivitas harian"
+                    >
+                      <Maximize2 className="w-3 h-3 text-indigo-400" />
+                      <span>Show Daily Activity</span>
+                    </button>
+                  </div>
                   <p className="text-xs text-gray-300 whitespace-pre-line leading-relaxed">
-                    {journal.description}
+                    {expandedId === journal.id
+                      ? journal.description
+                      : journal.description.length > 220
+                      ? `${journal.description.slice(0, 220)}...`
+                      : journal.description}
                   </p>
+                  {journal.description.length > 220 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedId(expandedId === journal.id ? null : journal.id)
+                      }
+                      className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 mt-1.5 inline-flex items-center gap-1 transition"
+                    >
+                      {expandedId === journal.id ? 'Persempit Teks ▴' : 'Tampilkan Seluruh Deskripsi ▾'}
+                    </button>
+                  )}
                 </div>
 
                 {/* Photo Attachment if available */}
@@ -410,17 +445,45 @@ function JournalsContent() {
               </div>
 
               <div>
-                <label className="block text-gray-300 font-semibold mb-1">
-                  Rincian Deskripsi Pekerjaan *
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Jelaskan secara rinci kegiatan yang Anda lakukan hari ini, kendala yang dihadapi, dan hasil akhir pekerjaan..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="input-field w-full text-xs leading-relaxed"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-gray-300 font-semibold">
+                    Rincian Deskripsi Pekerjaan *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsExpandedEditor((prev) => !prev)}
+                    className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition py-0.5 px-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20"
+                  >
+                    {isExpandedEditor ? (
+                      <>
+                        <Minimize2 className="w-3 h-3" />
+                        <span>Kecilkan Layar</span>
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 className="w-3 h-3" />
+                        <span>Perlebar Layar Ketik</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="relative">
+                  <textarea
+                    rows={isExpandedEditor ? 14 : 5}
+                    required
+                    placeholder="Jelaskan secara rinci kegiatan yang Anda lakukan hari ini, kendala yang dihadapi, dan hasil akhir pekerjaan..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className={`input-field w-full text-xs leading-relaxed resize-y ${
+                      isExpandedEditor ? 'min-h-[300px]' : 'min-h-[140px]'
+                    } max-h-[600px] transition-all`}
+                  />
+                  {/* Visual Drag Handle Bar */}
+                  <div className="flex items-center justify-center gap-1.5 py-1 text-[10px] text-gray-400 bg-white/[0.02] border-x border-b border-white/10 rounded-b-xl select-none">
+                    <GripHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Seret sudut bawah untuk memperlebar / mempersempit layar ketik</span>
+                  </div>
+                </div>
               </div>
 
               {/* Photo Upload Attachment */}
@@ -495,6 +558,111 @@ function JournalsContent() {
             <button onClick={() => setViewerUrl(null)} className="w-full btn-outline text-xs mt-2 py-2 text-center">
               Tutup
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Show Daily Activity: Full Expandable Drawer / Screen */}
+      {activeDetailJournal && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
+          onClick={() => setActiveDetailJournal(null)}
+        >
+          <div
+            className="glass-card w-full max-w-2xl bg-[#0b0e18] border border-indigo-500/30 rounded-t-3xl sm:rounded-3xl p-5 sm:p-7 shadow-2xl max-h-[92vh] sm:max-h-[85vh] overflow-y-auto animate-fade-in-up flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Draggable Down Indicator Handle */}
+            <div
+              className="w-16 h-1.5 bg-white/30 hover:bg-white/50 rounded-full mx-auto mb-4 cursor-pointer transition active:scale-95"
+              title="Klik atau geser untuk menutup"
+              onClick={() => setActiveDetailJournal(null)}
+            />
+
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-white/10 pb-4 mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold uppercase">
+                    Daily Activity Report
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {formatDate(activeDetailJournal.date)}
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-extrabold text-white leading-tight">
+                  {activeDetailJournal.title}
+                </h2>
+              </div>
+              <button
+                onClick={() => setActiveDetailJournal(null)}
+                className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body Content - Widened Full Screen Reading */}
+            <div className="space-y-5 flex-1">
+              {/* Full Description */}
+              <div>
+                <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Rincian Lengkap Aktivitas Harian</span>
+                </h4>
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-xs sm:text-sm text-gray-200 leading-relaxed whitespace-pre-line shadow-inner max-h-72 overflow-y-auto custom-scrollbar">
+                  {activeDetailJournal.description}
+                </div>
+              </div>
+
+              {/* Photo Attachment if available */}
+              {activeDetailJournal.photo_url && (
+                <div>
+                  <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Dokumentasi Pekerjaan Teknis</span>
+                  </h4>
+                  <div className="rounded-2xl overflow-hidden border border-white/15 bg-black/50 max-h-[380px] flex items-center justify-center">
+                    <img
+                      src={activeDetailJournal.photo_url}
+                      alt="Dokumentasi Kerja"
+                      className="w-full h-full object-contain max-h-[380px]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Mentor Feedback if rated */}
+              {activeDetailJournal.mentor_notes && (
+                <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/25">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                      Paraf & Catatan Pembimbing Lapangan
+                    </span>
+                    {activeDetailJournal.mentor_rating && (
+                      <div className="flex items-center gap-1 text-amber-300 text-xs font-bold font-mono">
+                        <span>⭐ {activeDetailJournal.mentor_rating} / 5</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-300 italic leading-relaxed">
+                    &quot;{activeDetailJournal.mentor_notes}&quot;
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setActiveDetailJournal(null)}
+                  className="btn-primary text-xs py-2 px-5 font-bold"
+                >
+                  Tutup Tampilan
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

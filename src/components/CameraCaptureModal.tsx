@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Camera, Image as ImageIcon, RotateCw, X, Check, AlertCircle, Loader2, ShieldCheck } from 'lucide-react'
+import { Camera, Image as ImageIcon, RotateCw, X, Check, AlertCircle, Loader2, ShieldCheck, FlipHorizontal } from 'lucide-react'
 import { validateImageFile, compressImageFile } from '@/lib/geo'
 import { formatDate, formatTime } from '@/lib/utils'
 
@@ -141,6 +141,7 @@ export default function CameraCaptureModal({
   const [galleryError, setGalleryError] = useState<string | null>(null)
   const [processingImage, setProcessingImage] = useState(false)
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
+  const [isMirrored, setIsMirrored] = useState(false) // Default false: Strictly Anti-Mirror (Normal orientation)
   const [streamActive, setStreamActive] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -219,8 +220,16 @@ export default function CameraCaptureModal({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Draw original video frame
-    ctx.drawImage(video, 0, 0, width, height)
+    // Draw video frame according to mirror setting (default: normal / anti-mirror)
+    if (isMirrored) {
+      ctx.save()
+      ctx.translate(width, 0)
+      ctx.scale(-1, 1)
+      ctx.drawImage(video, 0, 0, width, height)
+      ctx.restore()
+    } else {
+      ctx.drawImage(video, 0, 0, width, height)
+    }
 
     // Anti-tamper: Check brightness before applying watermark to prevent black / covered-lens photos
     try {
@@ -447,32 +456,72 @@ export default function CameraCaptureModal({
                   </div>
                 </div>
               ) : (
-                <div className="relative w-full max-w-sm rounded-2xl overflow-hidden border border-white/10 bg-black aspect-[3/4] flex items-center justify-center">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
-                  />
-                  <canvas ref={canvasRef} className="hidden" />
+                <>
+                  <div className="relative w-full max-w-sm rounded-2xl overflow-hidden border border-white/10 bg-black aspect-[3/4] flex items-center justify-center">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className={`w-full h-full object-cover transition-transform duration-150 ${
+                        isMirrored ? '-scale-x-100' : 'scale-x-100'
+                      }`}
+                    />
+                    <canvas ref={canvasRef} className="hidden" />
 
-                  {/* Camera overlay switch */}
-                  <button
-                    onClick={() =>
-                      setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
-                    }
-                    title="Putar Kamera"
-                    className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full backdrop-blur-md border border-white/20 transition"
-                  >
-                    <RotateCw className="w-4 h-4" />
-                  </button>
+                    {/* Top Left: Anti-Mirror Status Indicator */}
+                    <div className="absolute top-3 left-3 bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300">
+                      <span className={`w-1.5 h-1.5 rounded-full ${isMirrored ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
+                      <span>{isMirrored ? 'Mode Mirror' : 'Normal (Anti-Mirror)'}</span>
+                    </div>
 
-                  {/* Live viewfinder guides */}
-                  <div className="absolute inset-4 border border-white/20 rounded-2xl pointer-events-none flex items-center justify-center">
-                    <div className="w-48 h-56 rounded-full border border-dashed border-white/25 pointer-events-none" />
+                    {/* Top Right Controls: Toggle Mirror & Rotate Camera */}
+                    <div className="absolute top-3 right-3 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsMirrored((prev) => !prev)}
+                        title={isMirrored ? 'Ubah ke Mode Normal (Anti-Mirror)' : 'Ubah ke Mode Mirror'}
+                        className="bg-black/65 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md border border-white/20 transition flex items-center justify-center active:scale-95"
+                      >
+                        <FlipHorizontal className={`w-4 h-4 ${isMirrored ? 'text-amber-400' : 'text-emerald-400'}`} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
+                        }
+                        title="Putar Kamera Depan/Belakang"
+                        className="bg-black/65 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md border border-white/20 transition flex items-center justify-center active:scale-95"
+                      >
+                        <RotateCw className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Live viewfinder guides */}
+                    <div className="absolute inset-4 border border-white/20 rounded-2xl pointer-events-none flex items-center justify-center">
+                      <div className="w-48 h-56 rounded-full border border-dashed border-white/25 pointer-events-none" />
+                    </div>
                   </div>
-                </div>
+
+                  {/* Sub-camera Bar: Mirror status & info */}
+                  <div className="flex items-center justify-between w-full max-w-sm px-2 mt-2 text-[11px] text-gray-400">
+                    <button
+                      type="button"
+                      onClick={() => setIsMirrored((prev) => !prev)}
+                      className="hover:text-white flex items-center gap-1.5 transition active:scale-95 py-1 px-2 rounded-lg bg-white/[0.03] border border-white/10"
+                    >
+                      <FlipHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>
+                        Arah Swafoto:{' '}
+                        <b className={isMirrored ? 'text-amber-400' : 'text-emerald-400'}>
+                          {isMirrored ? 'Mirror' : 'Normal (Anti-Mirror)'}
+                        </b>
+                      </span>
+                    </button>
+                    <span className="text-[10px] text-gray-500">Stempel Otomatis</span>
+                  </div>
+                </>
               )}
             </div>
           ) : (

@@ -39,6 +39,7 @@ function JournalsAdminPageContent() {
 
   // Image preview modal
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const loadJournals = async () => {
     try {
@@ -269,8 +270,21 @@ function JournalsAdminPageContent() {
               <div>
                 <h4 className="font-bold text-white text-base mb-1">{j.title}</h4>
                 <p className="text-xs text-gray-300 whitespace-pre-line leading-relaxed">
-                  {j.description}
+                  {expandedId === j.id
+                    ? j.description
+                    : j.description.length > 250
+                    ? `${j.description.slice(0, 250)}...`
+                    : j.description}
                 </p>
+                {j.description.length > 250 && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(expandedId === j.id ? null : j.id)}
+                    className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 mt-1 inline-flex items-center gap-1 transition"
+                  >
+                    {expandedId === j.id ? 'Persempit Teks ▴' : 'Tampilkan Seluruh Deskripsi ▾'}
+                  </button>
+                )}
               </div>
 
               {/* Photo Documentation */}
@@ -402,7 +416,7 @@ function JournalsAdminPageContent() {
                   placeholder="Contoh: Pekerjaan rapi, konfigurasi routing sudah tepat. Tingkatkan kecepatan penyambungan FO."
                   value={mentorNotes}
                   onChange={(e) => setMentorNotes(e.target.value)}
-                  className="input-field w-full text-xs leading-relaxed"
+                  className="input-field w-full text-xs leading-relaxed resize-y min-h-[90px] max-h-[300px]"
                 />
               </div>
 
