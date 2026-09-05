@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { isUserSuperadmin } from '@/lib/auth'
+import { getCallerAccess } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { formatAuthPassword } from '@/lib/utils'
 
@@ -12,9 +12,9 @@ export async function GET(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const adminClient = createAdminClient()
-    const isAdmin = await isUserSuperadmin(user, adminClient)
+    const { isAdmin, isMentor, profile: callerProfile } = await getCallerAccess(user, adminClient)
 
-    if (!isAdmin) {
+    if (!isAdmin && !isMentor) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -30,8 +30,20 @@ export async function GET(req: NextRequest) {
       .eq('role', 'student')
       .order('full_name', { ascending: true })
 
-    if (placeId) query = query.eq('internship_place_id', placeId)
-    if (mentorId) query = query.eq('mentor_id', mentorId)
+    // If caller is mentor (not superadmin), restrict strictly to mentor's assigned place or mentored students
+    if (isMentor) {
+      if (callerProfile?.internship_place_id) {
+        query = query.or(
+          `internship_place_id.eq.${callerProfile.internship_place_id},mentor_id.eq.${user.id}`
+        )
+      } else {
+        query = query.eq('mentor_id', user.id)
+      }
+    } else {
+      if (placeId) query = query.eq('internship_place_id', placeId)
+      if (mentorId) query = query.eq('mentor_id', mentorId)
+    }
+
     if (status) query = query.eq('internship_status', status)
     if (search) {
       query = query.or(
@@ -57,9 +69,9 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const adminClient = createAdminClient()
-    const isAdmin = await isUserSuperadmin(user, adminClient)
+    const { isAdmin, isMentor, profile: callerProfile } = await getCallerAccess(user, adminClient)
 
-    if (!isAdmin) {
+    if (!isAdmin && !isMentor) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -155,6 +167,16 @@ export async function POST(req: NextRequest) {
       studentId = crypto.randomUUID()
     }
 
+    // Enforce place and mentor constraints for mentors
+    let assignedPlaceId = internship_place_id || null
+    let assignedMentorId = mentor_id || null
+
+    if (isMentor) {
+      // Mentor can only add students to their assigned internship place
+      assignedPlaceId = callerProfile?.internship_place_id || assignedPlaceId
+      assignedMentorId = user.id
+    }
+
     // 2. Insert into public.users
     const { data: newStudent, error: insertError } = await adminClient
       .from('users')
@@ -167,8 +189,8 @@ export async function POST(req: NextRequest) {
           phone: phone?.trim() || null,
           class_name: class_name?.trim() || null,
           major: major?.trim() || null,
-          internship_place_id: internship_place_id || null,
-          mentor_id: mentor_id || null,
+          internship_place_id: assignedPlaceId,
+          mentor_id: assignedMentorId,
           start_date: start_date || null,
           end_date: end_date || null,
           internship_status: internship_status || 'aktif',

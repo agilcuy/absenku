@@ -16,9 +16,16 @@ import {
   LogOut,
   Search,
   Eye,
+  EyeOff,
   X,
   Activity,
   AlertCircle,
+  UserPlus,
+  Pencil,
+  Trash2,
+  KeyRound,
+  ShieldCheck,
+  Check,
 } from 'lucide-react'
 import { formatDate, formatTime, getStatusBadge, getStatusEmoji, getStatusLabel, formatLastSeen } from '@/lib/utils'
 import NotificationCenter from '@/components/NotificationCenter'
@@ -39,6 +46,30 @@ function PembimbingPortalContent() {
   // Detail modal
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [studentModalOpen, setStudentModalOpen] = useState(false)
+
+  // Student CRUD states (Pembimbing only manages students, no superadmin)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [selectedStudentForEdit, setSelectedStudentForEdit] = useState<any>(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [studentToDelete, setStudentToDelete] = useState<any>(null)
+  const [submittingStudent, setSubmittingStudent] = useState(false)
+  const [deletingStudent, setDeletingStudent] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const [formData, setFormData] = useState({
+    full_name: '',
+    username: '',
+    password: '123',
+    phone: '',
+    email: '',
+    class_name: '',
+    major: '',
+    start_date: '',
+    end_date: '',
+    internship_status: 'aktif',
+    is_active: true,
+  })
 
   // Permit review modal
   const [selectedPermit, setSelectedPermit] = useState<any>(null)
@@ -117,6 +148,181 @@ function PembimbingPortalContent() {
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  // --- STUDENT CRUD HANDLERS (PEMBIMBING ACCESS ONLY FOR STUDENTS, NO SUPERADMIN) ---
+  const handleOpenCreate = () => {
+    setFormData({
+      full_name: '',
+      username: '',
+      password: '123',
+      phone: '',
+      email: '',
+      class_name: '',
+      major: '',
+      start_date: '',
+      end_date: '',
+      internship_status: 'aktif',
+      is_active: true,
+    })
+    setShowPassword(false)
+    setCreateModalOpen(true)
+  }
+
+  const handleNameChange = (name: string) => {
+    const rawClean = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]/g, '')
+    setFormData((prev) => {
+      const isAutoUsername =
+        !prev.username ||
+        prev.username ===
+          prev.full_name
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]/g, '')
+            .slice(0, prev.username.length)
+      return {
+        ...prev,
+        full_name: name,
+        username: isAutoUsername ? rawClean.slice(0, 16) : prev.username,
+      }
+    })
+  }
+
+  const handleCreateStudentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.full_name.trim() || !formData.username.trim()) {
+      showToast('Nama lengkap dan Username siswa wajib diisi!', 'error')
+      return
+    }
+
+    setSubmittingStudent(true)
+    try {
+      const payload: any = {
+        role: 'student', // Strict role: student only
+        full_name: formData.full_name.trim(),
+        username: formData.username.trim().toLowerCase(),
+        password: formData.password || '123',
+        phone: formData.phone?.trim() || null,
+        email: formData.email?.trim() || null,
+        class_name: formData.class_name?.trim() || null,
+        major: formData.major?.trim() || null,
+        start_date: formData.start_date || null,
+        end_date: formData.end_date || null,
+        internship_status: formData.internship_status || 'aktif',
+        internship_place_id: mentor?.internship_place_id || null,
+        mentor_id: mentor?.id || null,
+      }
+
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menambahkan data siswa.')
+
+      showToast(`Siswa "${formData.full_name}" (@${formData.username}) berhasil ditambahkan!`, 'success')
+      setCreateModalOpen(false)
+      loadData()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSubmittingStudent(false)
+    }
+  }
+
+  const handleOpenEdit = (student: any, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    setSelectedStudentForEdit(student)
+    setFormData({
+      full_name: student.full_name || '',
+      username: student.username || '',
+      password: '',
+      phone: student.phone || '',
+      email: student.email || '',
+      class_name: student.class_name || '',
+      major: student.major || '',
+      start_date: student.start_date || '',
+      end_date: student.end_date || '',
+      internship_status: student.internship_status || 'aktif',
+      is_active: student.is_active !== false,
+    })
+    setShowPassword(false)
+    setEditModalOpen(true)
+  }
+
+  const handleEditStudentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedStudentForEdit) return
+    if (!formData.full_name.trim() || !formData.username.trim()) {
+      showToast('Nama lengkap dan Username siswa wajib diisi!', 'error')
+      return
+    }
+
+    setSubmittingStudent(true)
+    try {
+      const payload: any = {
+        full_name: formData.full_name.trim(),
+        username: formData.username.trim().toLowerCase(),
+        phone: formData.phone?.trim() || null,
+        class_name: formData.class_name?.trim() || null,
+        major: formData.major?.trim() || null,
+        start_date: formData.start_date || null,
+        end_date: formData.end_date || null,
+        internship_status: formData.internship_status,
+        is_active: formData.is_active,
+      }
+
+      if (formData.password && formData.password.trim()) {
+        payload.password = formData.password.trim()
+      }
+
+      const res = await fetch(`/api/students/${selectedStudentForEdit.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal memperbarui data siswa.')
+
+      showToast(`Data siswa "${formData.full_name}" berhasil diperbarui!`, 'success')
+      setEditModalOpen(false)
+      loadData()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSubmittingStudent(false)
+    }
+  }
+
+  const handleOpenDelete = (student: any, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    setStudentToDelete(student)
+    setDeleteModalOpen(true)
+  }
+
+  const handleDeleteSubmit = async () => {
+    if (!studentToDelete) return
+    setDeletingStudent(true)
+    try {
+      const res = await fetch(`/api/students/${studentToDelete.id}`, {
+        method: 'DELETE',
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menghapus siswa.')
+
+      showToast(`Siswa "${studentToDelete.full_name}" berhasil dihapus.`, 'success')
+      setDeleteModalOpen(false)
+      setStudentToDelete(null)
+      loadData()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setDeletingStudent(false)
+    }
   }
 
   const handleOpenReview = (permit: any, type: 'disetujui' | 'ditolak') => {
@@ -367,19 +573,29 @@ function PembimbingPortalContent() {
             <div>
               <h3 className="font-bold text-white text-base">Daftar Siswa Bimbingan</h3>
               <p className="text-xs text-gray-400">
-                Pantau kehadiran real-time dan tempat instansi PKL setiap siswa
+                Kelola data akun siswa dan pantau kehadiran presensi di instansi Anda
               </p>
             </div>
 
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Cari siswa / kelas / tempat..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input-field text-xs pl-9 w-full"
-              />
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-60">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Cari siswa / kelas / tempat..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="input-field text-xs pl-9 w-full"
+                />
+              </div>
+
+              <button
+                onClick={handleOpenCreate}
+                className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs py-2 px-3.5 flex items-center gap-1.5 font-bold shadow-lg shadow-purple-500/20 whitespace-nowrap flex-shrink-0"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Tambah Siswa</span>
+              </button>
             </div>
           </div>
 
@@ -485,16 +701,33 @@ function PembimbingPortalContent() {
                         </td>
 
                         <td className="py-3 px-3 text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSelectedStudentId(s.id)
-                              setStudentModalOpen(true)
-                            }}
-                            className="btn-outline text-[11px] py-1 px-2.5"
-                          >
-                            Detail
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => {
+                                setSelectedStudentId(s.id)
+                                setStudentModalOpen(true)
+                              }}
+                              className="btn-outline text-[11px] py-1 px-2.5 hover:bg-white/10"
+                              title="Lihat Detail & Kehadiran"
+                            >
+                              Detail
+                            </button>
+                            <button
+                              onClick={(e) => handleOpenEdit(s, e)}
+                              className="btn-outline border-purple-500/30 text-purple-300 hover:bg-purple-500/20 text-[11px] py-1 px-2.5 flex items-center gap-1"
+                              title="Edit Data Siswa & Reset Password"
+                            >
+                              <Pencil className="w-3 h-3" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={(e) => handleOpenDelete(s, e)}
+                              className="btn-outline border-rose-500/30 text-rose-400 hover:bg-rose-500/20 text-[11px] py-1 px-2 flex items-center"
+                              title="Hapus Siswa dari Bimbingan"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -597,6 +830,479 @@ function PembimbingPortalContent() {
               alt="Bukti Foto"
               className="max-h-[80vh] w-auto mx-auto rounded-xl object-contain"
             />
+          </div>
+        </div>
+      )}
+
+      {/* Create Student Modal (Pembimbing Access) */}
+      {createModalOpen && (
+        <div className="modal-overlay">
+          <div className="glass-card w-full max-w-lg p-6 border border-white/15 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold">
+                  <UserPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Tambah Siswa PKL Baru</h3>
+                  <p className="text-[11px] text-gray-400">Buat akun akses dan data registrasi peserta didik magang</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCreateModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Tempat PKL & Pembimbing Info Badge */}
+            <div className="p-3 mb-4 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-start gap-2.5 text-xs text-purple-200">
+              <Building className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-white">
+                  Instansi: {mentor?.internship_places?.name || 'Instansi Penugasan Pembimbing'}
+                </p>
+                <p className="text-[11px] text-purple-300/80 mt-0.5">
+                  Siswa ini akan otomatis terhubung di bawah bimbingan <span className="font-semibold text-white">{mentor?.full_name}</span>.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleCreateStudentSubmit} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-gray-300 font-medium mb-1">
+                  Nama Lengkap Siswa *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Muhammad Rizky"
+                  value={formData.full_name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  className="input-field w-full text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Username Login *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="rizky123"
+                    value={formData.username}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        username: e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ''),
+                      })
+                    }
+                    className="input-field w-full text-xs"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Digunakan siswa untuk login</p>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Password Awal *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Default: 123"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="input-field w-full text-xs pr-8"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Standar: 123</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Nomor WhatsApp / HP
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="08123456789"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Email Siswa (Opsional)
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="siswa@gmail.com (Opsional)"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Kelas
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: XII RPL 1 / XI TKJ 2"
+                    value={formData.class_name}
+                    onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Jurusan / Program Keahlian
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Rekayasa Perangkat Lunak"
+                    value={formData.major}
+                    onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Tanggal Mulai PKL
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Tanggal Selesai PKL
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-medium mb-1">
+                  Status Penugasan PKL
+                </label>
+                <select
+                  value={formData.internship_status}
+                  onChange={(e) => setFormData({ ...formData, internship_status: e.target.value })}
+                  className="input-field w-full text-xs"
+                >
+                  <option value="aktif">🟢 Aktif (Sedang Berjalan)</option>
+                  <option value="selesai">🔵 Selesai Magang</option>
+                  <option value="ditarik">🔴 Ditarik / Batal</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5 p-2 rounded-lg bg-white/5 border border-white/10 text-[11px] text-gray-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span>Akun dibuat dengan hak akses Siswa. Siswa dapat login menggunakan username & password.</span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setCreateModalOpen(false)}
+                  className="btn-outline text-xs py-2 px-4"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingStudent}
+                  className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs py-2 px-5 font-bold shadow-lg shadow-purple-500/20"
+                >
+                  {submittingStudent ? 'Menyimpan...' : 'Simpan & Buat Akun Siswa'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Student Modal (Pembimbing Access) */}
+      {editModalOpen && selectedStudentForEdit && (
+        <div className="modal-overlay">
+          <div className="glass-card w-full max-w-lg p-6 border border-white/15 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Edit Data Siswa PKL</h3>
+                  <p className="text-[11px] text-gray-400">
+                    Perbarui profil atau reset password: {selectedStudentForEdit.full_name}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditStudentSubmit} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-gray-300 font-medium mb-1">
+                  Nama Lengkap Siswa *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  className="input-field w-full text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Username Login *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        username: e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ''),
+                      })
+                    }
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-gray-300 font-medium">
+                      Reset Password (Opsional)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, password: '123' })}
+                      className="text-[10px] text-purple-400 hover:text-purple-300 font-bold"
+                    >
+                      Reset "123"
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Kosongkan jika tidak ubah"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="input-field w-full text-xs pr-8"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Nomor WhatsApp / HP
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="08123456789"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Email Siswa
+                  </label>
+                  <input
+                    type="email"
+                    disabled
+                    value={formData.email}
+                    className="input-field w-full text-xs opacity-60 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Kelas
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.class_name}
+                    onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Jurusan
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.major}
+                    onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Tanggal Mulai PKL
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Tanggal Selesai PKL
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Status Penugasan PKL
+                  </label>
+                  <select
+                    value={formData.internship_status}
+                    onChange={(e) => setFormData({ ...formData, internship_status: e.target.value })}
+                    className="input-field w-full text-xs"
+                  >
+                    <option value="aktif">🟢 Aktif (Sedang Berjalan)</option>
+                    <option value="selesai">🔵 Selesai Magang</option>
+                    <option value="ditarik">🔴 Ditarik / Batal</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Status Akun Login
+                  </label>
+                  <select
+                    value={formData.is_active ? 'true' : 'false'}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}
+                    className="input-field w-full text-xs"
+                  >
+                    <option value="true">🟢 Akun Aktif (Bisa Login)</option>
+                    <option value="false">🔴 Nonaktif (Diblokir Sementara)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="btn-outline text-xs py-2 px-4"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingStudent}
+                  className="btn-primary bg-purple-600 hover:bg-purple-500 text-xs py-2 px-5 font-bold shadow-lg shadow-purple-500/20"
+                >
+                  {submittingStudent ? 'Menyimpan...' : 'Simpan Perubahan Siswa'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Student Modal (Pembimbing Access) */}
+      {deleteModalOpen && studentToDelete && (
+        <div className="modal-overlay">
+          <div className="glass-card w-full max-w-sm p-6 border border-rose-500/30 shadow-2xl animate-fade-in-up">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold mb-3 border border-rose-500/30">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-white text-base">Hapus Siswa Bimbingan?</h3>
+            <p className="text-xs text-gray-300 mt-2 leading-relaxed">
+              Apakah Anda yakin ingin menghapus data siswa <span className="font-bold text-white">{studentToDelete.full_name}</span>?
+              Semua data akun dan rekaman kehadiran siswa ini akan dihapus dari instansi Anda.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 mt-5 pt-3 border-t border-white/10 text-xs">
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(false)}
+                className="btn-outline py-2 px-4"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={deletingStudent}
+                onClick={handleDeleteSubmit}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-4 rounded-xl transition"
+              >
+                {deletingStudent ? 'Menghapus...' : 'Ya, Hapus Siswa'}
+              </button>
+            </div>
           </div>
         </div>
       )}

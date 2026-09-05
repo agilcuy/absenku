@@ -82,3 +82,35 @@ export async function isUserSuperadmin(
 
   return false
 }
+
+/**
+ * Helper to check caller authority and profile:
+ * returns { isAdmin, isMentor, role, profile }
+ */
+export async function getCallerAccess(
+  user: { id: string; email?: string | null },
+  adminClient: SupabaseClient
+): Promise<{ isAdmin: boolean; isMentor: boolean; role: string | null; profile: any }> {
+  if (!user || !user.id) {
+    return { isAdmin: false, isMentor: false, role: null, profile: null }
+  }
+
+  const isAdmin = await isUserSuperadmin(user, adminClient)
+  if (isAdmin) {
+    const { data: profile } = await adminClient
+      .from('users')
+      .select('*, internship_places(*)')
+      .eq('id', user.id)
+      .maybeSingle()
+    return { isAdmin: true, isMentor: false, role: 'superadmin', profile }
+  }
+
+  const { data: profile } = await adminClient
+    .from('users')
+    .select('*, internship_places(*)')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const isMentor = profile?.role === 'pembimbing'
+  return { isAdmin: false, isMentor, role: profile?.role || null, profile }
+}

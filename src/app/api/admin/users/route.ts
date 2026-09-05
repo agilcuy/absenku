@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { isUserSuperadmin } from '@/lib/auth'
+import { getCallerAccess } from '@/lib/auth'
 import { formatAuthPassword } from '@/lib/utils'
 import { logAudit } from '@/lib/audit'
 
@@ -12,9 +12,9 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const adminClient = createAdminClient()
-    const isAdmin = await isUserSuperadmin(user, adminClient)
-    if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden: Hanya Superadmin' }, { status: 403 })
+    const { isAdmin, isMentor, profile: callerProfile } = await getCallerAccess(user, adminClient)
+    if (!isAdmin && !isMentor) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const body = await req.json()
@@ -34,6 +34,16 @@ export async function POST(req: NextRequest) {
       end_date,
       internship_status = 'aktif',
     } = body
+
+    // STRICT SECURITY: Mentors can ONLY create student accounts, NEVER superadmin or other mentors
+    if (isMentor) {
+      if (role !== 'student') {
+        return NextResponse.json(
+          { error: 'Akses ditolak: Pembimbing tidak memiliki wewenang membuat akun Superadmin atau Pembimbing.' },
+          { status: 403 }
+        )
+      }
+    }
 
     if (!full_name?.trim()) {
       return NextResponse.json({ error: 'Nama Lengkap wajib diisi.' }, { status: 400 })
@@ -112,10 +122,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (role === 'student') {
+      let finalPlaceId = internship_place_id ? internship_place_id : null
+      let finalMentorId = mentor_id ? mentor_id : null
+      if (isMentor) {
+        finalPlaceId = callerProfile?.internship_place_id || finalPlaceId
+        finalMentorId = user.id
+      }
       insertPayload.class_name = class_name?.trim() || null
       insertPayload.major = major?.trim() || null
-      insertPayload.internship_place_id = internship_place_id ? internship_place_id : null
-      insertPayload.mentor_id = mentor_id ? mentor_id : null
+      insertPayload.internship_place_id = finalPlaceId
+      insertPayload.mentor_id = finalMentorId
       insertPayload.start_date = start_date || null
       insertPayload.end_date = end_date || null
       insertPayload.internship_status = internship_status || 'aktif'
