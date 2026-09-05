@@ -30,8 +30,9 @@ import {
   BookOpen,
   Star,
   MessageSquare,
+  Zap,
 } from 'lucide-react'
-import { formatDate, formatTime, getStatusBadge, getStatusEmoji, getStatusLabel, formatLastSeen } from '@/lib/utils'
+import { formatDate, formatTime, getStatusBadge, getStatusEmoji, getStatusLabel, formatLastSeen, formatOvertimeDuration, formatOvertimeShort } from '@/lib/utils'
 import NotificationCenter from '@/components/NotificationCenter'
 import StudentDetailModal from '@/components/StudentDetailModal'
 import { useToast, ToastProvider } from '@/components/Toast'
@@ -44,10 +45,19 @@ function PembimbingPortalContent() {
   const [students, setStudents] = useState<any[]>([])
   const [permits, setPermits] = useState<any[]>([])
   const [journals, setJournals] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'attendance' | 'journals'>('attendance')
+  const [overtimes, setOvertimes] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<'attendance' | 'journals' | 'overtime'>('attendance')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
+
+  // Overtime Edit Modal states
+  const [editOvertimeModalOpen, setEditOvertimeModalOpen] = useState(false)
+  const [selectedOvertimeForEdit, setSelectedOvertimeForEdit] = useState<any>(null)
+  const [editOvertimeHours, setEditOvertimeHours] = useState<number>(0)
+  const [editOvertimeMinutesPart, setEditOvertimeMinutesPart] = useState<number>(0)
+  const [editOvertimeNotes, setEditOvertimeNotes] = useState<string>('')
+  const [submittingEditOvertime, setSubmittingEditOvertime] = useState(false)
 
   // Journal Review Modal states
   const [journalModalOpen, setJournalModalOpen] = useState(false)
@@ -150,11 +160,12 @@ function PembimbingPortalContent() {
         })
       }
 
-      // 2. Fetch permits, stats, and journals (both backend endpoints automatically filter by mentor's internship place)
-      const [resPermits, resStudents, resJournals] = await Promise.all([
+      // 2. Fetch permits, stats, journals, and overtimes (backend endpoints automatically filter by mentor's internship place)
+      const [resPermits, resStudents, resJournals, resOvertimes] = await Promise.all([
         fetch('/api/permits'),
         fetch('/api/admin/stats'),
         fetch('/api/journals'),
+        fetch('/api/overtime'),
       ])
 
       if (resPermits.ok) {
@@ -165,6 +176,11 @@ function PembimbingPortalContent() {
       if (resJournals.ok) {
         const jData = await resJournals.json()
         setJournals(jData.journals || [])
+      }
+
+      if (resOvertimes.ok) {
+        const oData = await resOvertimes.json()
+        setOvertimes(oData.overtimes || [])
       }
 
       if (resStudents.ok) {
@@ -548,6 +564,44 @@ function PembimbingPortalContent() {
     }
   }
 
+  // Overtime Handlers for Pembimbing
+  const handleOpenEditOvertime = (item: any) => {
+    setSelectedOvertimeForEdit(item)
+    const totalMinutes = item.overtime_minutes || 0
+    setEditOvertimeHours(Math.floor(totalMinutes / 60))
+    setEditOvertimeMinutesPart(totalMinutes % 60)
+    setEditOvertimeNotes(item.overtime_notes || '')
+    setEditOvertimeModalOpen(true)
+  }
+
+  const handleSaveOvertime = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedOvertimeForEdit) return
+    setSubmittingEditOvertime(true)
+    try {
+      const computedMinutes = (Number(editOvertimeHours) || 0) * 60 + (Number(editOvertimeMinutesPart) || 0)
+      const res = await fetch(`/api/overtime/${selectedOvertimeForEdit.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          overtime_minutes: computedMinutes,
+          overtime_notes: editOvertimeNotes,
+          is_overtime: computedMinutes > 0,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal memperbarui data lembur')
+
+      showToast('Data lembur berhasil diperbarui!', 'success')
+      setEditOvertimeModalOpen(false)
+      loadData()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSubmittingEditOvertime(false)
+    }
+  }
+
   const pendingPermits = permits.filter((p) => p.status === 'menunggu')
   const onlineCount = students.filter((s) => s.is_online).length
   const hadirCount = students.filter(
@@ -818,6 +872,23 @@ function PembimbingPortalContent() {
             {journals.length > 0 && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/30 font-mono">
                 {journals.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('overtime')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'overtime'
+                ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-amber-500/25'
+                : 'text-gray-400 hover:text-white hover:bg-white/5 border border-white/5'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>Rekap Lembur Siswa</span>
+            {overtimes.length > 0 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-200 border border-amber-400/30 font-mono">
+                {overtimes.length}
               </span>
             )}
           </button>
@@ -1215,6 +1286,189 @@ function PembimbingPortalContent() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 3: REKAP LEMBUR SISWA */}
+        {activeTab === 'overtime' && (
+          <div className="space-y-6">
+            {/* Banner info & statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="glass-card p-4 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-950/20 to-orange-950/10">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-400">Total Sesi Lembur</span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 text-2xl font-black text-white">{overtimes.length}</div>
+                <p className="text-[11px] text-gray-400 mt-1">Sesi lembur tercatat di instansi</p>
+              </div>
+
+              <div className="glass-card p-4 rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-950/20 to-amber-950/10">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-400">Akumulasi Jam Lembur</span>
+                  <div className="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 text-2xl font-black text-amber-300">
+                  {formatOvertimeShort(overtimes.reduce((acc, cur) => acc + (cur.overtime_minutes || 0), 0))}
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">Total durasi seluruh siswa</p>
+              </div>
+
+              <div className="glass-card p-4 rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-950/20 to-indigo-950/10">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-400">Siswa Lembur</span>
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                    <Users className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 text-2xl font-black text-purple-300">
+                  {new Set(overtimes.map((o) => o.user_id)).size}
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">Siswa unik berpartisipasi</p>
+              </div>
+
+              <div className="glass-card p-4 rounded-2xl border border-white/10 bg-white/5 flex flex-col justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-gray-400">Jadwal Lembur Instansi</span>
+                  <div className="text-sm font-bold text-white mt-1">
+                    Mulai:{' '}
+                    <span className="text-amber-400">
+                      {mentor?.internship_places?.overtime_start_time
+                        ? String(mentor.internship_places.overtime_start_time).substring(0, 5)
+                        : '17:30'}
+                    </span>{' '}
+                    s/d 24:00
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setScheduleModalOpen(true)}
+                  className="mt-3 w-full py-2 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Atur Jam Lembur</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Overtime List / Table */}
+            <div className="glass-card rounded-2xl border border-white/10 overflow-hidden shadow-xl">
+              <div className="p-4 sm:p-5 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/[0.02]">
+                <div>
+                  <h3 className="font-bold text-white text-base flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    Daftar Kehadiran Lembur Siswa
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Pembimbing memiliki wewenang untuk memeriksa, memverifikasi, dan mengedit durasi lembur siswa.
+                  </p>
+                </div>
+                <span className="text-xs px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium">
+                  {overtimes.length} Riwayat Lembur
+                </span>
+              </div>
+
+              {overtimes.length === 0 ? (
+                <div className="py-16 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-3">
+                    <Zap className="w-8 h-8" />
+                  </div>
+                  <h4 className="font-bold text-white text-base">Belum Ada Riwayat Lembur</h4>
+                  <p className="text-xs text-gray-400 max-w-md mx-auto mt-1">
+                    Siswa yang melakukan check-out lewat dari batas jam lembur (default 17:30) akan tercatat otomatis di sini.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/10 bg-white/[0.03] text-gray-400 font-semibold uppercase tracking-wider text-[10px]">
+                        <th className="py-3.5 px-4">No</th>
+                        <th className="py-3.5 px-4">Siswa</th>
+                        <th className="py-3.5 px-4">Tanggal</th>
+                        <th className="py-3.5 px-4">Jam Absen</th>
+                        <th className="py-3.5 px-4">Durasi Lembur</th>
+                        <th className="py-3.5 px-4">Catatan / Alasan</th>
+                        <th className="py-3.5 px-4 text-right">Aksi Pembimbing</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {overtimes.map((item, idx) => {
+                        const studentName = item.users?.full_name || 'Siswa'
+                        const studentClass = item.users?.class_name || '-'
+                        const studentMajor = item.users?.major || ''
+                        const formattedDur = formatOvertimeDuration(item.overtime_minutes)
+
+                        return (
+                          <tr key={item.id} className="hover:bg-white/[0.02] transition">
+                            <td className="py-3.5 px-4 text-gray-500 font-mono">{idx + 1}</td>
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                                  {studentName.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div className="font-bold text-white text-xs">{studentName}</div>
+                                  <div className="text-[11px] text-gray-400">
+                                    {studentClass} {studentMajor ? `• ${studentMajor}` : ''}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 whitespace-nowrap text-gray-300">
+                              {formatDate(item.date)}
+                            </td>
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <div className="text-gray-300">
+                                Masuk:{' '}
+                                <span className="font-mono text-white">
+                                  {item.check_in_time ? formatTime(item.check_in_time) : '-'}
+                                </span>
+                              </div>
+                              <div className="text-gray-300">
+                                Pulang:{' '}
+                                <span className="font-mono text-amber-300 font-bold">
+                                  {item.check_out_time ? formatTime(item.check_out_time) : '-'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold font-mono text-xs">
+                                <Zap className="w-3 h-3 text-amber-400" />
+                                {formattedDur}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 max-w-xs">
+                              {item.overtime_notes ? (
+                                <p className="text-gray-300 text-[11px] line-clamp-2">
+                                  {item.overtime_notes}
+                                </p>
+                              ) : (
+                                <span className="text-gray-500 italic text-[11px]">Tidak ada catatan</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditOvertime(item)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold transition shadow-sm"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                <span>Edit Lembur</span>
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>
@@ -1995,6 +2249,136 @@ function PembimbingPortalContent() {
                   className="btn-primary bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-2 px-5 text-xs shadow-lg shadow-amber-500/25"
                 >
                   {submittingSchedule ? 'Menyimpan...' : 'Simpan Pengaturan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Overtime Modal (Pembimbing & Superadmin only) */}
+      {editOvertimeModalOpen && selectedOvertimeForEdit && (
+        <div className="modal-overlay">
+          <div className="glass-card w-full max-w-md p-6 border border-amber-500/30 shadow-2xl animate-fade-in-up bg-[#0e1220]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Edit Data Lembur Siswa</h3>
+                  <p className="text-[11px] text-gray-400">Koreksi durasi atau tambahkan catatan verifikasi</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditOvertimeModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOvertime} className="space-y-4 text-xs">
+              {/* Info Siswa & Sesi Absen */}
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Siswa:</span>
+                  <span className="font-bold text-white">{selectedOvertimeForEdit.users?.full_name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Tanggal Absen:</span>
+                  <span className="font-medium text-gray-200">{formatDate(selectedOvertimeForEdit.date)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Jam Check-Out:</span>
+                  <span className="font-mono font-bold text-amber-400">
+                    {selectedOvertimeForEdit.check_out_time
+                      ? formatTime(selectedOvertimeForEdit.check_out_time)
+                      : '-'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Input Durasi Lembur: Jam & Menit */}
+              <div>
+                <label className="block text-gray-300 font-semibold mb-2">Durasi Lembur yang Dihitung</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">Jumlah Jam</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="24"
+                        value={editOvertimeHours}
+                        onChange={(e) => setEditOvertimeHours(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="input-field text-sm font-mono pr-10"
+                        required
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-bold">Jam</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">Jumlah Menit (0-59)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={editOvertimeMinutesPart}
+                        onChange={(e) =>
+                          setEditOvertimeMinutesPart(
+                            Math.min(59, Math.max(0, parseInt(e.target.value) || 0))
+                          )
+                        }
+                        className="input-field text-sm font-mono pr-12"
+                        required
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-bold">Menit</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-amber-300/90 mt-1.5 font-mono">
+                  Total durasi:{' '}
+                  <strong>
+                    {(Number(editOvertimeHours) || 0) * 60 + (Number(editOvertimeMinutesPart) || 0)} Menit
+                  </strong>{' '}
+                  ({editOvertimeHours} Jam {editOvertimeMinutesPart} Menit)
+                </p>
+              </div>
+
+              {/* Catatan Pembimbing */}
+              <div>
+                <label className="block text-gray-300 font-semibold mb-1">
+                  Catatan / Keterangan Pembimbing
+                </label>
+                <textarea
+                  rows={3}
+                  value={editOvertimeNotes}
+                  onChange={(e) => setEditOvertimeNotes(e.target.value)}
+                  placeholder="Contoh: Lembur membantu penyelesaian project website hingga malam, disetujui."
+                  className="input-field text-xs resize-none"
+                />
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[11px] leading-relaxed">
+                Perubahan data lembur ini akan diverifikasi atas nama akun pembimbing dan dicatat dalam audit log.
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setEditOvertimeModalOpen(false)}
+                  className="btn-outline py-2 px-4 text-xs"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingEditOvertime}
+                  className="btn-primary bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-2 px-5 text-xs shadow-lg shadow-amber-500/25"
+                >
+                  {submittingEditOvertime ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>
               </div>
             </form>

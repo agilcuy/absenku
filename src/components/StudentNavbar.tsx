@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LogOut, Calendar, Home, User as UserIcon, FileText, UserCircle, ChevronLeft, Network, BookOpen } from 'lucide-react'
+import { LogOut, Calendar, Home, User as UserIcon, FileText, UserCircle, ChevronLeft, Network, BookOpen, Zap } from 'lucide-react'
 import NotificationCenter from '@/components/NotificationCenter'
 
 interface StudentNavbarProps {
@@ -38,6 +38,7 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
   else if (pathname === '/dashboard/profile') mobileTitle = 'Profil Siswa'
   else if (pathname === '/dashboard/structure') mobileTitle = 'Topologi & Tupoksi'
   else if (pathname === '/dashboard/journals') mobileTitle = 'Jurnal Kegiatan'
+  else if (pathname === '/dashboard/overtime') mobileTitle = 'Rekap Lembur'
 
   const placeName = user?.internship_places?.name
 
@@ -167,6 +168,19 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
             >
               <BookOpen className="w-4 h-4" />
               <span>Jurnal</span>
+            </Link>
+
+            <Link
+              href="/dashboard/overtime"
+              prefetch={true}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition active:scale-[0.98] ${
+                pathname === '/dashboard/overtime'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-sm'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span>Lembur</span>
             </Link>
 
             <Link

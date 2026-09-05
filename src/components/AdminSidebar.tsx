@@ -17,6 +17,7 @@ import {
   Network,
   UserCheck,
   BookOpen,
+  Zap,
   X,
 } from 'lucide-react'
 
@@ -51,6 +52,7 @@ const MENU_SECTIONS: MenuSection[] = [
     title: 'OPERASIONAL & ABSENSI',
     items: [
       { label: 'Riwayat Absensi', href: '/admin/attendances', icon: ClipboardList },
+      { label: 'Rekap Lembur', href: '/admin/overtime', icon: Zap },
       { label: 'Pengajuan Izin & Sakit', href: '/admin/permits', icon: FileText },
       { label: 'Jurnal Kegiatan PKL', href: '/admin/journals', icon: BookOpen },
       { label: 'Kalender Presensi', href: '/admin/calendar', icon: CalendarDays },
