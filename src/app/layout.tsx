@@ -5,11 +5,11 @@ import RouteProgressBar from '@/components/RouteProgressBar'
 
 export const metadata: Metadata = {
   title: {
-    default: 'ABSENKU — Sistem Absensi PKL Kominfo Tanggamus',
+    default: 'ABSENKU — Sistem Absensi & Jurnal PKL',
     template: '%s | ABSENKU',
   },
-  description: 'Sistem Absensi Online Peserta Didik PKL Kominfo Tanggamus',
-  keywords: ['absensi', 'PKL', 'Kominfo', 'Tanggamus', 'peserta didik'],
+  description: 'Sistem Absensi & Jurnal Mandiri Peserta Didik PKL Multi-Instansi',
+  keywords: ['absensi', 'PKL', 'jurnal pkl', 'presensi online', 'peserta didik', 'magang'],
 }
 
 export default function RootLayout({

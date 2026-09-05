@@ -363,9 +363,10 @@ function AdminStudentsContent() {
     const username = student.username || student.email
     const text = encodeURIComponent(
       `Halo ${student.full_name},\n\n` +
-      `Berikut adalah akun login Anda untuk aplikasi ABSENKU PKL Dinas Kominfo Tanggamus:\n` +
+      `Berikut adalah akun login Anda untuk aplikasi ABSENKU (Sistem Presensi & Jurnal PKL):\n` +
       `👤 Username: ${username}\n` +
       `🔑 Password: 123\n` +
+      (student.internship_places?.name ? `🏢 Tempat PKL: ${student.internship_places.name}\n` : '') +
       `🌐 Link Login: ${origin}/login\n\n` +
       `Silakan login untuk melakukan absensi harian dan melengkapi biodata. Terima kasih!`
     )
@@ -1017,7 +1018,7 @@ function AdminStudentsContent() {
                   </label>
                   <input
                     type="email"
-                    placeholder={`${formData.username || 'user'}@kominfo.local`}
+                    placeholder={`${formData.username || 'user'}@absenku.local`}
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="input-field w-full text-xs rounded-xl"

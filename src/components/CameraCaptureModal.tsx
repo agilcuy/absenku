@@ -59,7 +59,7 @@ function applyWatermark(canvas: HTMLCanvasElement, data?: WatermarkData) {
   const timeStr = formatTime(now)
   const student = (data?.studentName || 'SISWA PKL').toUpperCase()
   const action = data?.actionTitle || 'BUKTI KEHADIRAN'
-  const place = data?.placeName || 'KOMINFO TANGGAMUS'
+  const place = (data?.placeName || 'LOKASI PENUGASAN PKL').toUpperCase()
   const coordsStr = data?.coords
     ? `Lat: ${data.coords.lat.toFixed(6)}, Lng: ${data.coords.lng.toFixed(6)}`
     : 'GPS: Terverifikasi'

@@ -64,16 +64,9 @@ function OnboardingContent() {
           setClassName(p.class_name || '')
           setMajor(p.major || '')
 
-          // Default to Kominfo Tanggamus (egov) if place is not set yet
+          // Set internship place if already assigned
           if (p.internship_place_id) {
             setInternshipPlaceId(p.internship_place_id)
-          } else {
-            const egovPlace = (json.places || []).find((pl: any) =>
-              pl.name?.toLowerCase().includes('egov')
-            )
-            if (egovPlace) {
-              setInternshipPlaceId(egovPlace.id)
-            }
           }
 
           // If biodata is already complete, redirect directly to dashboard
@@ -201,7 +194,7 @@ function OnboardingContent() {
                 PKL
               </span>
             </span>
-            <p className="text-[10px] text-gray-400">Kominfo Tanggamus</p>
+            <p className="text-[10px] text-gray-400">Sistem Presensi PKL</p>
           </div>
         </div>
 
@@ -339,7 +332,7 @@ function OnboardingContent() {
               </div>
             </div>
 
-            {/* Tempat PKL (Includes Kominfo Tanggamus (egov)) */}
+            {/* Pilihan Tempat PKL Siswa */}
             <div>
               <label className="block text-gray-300 font-medium mb-1">
                 Instansi / Tempat PKL *
@@ -358,7 +351,7 @@ function OnboardingContent() {
                 ))}
               </select>
               <p className="text-[10px] text-indigo-300 mt-1">
-                Tersedia pilihan: <b>Kominfo Tanggamus (egov)</b> atau instansi mitra lainnya.
+                Pilih instansi atau perusahaan mitra tempat Anda ditugaskan melaksanakan PKL.
               </p>
             </div>
 
@@ -388,7 +381,7 @@ function OnboardingContent() {
 
       {/* Footer */}
       <footer className="max-w-2xl w-full mx-auto text-center text-[11px] text-gray-500 py-2 relative z-10">
-        © {new Date().getFullYear()} Dinas Kominfo Tanggamus — Sistem Monitoring PKL
+        © {new Date().getFullYear()} ABSENKU — Sistem Monitoring & Presensi PKL
       </footer>
     </div>
   )

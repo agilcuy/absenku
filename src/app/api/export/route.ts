@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
         No: idx + 1,
         'Nama Peserta PKL': s.full_name,
         'Kelas & Jurusan': [s.class_name, s.major].filter(Boolean).join(' - ') || '-',
-        'Tempat PKL': s.internship_places?.name || 'Kominfo Tanggamus',
+        'Tempat PKL': s.internship_places?.name || 'Belum Diatur',
         'No. WhatsApp': s.phone || '-',
         'Hari Kerja Wajib': totalObligation,
         'Hadir (Tepat Waktu)': onTimeCount,
@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
     XLSX.utils.book_append_sheet(workbook, wsDetail, 'Rincian Log Absensi')
 
     const dateStr = new Date().toISOString().split('T')[0]
-    let filenamePrefix = 'rekap-absensi-kominfo'
+    let filenamePrefix = 'rekap-absensi-pkl'
     if (placeId) {
       const { data: pData } = await adminClient
         .from('internship_places')

@@ -103,7 +103,7 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
                   ADMIN
                 </span>
               </span>
-              <p className="text-[10px] text-gray-400">Kominfo Tanggamus</p>
+              <p className="text-[10px] text-gray-400">Sistem Presensi PKL</p>
             </div>
           </Link>
 
@@ -158,7 +158,7 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
               <p className="text-xs font-bold text-white truncate">Rafi Agil Kurniawan</p>
               <p className="text-[10px] text-emerald-400 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Superadmin Kominfo
+                Superadmin Sistem
               </p>
             </div>
           </div>

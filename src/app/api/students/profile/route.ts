@@ -70,32 +70,6 @@ export async function GET() {
         .order('name', { ascending: true })
 
       places = pData || []
-
-      const hasEgov = places.some((p: any) =>
-        p.name?.toLowerCase().includes('kominfo') && p.name?.toLowerCase().includes('egov')
-      )
-
-      if (!hasEgov) {
-        try {
-          const { data: newSeed } = await adminClient
-            .from('internship_places')
-            .insert({
-              name: 'Kominfo Tanggamus (egov)',
-              address: 'Komplek Perkantoran Pemkab Tanggamus, Jl. Jend. Sudirman',
-              phone: '0722-21001',
-              pic_name: 'Bidang E-Government',
-              pic_phone: '081273928192',
-            })
-            .select('id, name, address, pic_name')
-            .single()
-
-          if (newSeed) {
-            places = [newSeed, ...places]
-          }
-        } catch {
-          // If table does not exist yet, ignore
-        }
-      }
     } catch {
       // If internship_places table does not exist yet
       places = []

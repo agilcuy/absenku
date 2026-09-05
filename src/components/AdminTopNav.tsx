@@ -52,7 +52,7 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
 
         <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-gray-300">
           <ShieldCheck className="w-4 h-4 text-indigo-400" />
-          <span>Panel Administrasi Kominfo Tanggamus</span>
+          <span>Panel Administrasi Presensi PKL</span>
         </div>
       </div>
 

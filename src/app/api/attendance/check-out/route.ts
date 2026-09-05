@@ -118,26 +118,27 @@ export async function POST(req: NextRequest) {
       address = await getAddressFromCoords(lat, lng)
     }
 
-    // Geofencing calculation against student's internship place
+    // Geofencing calculation strictly against student's assigned internship place
     const place = (userProfile as any)?.internship_places || null
-    const placeLat = place?.latitude || DEFAULT_OFFICE_COORDS.lat
-    const placeLng = place?.longitude || DEFAULT_OFFICE_COORDS.lng
-    const placeRadius = place?.radius_meters || DEFAULT_OFFICE_COORDS.radiusMeters
-    const placeName = place?.name || DEFAULT_OFFICE_COORDS.name
+    const placeLat = place?.latitude !== undefined && place?.latitude !== null ? Number(place.latitude) : null
+    const placeLng = place?.longitude !== undefined && place?.longitude !== null ? Number(place.longitude) : null
+    const placeRadius = place?.radius_meters ? Number(place.radius_meters) : 200
+    const placeName = place?.name || 'Tempat Penugasan PKL'
 
     let distanceMeters: number | null = null
     let isWithinRadius: boolean = true
-    if (lat !== null && lng !== null) {
+
+    if (lat !== null && lng !== null && placeLat !== null && placeLng !== null) {
       distanceMeters = calculateDistanceMeters(lat, lng, placeLat, placeLng)
       isWithinRadius = distanceMeters <= placeRadius
     }
 
-    // Strict Geofencing enforcement for students
-    if (isStudent && distanceMeters !== null && !isWithinRadius) {
+    // Strict Geofencing enforcement for students (only if place coordinates are configured)
+    if (isStudent && placeLat !== null && placeLng !== null && distanceMeters !== null && !isWithinRadius) {
       const roundedDistance = Math.round(distanceMeters)
       return NextResponse.json(
         {
-          error: `Anda terdeteksi berjarak ${roundedDistance} meter dari lokasi PKL (${placeName}). Batas maksimal absensi pulang adalah radius ${placeRadius} meter. Harap lakukan absensi langsung di area kantor.`,
+          error: `Anda terdeteksi berjarak ${roundedDistance} meter dari lokasi PKL (${placeName}). Batas maksimal absensi pulang adalah radius ${placeRadius} meter. Harap lakukan absensi langsung di area instansi penugasan PKL Anda.`,
           distanceMeters,
           placeRadius,
           placeName,

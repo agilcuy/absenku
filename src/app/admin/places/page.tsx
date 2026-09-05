@@ -412,7 +412,7 @@ function PlacesPageContent() {
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Dinas Kominfo Kab. Tanggamus"
+                  placeholder="Contoh: PT Teknologi Maju / Instansi Mitra PKL"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="input-field w-full text-xs"

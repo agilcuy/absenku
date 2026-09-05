@@ -32,7 +32,7 @@ function getWhatsAppAlertUrl(phone: string, studentName: string): string {
   let cleaned = phone.replace(/[^0-9]/g, '')
   if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1)
   else if (!cleaned.startsWith('62')) cleaned = '62' + cleaned
-  const text = `Halo ${studentName}, sistem ABSENKU Kominfo Tanggamus mendeteksi Anda belum melakukan absensi masuk pagi ini. Batas waktu absensi s.d pukul 08:30 WIB. Harap segera lakukan swafoto di lokasi PKL. Terima kasih.`
+  const text = `Halo ${studentName}, sistem ABSENKU mendeteksi Anda belum melakukan absensi masuk pagi ini di lokasi PKL Anda. Batas waktu absensi s.d pukul 08:30 WIB. Harap segera lakukan swafoto kehadiran di lokasi penugasan PKL Anda. Terima kasih.`
   return `https://wa.me/${cleaned}?text=${encodeURIComponent(text)}`
 }
 

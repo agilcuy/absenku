@@ -3,7 +3,7 @@ export const DEFAULT_OFFICE_COORDS = {
   lat: -5.4988,
   lng: 104.7088,
   radiusMeters: 200,
-  name: 'Kominfo Tanggamus (egov)',
+  name: 'Lokasi PKL',
 }
 
 // Calculate distance between two coordinates in meters using Haversine formula
@@ -43,7 +43,7 @@ export async function getAddressFromCoords(lat: number, lng: number): Promise<st
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
       {
         headers: {
-          'User-Agent': 'Absenku-PKL-Kominfo/1.0',
+          'User-Agent': 'Absenku-PKL-Platform/1.0',
           'Accept-Language': 'id,en',
         },
         signal: controller.signal,

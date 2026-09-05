@@ -584,12 +584,16 @@ function StudentDashboardContent() {
             {/* GPS Sensor & Geofencing Badge */}
             <GpsLocationBadge
               onLocationFound={(found) => setCoords(found)}
-              targetCoords={{
-                lat: userProfile?.internship_places?.latitude || -5.4988,
-                lng: userProfile?.internship_places?.longitude || 104.7088,
-                radiusMeters: userProfile?.internship_places?.radius_meters || 200,
-                name: userProfile?.internship_places?.name || 'Kominfo Tanggamus',
-              }}
+              targetCoords={
+                userProfile?.internship_places?.latitude && userProfile?.internship_places?.longitude
+                  ? {
+                      lat: Number(userProfile.internship_places.latitude),
+                      lng: Number(userProfile.internship_places.longitude),
+                      radiusMeters: userProfile.internship_places.radius_meters ? Number(userProfile.internship_places.radius_meters) : 200,
+                      name: userProfile.internship_places.name || 'Tempat PKL',
+                    }
+                  : null
+              }
             />
           </div>
 
@@ -728,7 +732,7 @@ function StudentDashboardContent() {
           studentName: userProfile?.full_name,
           actionTitle: activeAction === 'check_in' ? 'ABSENSI MASUK' : 'ABSENSI PULANG',
           coords,
-          placeName: userProfile?.internship_places?.name || 'Kominfo Tanggamus',
+          placeName: userProfile?.internship_places?.name || 'TEMPAT PENUGASAN PKL',
         }}
       />
 

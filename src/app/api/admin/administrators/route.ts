@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const cleanUsername = username.trim().toLowerCase()
     const cleanEmail = email?.trim()
       ? email.trim().toLowerCase()
-      : `${cleanUsername}@kominfo.local`
+      : `${cleanUsername}@absenku.local`
 
     // Check if username already exists
     const { data: existingUser } = await adminClient

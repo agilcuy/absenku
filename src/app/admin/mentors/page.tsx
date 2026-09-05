@@ -484,7 +484,7 @@ function MentorsPageContent() {
                 <input
                   type="email"
                   disabled={!!editingMentor}
-                  placeholder="pembimbing@kominfo.go.id"
+                  placeholder="pembimbing@instansi.id"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="input-field w-full text-xs disabled:opacity-50"

@@ -124,10 +124,10 @@ function LoginContent() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-black gradient-text mb-1 tracking-tight">ABSENKU</h1>
           <p className="text-xs sm:text-sm font-medium text-gray-300">
-            Sistem Absensi Peserta Didik PKL
+            Sistem Absensi & Jurnal Peserta Didik PKL
           </p>
           <p className="text-[11px] text-indigo-300/80 mt-0.5 font-medium">
-            Dinas Kominfo Tanggamus
+            Presensi Mandiri Multi-Instansi & Perusahaan Mitra
           </p>
         </div>
 
@@ -267,7 +267,7 @@ function LoginContent() {
       {/* Bottom branding */}
       <div className="absolute bottom-4 left-0 right-0 text-center pb-safe">
         <p className="text-[11px] text-gray-500">
-          © {new Date().getFullYear()} ABSENKU · Dinas Kominfo Tanggamus
+          © {new Date().getFullYear()} ABSENKU · Sistem Monitoring & Presensi PKL
         </p>
       </div>
     </div>

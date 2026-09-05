@@ -44,7 +44,7 @@ function SettingsContent() {
   const [timezone, setTimezone] = useState('Asia/Jakarta')
   const [siteName, setSiteName] = useState('ABSENKU')
   const [siteDescription, setSiteDescription] = useState(
-    'Sistem Absensi Peserta Didik PKL Kominfo Tanggamus'
+    'Sistem Absensi & Jurnal Peserta Didik PKL'
   )
   const [siteLogoUrl, setSiteLogoUrl] = useState<string | null>(null)
 
@@ -94,7 +94,7 @@ function SettingsContent() {
             setTimezone(s.timezone || 'Asia/Jakarta')
             setSiteName(s.site_name || 'ABSENKU')
             setSiteDescription(
-              s.site_description || 'Sistem Absensi Peserta Didik PKL Kominfo Tanggamus'
+              s.site_description || 'Sistem Absensi & Jurnal Peserta Didik PKL'
             )
             setSiteLogoUrl(s.site_logo_url || null)
             if (s.working_days) {
@@ -546,7 +546,7 @@ function SettingsContent() {
               {/* Logo Upload */}
               <div>
                 <label className="text-gray-300 font-medium block mb-1.5">
-                  Logo Instansi (Kominfo / PKL)
+                  Logo Instansi / Aplikasi PKL
                 </label>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
@@ -980,7 +980,7 @@ function SettingsContent() {
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: HUT Kab. Tanggamus, Cuti Bersama Daerah"
+                  placeholder="Contoh: Libur Nasional / Cuti Bersama"
                   value={holidayName}
                   onChange={(e) => setHolidayName(e.target.value)}
                   className="input-field"
@@ -1033,7 +1033,7 @@ function SettingsContent() {
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Administrator Kominfo"
+                  placeholder="Contoh: Administrator Utama"
                   value={newAdminFullName}
                   onChange={(e) => setNewAdminFullName(e.target.value)}
                   className="input-field"
@@ -1075,7 +1075,7 @@ function SettingsContent() {
                 </label>
                 <input
                   type="email"
-                  placeholder="admin@kominfo.tanggamus.go.id"
+                  placeholder="admin@absenku.local"
                   value={newAdminEmail}
                   onChange={(e) => setNewAdminEmail(e.target.value)}
                   className="input-field"

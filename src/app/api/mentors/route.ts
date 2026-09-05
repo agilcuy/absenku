@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     const cleanUsername = username?.trim().toLowerCase() || null
     const normalizedEmail = email?.trim()
       ? email.trim().toLowerCase()
-      : (cleanUsername ? `${cleanUsername}@kominfo.local` : null)
+      : (cleanUsername ? `${cleanUsername}@absenku.local` : null)
 
     if (!normalizedEmail) {
       return NextResponse.json({ error: 'Email atau Username Pembimbing wajib diisi.' }, { status: 400 })

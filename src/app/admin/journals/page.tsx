@@ -253,7 +253,7 @@ function JournalsAdminPageContent() {
                   <div>
                     <h3 className="font-bold text-sm text-white">{j.users?.full_name}</h3>
                     <p className="text-[11px] text-gray-400">
-                      {j.users?.class_name || 'Kelas -'} • {j.users?.major || '-'} • {j.users?.internship_places?.name || 'Kominfo Tanggamus'}
+                      {j.users?.class_name || 'Kelas -'} • {j.users?.major || '-'} • {j.users?.internship_places?.name || 'Tempat PKL Belum Ditentukan'}
                     </p>
                   </div>
                 </div>

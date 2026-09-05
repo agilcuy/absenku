@@ -323,12 +323,12 @@ function StudentProfileContent() {
                     <Building className="w-5 h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] text-gray-400 font-semibold uppercase">Instansi Induk</p>
+                    <p className="text-[11px] text-gray-400 font-semibold uppercase">Instansi Penugasan PKL</p>
                     <p className="text-sm font-bold text-white mt-0.5 truncate">
-                      {profile.internship_places?.name || 'Kominfo Tanggamus (egov)'}
+                      {profile.internship_places?.name || 'Belum Ditentukan'}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      Pusat Manajemen Sistem Absensi & E-Government
+                      {profile.internship_places?.address || 'Lokasi Praktik Kerja Lapangan'}
                     </p>
                   </div>
                 </div>
@@ -585,7 +585,7 @@ function StudentProfileContent() {
             </select>
             <p className="text-[10px] text-gray-400 mt-1">
               {isSuperadmin
-                ? 'Dapat memilih Kominfo Tanggamus (egov) atau membiarkannya default'
+                ? 'Dapat memilih instansi penugasan atau membiarkannya kosong'
                 : 'Pilih tempat instansi PKL yang telah ditentukan oleh sekolah.'}
             </p>
           </div>

@@ -13,6 +13,9 @@ interface StudentNavbarProps {
     email?: string
     avatar_url?: string
     role?: string
+    internship_places?: {
+      name?: string
+    }
   }
   isProfileIncomplete?: boolean
 }
@@ -36,6 +39,8 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
   else if (pathname === '/dashboard/structure') mobileTitle = 'Topologi & Tupoksi'
   else if (pathname === '/dashboard/journals') mobileTitle = 'Jurnal Kegiatan'
 
+  const placeName = user?.internship_places?.name
+
   return (
     <header
       className="sticky top-0 z-40 w-full backdrop-blur-2xl bg-[#07090e]/85 border-b border-white/[0.06]"
@@ -53,7 +58,7 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
               <Link
                 href="/dashboard"
                 aria-label="Kembali ke Beranda"
-                className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white active:scale-90 transition"
+                className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white active:scale-95 transition"
               >
                 <ChevronLeft className="w-5 h-5" />
               </Link>
@@ -72,7 +77,9 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
                 )}
               </h1>
               {!isSubPage && (
-                <p className="text-[10px] text-gray-400 leading-none mt-0.5">Kominfo Tanggamus</p>
+                <p className="text-[10px] text-gray-400 leading-none mt-0.5 truncate max-w-[170px]">
+                  {placeName || 'Sistem Absensi PKL'}
+                </p>
               )}
             </div>
           </div>
@@ -115,7 +122,9 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
                   {user?.role === 'superadmin' ? 'SUPERADMIN & PEMBIMBING' : 'PESERTA DIDIK PKL'}
                 </span>
               </div>
-              <p className="text-xs text-gray-400">Dinas Kominfo Kabupaten Tanggamus</p>
+              <p className="text-xs text-gray-400 truncate max-w-[280px]">
+                {placeName || 'Sistem Absensi & Jurnal PKL Mandiri'}
+              </p>
             </div>
           </Link>
 

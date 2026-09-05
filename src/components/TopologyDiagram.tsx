@@ -37,7 +37,7 @@ export default function TopologyDiagram() {
               Topologi Jabatan & Tugas Pokok Fungsi (Tupoksi)
             </h2>
             <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl">
-              Diagram hierarki operasional, pembagian tanggung jawab, dan standar alur eskalasi penanganan gangguan jaringan di lingkungan PKL Kominfo Tanggamus.
+              Diagram hierarki operasional, pembagian tanggung jawab, dan standar alur eskalasi penanganan kendala teknis di lingkungan penugasan PKL instansi mitra.
             </p>
           </div>
 

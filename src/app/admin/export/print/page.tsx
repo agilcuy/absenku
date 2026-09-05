@@ -153,18 +153,20 @@ export default function FormalAttendancePrintPage() {
         {/* KOP SURAT RESMI */}
         <div className="border-b-[3px] border-black pb-3 text-center relative">
           <div className="leading-tight">
-            <h3 className="text-base font-bold tracking-wider uppercase font-sans">
-              PEMERINTAH KABUPATEN TANGGAMUS
+            <h3 className="text-sm font-bold tracking-wider uppercase font-sans text-gray-600">
+              INSTANSI / PERUSAHAAN MITRA PRAKTIK KERJA LAPANGAN (PKL)
             </h3>
             <h2 className="text-xl font-black tracking-wide uppercase font-sans mt-0.5">
-              DINAS KOMUNIKASI DAN INFORMATIKA
+              {currentStudent?.internship_places?.name || 'SISTEM ABSENSI & MONITORING PKL'}
             </h2>
             <p className="text-xs font-sans mt-1 text-gray-700">
-              Komplek Perkantoran Pemkab Tanggamus, Jl. Jend. Sudirman, Kota Agung
+              {currentStudent?.internship_places?.address || 'Alamat Lokasi Penugasan Praktik Kerja Lapangan'}
             </p>
-            <p className="text-xs font-sans text-gray-700">
-              Telp: (0722) 21001 • Pos-el: kominfo@tanggamus.go.id • Laman: kominfo.tanggamus.go.id
-            </p>
+            {currentStudent?.internship_places?.phone && (
+              <p className="text-xs font-sans text-gray-700">
+                Kontak Instansi: {currentStudent.internship_places.phone}
+              </p>
+            )}
           </div>
           {/* Garis Ganda Kop Surat */}
           <div className="mt-2.5 border-t border-black pt-0.5" />
@@ -188,7 +190,7 @@ export default function FormalAttendancePrintPage() {
           </div>
           <div>
             <span className="text-gray-500 inline-block w-32">Tempat PKL</span>
-            <span className="font-bold">: {currentStudent?.internship_places?.name || 'Dinas Kominfo Kab. Tanggamus'}</span>
+            <span className="font-bold">: {currentStudent?.internship_places?.name || 'Belum Ditentukan'}</span>
           </div>
           <div>
             <span className="text-gray-500 inline-block w-32">Kelas / Jurusan</span>
@@ -196,15 +198,15 @@ export default function FormalAttendancePrintPage() {
           </div>
           <div>
             <span className="text-gray-500 inline-block w-32">Pembimbing PKL</span>
-            <span>: {currentStudent?.mentor?.full_name || 'Rafi Agil Kurniawan'}</span>
+            <span>: {currentStudent?.mentor?.full_name || 'Pembimbing Lapangan'}</span>
           </div>
           <div>
             <span className="text-gray-500 inline-block w-32">No. Kontak / WA</span>
             <span>: {currentStudent?.phone || '-'}</span>
           </div>
           <div>
-            <span className="text-gray-500 inline-block w-32">Penanggung Jawab</span>
-            <span className="font-semibold">: Rafi Agil Kurniawan (PJ Teknis)</span>
+            <span className="text-gray-500 inline-block w-32">PIC Lapangan</span>
+            <span className="font-semibold">: {currentStudent?.internship_places?.pic_name || currentStudent?.mentor?.full_name || '-'}</span>
           </div>
         </div>
 
@@ -287,7 +289,7 @@ export default function FormalAttendancePrintPage() {
         {/* KOLOM TANDA TANGAN RESMI */}
         <div className="font-sans text-xs mt-10">
           <div className="text-right mb-6">
-            <p>Kota Agung, {formatDate(new Date())}</p>
+            <p>{currentStudent?.internship_places?.name ? `${currentStudent.internship_places.name}, ` : ''}{formatDate(new Date())}</p>
           </div>
 
           <div className="grid grid-cols-3 gap-6 text-center">
@@ -311,14 +313,14 @@ export default function FormalAttendancePrintPage() {
               </div>
             </div>
 
-            {/* Kolom Kanan: Penanggung Jawab Teknis Kominfo */}
+            {/* Kolom Kanan: Pembimbing / Penanggung Jawab Instansi PKL */}
             <div className="flex flex-col justify-between h-36">
-              <p>Menyetujui,<br />Penanggung Jawab Teknis PKL</p>
+              <p>Menyetujui,<br />Instruktur / Pembimbing Lapangan</p>
               <div>
                 <p className="font-bold underline">
-                  ( Rafi Agil Kurniawan )
+                  ( {currentStudent?.mentor?.full_name || currentStudent?.internship_places?.pic_name || '..................................................'} )
                 </p>
-                <p className="text-[10px] text-gray-600 mt-0.5">Dinas Kominfo Kab. Tanggamus</p>
+                <p className="text-[10px] text-gray-600 mt-0.5">{currentStudent?.internship_places?.name || 'Instansi Mitra PKL'}</p>
               </div>
             </div>
           </div>

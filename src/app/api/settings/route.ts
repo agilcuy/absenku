@@ -20,7 +20,7 @@ export async function GET() {
       timezone: 'Asia/Jakarta',
       working_days: [1, 2, 3, 4, 5],
       site_name: 'ABSENKU',
-      site_description: 'Sistem Absensi Peserta Didik PKL Kominfo Tanggamus',
+      site_description: 'Sistem Absensi & Jurnal Peserta Didik PKL',
       site_logo_url: null,
     }
 
@@ -66,7 +66,7 @@ export async function PUT(req: NextRequest) {
       timezone: timezone || 'Asia/Jakarta',
       working_days: working_days || [1, 2, 3, 4, 5],
       site_name: site_name || 'ABSENKU',
-      site_description: site_description || 'Sistem Absensi Peserta Didik PKL Kominfo Tanggamus',
+      site_description: site_description || 'Sistem Absensi & Jurnal Peserta Didik PKL',
       site_logo_url: site_logo_url !== undefined ? site_logo_url : existing?.site_logo_url,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
