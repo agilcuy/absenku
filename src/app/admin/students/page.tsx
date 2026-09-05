@@ -46,6 +46,7 @@ function AdminStudentsContent() {
 
   // Modals state
   const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [selectedRole, setSelectedRole] = useState<'student' | 'pembimbing' | 'superadmin'>('student')
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [resetModalOpen, setResetModalOpen] = useState(false)
@@ -116,7 +117,12 @@ function AdminStudentsContent() {
   }, [searchParams])
 
   // Open Create Modal
-  const handleOpenCreate = () => {
+  const handleOpenCreate = (roleOrEvent?: any) => {
+    const role: 'student' | 'pembimbing' | 'superadmin' =
+      roleOrEvent === 'pembimbing' || roleOrEvent === 'superadmin'
+        ? roleOrEvent
+        : 'student'
+    setSelectedRole(role)
     setFormData({
       email: '',
       full_name: '',
@@ -154,27 +160,62 @@ function AdminStudentsContent() {
     })
   }
 
-  // Submit Create
+  // Submit Create Unified User
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.full_name.trim() || !formData.username.trim()) {
-      showToast('Nama lengkap dan Username siswa wajib diisi!', 'error')
+      showToast('Nama lengkap dan Username login wajib diisi!', 'error')
+      return
+    }
+
+    if (selectedRole === 'pembimbing' && !formData.internship_place_id) {
+      showToast('Harap pilih Tempat / Instansi PKL penugasan pembimbing!', 'error')
       return
     }
 
     setSubmitting(true)
     try {
-      const res = await fetch('/api/students', {
+      const payload: any = {
+        role: selectedRole,
+        full_name: formData.full_name,
+        username: formData.username,
+        password: formData.password || '123',
+        phone: formData.phone,
+        email: formData.email,
+      }
+
+      if (selectedRole === 'student') {
+        payload.class_name = formData.class_name
+        payload.major = formData.major
+        payload.internship_place_id = formData.internship_place_id || null
+        payload.mentor_id = formData.mentor_id || null
+        payload.start_date = formData.start_date || null
+        payload.end_date = formData.end_date || null
+        payload.internship_status = formData.internship_status || 'aktif'
+      } else if (selectedRole === 'pembimbing') {
+        payload.internship_place_id = formData.internship_place_id || null
+      }
+
+      const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Gagal membuat akun siswa.')
+      if (!res.ok) throw new Error(data.error || 'Gagal membuat akun pengguna.')
 
-      showToast(`Akun siswa ${formData.full_name} (@${formData.username}) berhasil dibuat!`, 'success', 'Akun Siap')
+      const roleLabel =
+        selectedRole === 'student'
+          ? 'Siswa PKL'
+          : selectedRole === 'pembimbing'
+          ? 'Pembimbing PKL'
+          : 'Superadmin'
+
+      showToast(`Akun ${roleLabel} "${formData.full_name}" (@${formData.username}) berhasil dibuat!`, 'success', 'Akun Siap')
       setCreateModalOpen(false)
       invalidateCache('/api/students')
+      invalidateCache('/api/mentors')
+      invalidateCache('/api/internship-places')
       invalidateCache('/api/admin/stats')
       loadData(true)
     } catch (err: any) {
@@ -406,11 +447,11 @@ function AdminStudentsContent() {
 
           <button
             id="btn-tambah-akun-siswa"
-            onClick={handleOpenCreate}
+            onClick={() => handleOpenCreate('student')}
             className="btn-primary text-xs py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-95 transition"
           >
             <UserPlus className="w-4 h-4 stroke-[2.2]" />
-            <span className="font-bold tracking-wide">+ Buat Akun Siswa Baru</span>
+            <span className="font-bold tracking-wide">+ Tambah Akun Pengguna</span>
           </button>
         </div>
       </div>
@@ -550,11 +591,11 @@ function AdminStudentsContent() {
               </p>
             </div>
             <button
-              onClick={handleOpenCreate}
+              onClick={() => handleOpenCreate('student')}
               className="btn-primary text-xs py-2 px-4 rounded-xl mt-2 flex items-center gap-1.5"
             >
               <UserPlus className="w-4 h-4" />
-              <span>Buat Akun Siswa Baru</span>
+              <span>Tambah Akun Pengguna</span>
             </button>
           </div>
         ) : (
@@ -734,19 +775,46 @@ function AdminStudentsContent() {
       </div>
 
       {/* =========================================
-          MODAL 1: BUAT AKUN SISWA BARU
+          MODAL 1: BUAT AKUN PENGGUNA BARU (ROLE ACCESS SELECTOR)
          ========================================= */}
       {createModalOpen && (
         <div className="modal-overlay">
           <div className="glass-card w-full max-w-lg p-6 border border-indigo-500/30 shadow-2xl animate-fade-in-up max-h-[90vh] overflow-y-auto rounded-3xl">
+            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
-                  <UserPlus className="w-5 h-5" />
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                    selectedRole === 'student'
+                      ? 'bg-indigo-500/20 text-indigo-400'
+                      : selectedRole === 'pembimbing'
+                      ? 'bg-purple-500/20 text-purple-400'
+                      : 'bg-amber-500/20 text-amber-400'
+                  }`}
+                >
+                  {selectedRole === 'student' ? (
+                    <GraduationCap className="w-5 h-5" />
+                  ) : selectedRole === 'pembimbing' ? (
+                    <Users className="w-5 h-5" />
+                  ) : (
+                    <ShieldCheck className="w-5 h-5" />
+                  )}
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-base">Buat Akun Siswa Baru</h3>
-                  <p className="text-[10px] text-gray-400">Atur username & password login siswa</p>
+                  <h3 className="font-bold text-white text-base">
+                    {selectedRole === 'student'
+                      ? 'Buat Akun Siswa Baru'
+                      : selectedRole === 'pembimbing'
+                      ? 'Buat Akun Pembimbing PKL'
+                      : 'Buat Akun Superadmin Baru'}
+                  </h3>
+                  <p className="text-[10px] text-gray-400">
+                    {selectedRole === 'student'
+                      ? 'Atur username & password login siswa ke aplikasi'
+                      : selectedRole === 'pembimbing'
+                      ? 'Atur kredensial & penempatan instansi pembimbing'
+                      : 'Atur hak akses & login admin kontrol sistem'}
+                  </p>
                 </div>
               </div>
               <button
@@ -758,23 +826,116 @@ function AdminStudentsContent() {
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
-              <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs flex items-start gap-2.5">
-                <Sparkles className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
-                <span className="leading-relaxed text-[11px]">
-                  <b>Praktis & Cepat:</b> Anda cukup mengisi <b>Nama Lengkap</b>, <b>Username</b>, dan <b>Password</b>. Siswa dapat langsung login dan melengkapi sendiri foto serta profilnya di aplikasi.
-                </span>
+              {/* =========================================
+                  MENU AKSES / ROLE SELECTOR (3 OPSI)
+                 ========================================= */}
+              <div className="space-y-1.5">
+                <label className="block text-gray-300 font-bold text-xs">
+                  Pilih Menu / Hak Akses Pengguna <span className="text-rose-400">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Siswa PKL */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('student')}
+                    className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition text-center ${
+                      selectedRole === 'student'
+                        ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-lg ring-2 ring-indigo-500/20'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <GraduationCap
+                      className={`w-5 h-5 ${selectedRole === 'student' ? 'text-indigo-400' : 'text-gray-400'}`}
+                    />
+                    <span className="font-bold text-xs">Siswa PKL</span>
+                    <span className="text-[9px] text-gray-400 leading-tight">Portal Siswa</span>
+                  </button>
+
+                  {/* Pembimbing PKL */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('pembimbing')}
+                    className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition text-center ${
+                      selectedRole === 'pembimbing'
+                        ? 'bg-purple-600/30 border-purple-500 text-white shadow-lg ring-2 ring-purple-500/20'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <Users
+                      className={`w-5 h-5 ${selectedRole === 'pembimbing' ? 'text-purple-400' : 'text-gray-400'}`}
+                    />
+                    <span className="font-bold text-xs">Pembimbing</span>
+                    <span className="text-[9px] text-gray-400 leading-tight">Portal Pembimbing</span>
+                  </button>
+
+                  {/* Superadmin */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('superadmin')}
+                    className={`p-3 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition text-center ${
+                      selectedRole === 'superadmin'
+                        ? 'bg-amber-600/30 border-amber-500 text-white shadow-lg ring-2 ring-amber-500/20'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <ShieldCheck
+                      className={`w-5 h-5 ${selectedRole === 'superadmin' ? 'text-amber-400' : 'text-gray-400'}`}
+                    />
+                    <span className="font-bold text-xs">Superadmin</span>
+                    <span className="text-[9px] text-gray-400 leading-tight">Panel Admin</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Row 1: Nama Siswa & Username */}
+              {/* Dynamic Info Banner */}
+              {selectedRole === 'student' && (
+                <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs flex items-start gap-2.5">
+                  <Sparkles className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
+                  <span className="leading-relaxed text-[11px]">
+                    <b>Akses Siswa PKL:</b> Cukup isi <b>Nama Lengkap</b>, <b>Username</b>, dan <b>Password</b>. Siswa dapat langsung login ke portal <code>/dashboard</code> untuk presensi GPS, scan QR, dan jurnal harian.
+                  </span>
+                </div>
+              )}
+
+              {selectedRole === 'pembimbing' && (
+                <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs flex items-start gap-2.5">
+                  <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                  <span className="leading-relaxed text-[11px]">
+                    <b>Akses Pembimbing PKL:</b> Pembimbing ditempatkan pada <b>Tempat/Instansi PKL</b> tertentu dan login ke <code>/pembimbing</code> untuk memantau kehadiran serta menyetujui izin siswa pada instansi tersebut.
+                  </span>
+                </div>
+              )}
+
+              {selectedRole === 'superadmin' && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <span className="leading-relaxed text-[11px]">
+                    <b>Akses Superadmin:</b> Memiliki wewenang penuh pada panel <code>/admin</code> untuk mengelola seluruh data siswa, pembimbing, tempat PKL, jam masuk presensi, dan pengaturan sistem.
+                  </span>
+                </div>
+              )}
+
+              {/* Row 1: Nama & Username */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-gray-200 font-bold mb-1">
-                    Nama Lengkap Siswa <span className="text-rose-400">*</span>
+                    {selectedRole === 'student'
+                      ? 'Nama Lengkap Siswa'
+                      : selectedRole === 'pembimbing'
+                      ? 'Nama Lengkap Pembimbing'
+                      : 'Nama Lengkap Superadmin'}{' '}
+                    <span className="text-rose-400">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Nama lengkap siswa"
+                    placeholder={
+                      selectedRole === 'student'
+                        ? 'Contoh: Ahmad Dahlan'
+                        : selectedRole === 'pembimbing'
+                        ? 'Contoh: Drs. Bambang Sutrisno'
+                        : 'Contoh: Administrator Utama'
+                    }
                     value={formData.full_name}
                     onChange={(e) => handleNameChange(e.target.value)}
                     className="input-field w-full text-xs rounded-xl"
@@ -803,7 +964,7 @@ function AdminStudentsContent() {
                       className="input-field w-full text-xs pl-7 rounded-xl font-mono text-indigo-300 font-bold"
                     />
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-1">Digunakan siswa saat login</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Digunakan saat login ke aplikasi</p>
                 </div>
               </div>
 
@@ -835,7 +996,7 @@ function AdminStudentsContent() {
 
                 <div>
                   <label className="block text-gray-300 font-medium mb-1">
-                    No. WhatsApp Siswa (Opsional)
+                    No. WhatsApp / HP (Opsional)
                   </label>
                   <input
                     type="tel"
@@ -844,74 +1005,124 @@ function AdminStudentsContent() {
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="input-field w-full text-xs rounded-xl"
                   />
-                  <p className="text-[10px] text-gray-400 mt-1">Untuk kirim info login via WA</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Untuk kirim info login & notifikasi</p>
                 </div>
               </div>
 
-              {/* Divider Opsional */}
-              <div className="pt-2 border-t border-white/5">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-                  Penempatan & Detail PKL (Bisa Dilengkapi Siswa)
-                </p>
+              {/* Email (Opsional jika login Username) */}
+              {(selectedRole === 'pembimbing' || selectedRole === 'superadmin') && (
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Alamat Email (Opsional)
+                  </label>
+                  <input
+                    type="email"
+                    placeholder={`${formData.username || 'user'}@kominfo.local`}
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="input-field w-full text-xs rounded-xl"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    Jika dikosongkan, sistem membuat email otomatis dan user tetap bisa login dengan username.
+                  </p>
+                </div>
+              )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-400 text-[11px] mb-1">Tempat / Instansi PKL</label>
-                    <select
-                      value={formData.internship_place_id}
-                      onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
-                      className="input-field w-full text-xs rounded-xl"
-                    >
-                      <option value="">-- Pilih Tempat PKL --</option>
-                      {places.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
+              {/* =========================================
+                  KHUSUS PEMBIMBING: PENEMPATAN INSTANSI PKL
+                 ========================================= */}
+              {selectedRole === 'pembimbing' && (
+                <div className="pt-2 border-t border-purple-500/20">
+                  <label className="block text-purple-300 font-bold text-xs mb-1">
+                    Tempat / Instansi PKL Penugasan <span className="text-rose-400">*</span>
+                  </label>
+                  <select
+                    required
+                    value={formData.internship_place_id}
+                    onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
+                    className="input-field w-full text-xs rounded-xl border-purple-500/30"
+                  >
+                    <option value="">-- Pilih Tempat / Instansi PKL --</option>
+                    {places.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-purple-300/80 mt-1.5 leading-relaxed">
+                    🔒 <b>Penempatan Instansi:</b> Pembimbing ini akan ditempatkan di instansi terpilih dan hanya akan memantau siswa pada instansi tersebut di portal <code>/pembimbing</code>.
+                  </p>
+                </div>
+              )}
+
+              {/* =========================================
+                  KHUSUS SISWA: PENEMPATAN & DETAIL PKL
+                 ========================================= */}
+              {selectedRole === 'student' && (
+                <div className="pt-2 border-t border-white/5">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    Penempatan & Detail PKL Siswa (Opsional)
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-gray-400 text-[11px] mb-1">Tempat / Instansi PKL</label>
+                      <select
+                        value={formData.internship_place_id}
+                        onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
+                        className="input-field w-full text-xs rounded-xl"
+                      >
+                        <option value="">-- Pilih Tempat PKL --</option>
+                        {places.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-400 text-[11px] mb-1">Pembimbing PKL</label>
+                      <select
+                        value={formData.mentor_id}
+                        onChange={(e) => setFormData({ ...formData, mentor_id: e.target.value })}
+                        className="input-field w-full text-xs rounded-xl"
+                      >
+                        <option value="">-- Pilih Pembimbing --</option>
+                        {mentors.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.full_name} {m.role === 'superadmin' ? '• (Superadmin)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-gray-400 text-[11px] mb-1">Pembimbing PKL</label>
-                    <select
-                      value={formData.mentor_id}
-                      onChange={(e) => setFormData({ ...formData, mentor_id: e.target.value })}
-                      className="input-field w-full text-xs rounded-xl"
-                    >
-                      <option value="">-- Pilih Pembimbing --</option>
-                      {mentors.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.full_name} {m.role === 'superadmin' ? '• (Superadmin)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    <div>
+                      <label className="block text-gray-400 text-[11px] mb-1">Kelas (Opsional)</label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: XII TKJ 1"
+                        value={formData.class_name}
+                        onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
+                        className="input-field w-full text-xs rounded-xl"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-400 text-[11px] mb-1">Jurusan (Opsional)</label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: TKJ / RPL"
+                        value={formData.major}
+                        onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                        className="input-field w-full text-xs rounded-xl"
+                      />
+                    </div>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                  <div>
-                    <label className="block text-gray-400 text-[11px] mb-1">Kelas (Opsional)</label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: XII TKJ 1"
-                      value={formData.class_name}
-                      onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
-                      className="input-field w-full text-xs rounded-xl"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-400 text-[11px] mb-1">Jurusan (Opsional)</label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: TKJ / RPL"
-                      value={formData.major}
-                      onChange={(e) => setFormData({ ...formData, major: e.target.value })}
-                      className="input-field w-full text-xs rounded-xl"
-                    />
-                  </div>
-                </div>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-white/10">
@@ -925,10 +1136,24 @@ function AdminStudentsContent() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary text-xs py-2.5 px-5 rounded-xl font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-500/25"
+                  className={`btn-primary text-xs py-2.5 px-5 rounded-xl font-bold flex items-center gap-1.5 shadow-lg ${
+                    selectedRole === 'pembimbing'
+                      ? 'bg-purple-600 hover:bg-purple-500 shadow-purple-500/25'
+                      : selectedRole === 'superadmin'
+                      ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-500/25'
+                      : 'shadow-indigo-500/25'
+                  }`}
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>{submitting ? 'Menyimpan...' : 'Simpan & Buat Akun Siswa'}</span>
+                  <span>
+                    {submitting
+                      ? 'Menyimpan...'
+                      : selectedRole === 'student'
+                      ? 'Simpan & Buat Akun Siswa'
+                      : selectedRole === 'pembimbing'
+                      ? 'Simpan & Buat Pembimbing'
+                      : 'Simpan & Buat Superadmin'}
+                  </span>
                 </button>
               </div>
             </form>

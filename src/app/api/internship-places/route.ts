@@ -14,7 +14,7 @@ export async function GET() {
 
     let { data: places, error } = await adminClient
       .from('internship_places')
-      .select('*, users(id)')
+      .select('*, users(id, full_name, email, role, phone)')
       .order('name', { ascending: true })
 
     if (error) {
@@ -44,7 +44,7 @@ export async function GET() {
             pic_name: 'Bidang E-Government',
             pic_phone: '081273928192',
           })
-          .select('*, users(id)')
+          .select('*, users(id, full_name, email, role, phone)')
           .single()
 
         if (newSeed) {
@@ -55,16 +55,28 @@ export async function GET() {
       }
     }
 
-    const formatted = (places || []).map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      address: p.address,
-      phone: p.phone,
-      pic_name: p.pic_name,
-      pic_phone: p.pic_phone,
-      created_at: p.created_at,
-      students_count: p.users?.length || 0,
-    }))
+    const formatted = (places || []).map((p: any) => {
+      const allUsers = p.users || []
+      const assignedMentors = allUsers.filter((u: any) => u.role === 'pembimbing' || u.role === 'superadmin')
+      const students = allUsers.filter((u: any) => u.role === 'student')
+
+      return {
+        id: p.id,
+        name: p.name,
+        address: p.address,
+        phone: p.phone,
+        pic_name: p.pic_name,
+        pic_phone: p.pic_phone,
+        latitude: p.latitude,
+        longitude: p.longitude,
+        radius_meters: p.radius_meters,
+        created_at: p.created_at,
+        students_count: students.length,
+        mentors: assignedMentors,
+        primary_mentor: assignedMentors[0] || null,
+        mentor_id: assignedMentors[0]?.id || null,
+      }
+    })
 
     return NextResponse.json({ places: formatted })
   } catch (error: any) {
@@ -86,7 +98,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { name, address, phone, pic_name, pic_phone, latitude, longitude, radius_meters } = body
+    const { name, address, phone, pic_name, pic_phone, latitude, longitude, radius_meters, mentor_id } = body
 
     if (!name?.trim()) {
       return NextResponse.json({ error: 'Nama instansi/perusahaan wajib diisi.' }, { status: 400 })
@@ -132,6 +144,14 @@ export async function POST(req: NextRequest) {
         )
       }
       throw error
+    }
+
+    // If mentor_id is selected, assign mentor to this place
+    if (mentor_id) {
+      await adminClient
+        .from('users')
+        .update({ internship_place_id: newPlace.id })
+        .eq('id', mentor_id)
     }
 
     await logAudit({

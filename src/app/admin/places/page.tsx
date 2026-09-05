@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Code,
   RefreshCw,
+  GraduationCap,
 } from 'lucide-react'
 import { useToast, ToastProvider } from '@/components/Toast'
 import { cachedFetch, invalidateCache } from '@/lib/apiCache'
@@ -22,6 +23,7 @@ import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 function PlacesPageContent() {
   const { showToast } = useToast()
   const [places, setPlaces] = useState<any[]>([])
+  const [mentors, setMentors] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [needsMigration, setNeedsMigration] = useState(false)
@@ -36,6 +38,7 @@ function PlacesPageContent() {
     phone: '',
     pic_name: '',
     pic_phone: '',
+    mentor_id: '',
     latitude: '',
     longitude: '',
     radius_meters: '200',
@@ -50,12 +53,16 @@ function PlacesPageContent() {
 
   const loadPlaces = async (forceFresh = false) => {
     try {
-      const json = await cachedFetch('/api/internship-places', undefined, 30000, forceFresh)
-      if (json.needsMigration) {
+      const [placesRes, mentorsRes] = await Promise.all([
+        cachedFetch('/api/internship-places', undefined, 30000, forceFresh),
+        cachedFetch('/api/mentors', undefined, 20000, forceFresh),
+      ])
+      if (placesRes.needsMigration) {
         setNeedsMigration(true)
       } else {
-        setPlaces(json.places || [])
+        setPlaces(placesRes.places || [])
       }
+      setMentors(mentorsRes.mentors || [])
     } catch (err) {
       console.error(err)
     } finally {
@@ -67,8 +74,9 @@ function PlacesPageContent() {
   const handleRefresh = async () => {
     setRefreshing(true)
     invalidateCache('/api/internship-places')
+    invalidateCache('/api/mentors')
     await loadPlaces(true)
-    showToast('Data tempat PKL berhasil diperbarui!', 'success')
+    showToast('Data tempat PKL dan pembimbing berhasil diperbarui!', 'success')
   }
 
   useEffect(() => {
@@ -109,6 +117,7 @@ function PlacesPageContent() {
       phone: '',
       pic_name: '',
       pic_phone: '',
+      mentor_id: '',
       latitude: '-5.498800',
       longitude: '104.708800',
       radius_meters: '200',
@@ -124,6 +133,7 @@ function PlacesPageContent() {
       phone: place.phone || '',
       pic_name: place.pic_name || '',
       pic_phone: place.pic_phone || '',
+      mentor_id: place.mentor_id || place.mentors?.[0]?.id || '',
       latitude: place.latitude !== undefined && place.latitude !== null ? String(place.latitude) : '-5.498800',
       longitude: place.longitude !== undefined && place.longitude !== null ? String(place.longitude) : '104.708800',
       radius_meters: place.radius_meters !== undefined && place.radius_meters !== null ? String(place.radius_meters) : '200',
@@ -335,6 +345,19 @@ function PlacesPageContent() {
                     </div>
                   )}
 
+                  {/* Pembimbing Instansi Card Tag */}
+                  <div className="flex items-center gap-1.5 text-[11px] text-purple-300">
+                    <GraduationCap className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+                    <span className="text-gray-400">Pembimbing:</span>
+                    {place.mentors && place.mentors.length > 0 ? (
+                      <span className="font-semibold text-purple-200 truncate max-w-[170px]">
+                        {place.mentors.map((m: any) => m.full_name).join(', ')}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 italic text-[10px]">Belum Ditugaskan</span>
+                    )}
+                  </div>
+
                   {/* Geofencing Coordinates Tag */}
                   <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-400 font-mono">
                     <span className="flex items-center gap-1 truncate">
@@ -394,6 +417,28 @@ function PlacesPageContent() {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="input-field w-full text-xs"
                 />
+              </div>
+
+              {/* Pembimbing Penanggung Jawab Dropdown */}
+              <div>
+                <label className="block text-gray-300 font-medium mb-1">
+                  Pembimbing Lapangan / Penanggung Jawab
+                </label>
+                <select
+                  value={formData.mentor_id}
+                  onChange={(e) => setFormData({ ...formData, mentor_id: e.target.value })}
+                  className="input-field w-full text-xs"
+                >
+                  <option value="">-- Belum Ditugaskan / Bebas --</option>
+                  {mentors.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.full_name} {m.role === 'superadmin' ? '• (Superadmin)' : '• (Pembimbing)'}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Pembimbing yang dipilih akan ditempatkan di instansi ini dan memantau kehadiran siswa di instansi terkait.
+                </p>
               </div>
 
               <div>
@@ -534,38 +579,96 @@ function PlacesPageContent() {
             </div>
 
             {detailLoading ? (
-              <div className="py-8 text-center text-xs text-gray-400">Memuat daftar siswa...</div>
+              <div className="py-8 text-center text-xs text-gray-400">Memuat daftar pengguna...</div>
             ) : selectedPlaceDetail?.users?.length === 0 ? (
               <div className="py-8 text-center text-xs text-gray-500">
-                Belum ada siswa yang ditempatkan di instansi ini.
+                Belum ada pembimbing atau siswa yang ditempatkan di instansi ini.
               </div>
             ) : (
-              <div className="max-h-80 overflow-y-auto divide-y divide-white/5 text-xs">
-                {selectedPlaceDetail?.users?.map((s: any) => (
-                  <div key={s.id} className="py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-300 font-bold flex items-center justify-center text-xs">
-                        {s.full_name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-white">{s.full_name}</p>
-                        <p className="text-[11px] text-gray-400">
-                          {s.class_name || 'Kelas -'} • {s.major || '-'}
-                        </p>
+              <div className="max-h-80 overflow-y-auto space-y-4 text-xs">
+                {/* Section Pembimbing Instansi */}
+                {(() => {
+                  const placeMentors = (selectedPlaceDetail?.users || []).filter(
+                    (u: any) => u.role === 'pembimbing' || u.role === 'superadmin'
+                  )
+                  if (placeMentors.length === 0) return null
+                  return (
+                    <div>
+                      <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider block mb-2">
+                        Pembimbing Penanggung Jawab ({placeMentors.length})
+                      </span>
+                      <div className="divide-y divide-white/5 bg-purple-500/10 rounded-2xl p-2 border border-purple-500/20">
+                        {placeMentors.map((m: any) => (
+                          <div key={m.id} className="py-2 px-2 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-purple-500/30 text-purple-200 font-bold flex items-center justify-center text-xs">
+                                {m.full_name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-white">{m.full_name}</p>
+                                <p className="text-[10px] text-purple-300/80">
+                                  {m.phone || m.email || 'Pembimbing PKL'}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                              👨‍🏫 Pembimbing
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
+                  )
+                })()}
 
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                        s.is_online
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
-                      }`}
-                    >
-                      {s.is_online ? '🟢 Online' : '⚫ Offline'}
-                    </span>
-                  </div>
-                ))}
+                {/* Section Siswa PKL */}
+                <div>
+                  {(() => {
+                    const placeStudents = (selectedPlaceDetail?.users || []).filter(
+                      (u: any) => u.role !== 'pembimbing' && u.role !== 'superadmin'
+                    )
+                    return (
+                      <>
+                        <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block mb-2">
+                          Siswa PKL yang Ditempatkan ({placeStudents.length})
+                        </span>
+                        {placeStudents.length === 0 ? (
+                          <p className="text-gray-500 text-[11px] italic py-2">
+                            Belum ada siswa yang ditempatkan di instansi ini.
+                          </p>
+                        ) : (
+                          <div className="divide-y divide-white/5">
+                            {placeStudents.map((s: any) => (
+                              <div key={s.id} className="py-2.5 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-300 font-bold flex items-center justify-center text-xs">
+                                    {s.full_name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold text-white">{s.full_name}</p>
+                                    <p className="text-[11px] text-gray-400">
+                                      {s.class_name || 'Kelas -'} • {s.major || '-'}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                    s.is_online
+                                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                      : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                                  }`}
+                                >
+                                  {s.is_online ? '🟢 Online' : '⚫ Offline'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
+                </div>
               </div>
             )}
 

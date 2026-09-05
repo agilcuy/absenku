@@ -18,7 +18,7 @@ export async function GET(
 
     const { data: place, error } = await adminClient
       .from('internship_places')
-      .select('*, users(id, full_name, email, phone, class_name, major, avatar_url, is_online, last_seen)')
+      .select('*, users(id, full_name, email, phone, role, class_name, major, avatar_url, is_online, last_seen)')
       .eq('id', id)
       .single()
 
@@ -48,7 +48,7 @@ export async function PUT(
     }
 
     const body = await req.json()
-    const { name, address, phone, pic_name, pic_phone, latitude, longitude, radius_meters } = body
+    const { name, address, phone, pic_name, pic_phone, latitude, longitude, radius_meters, mentor_id } = body
 
     const { data: oldData } = await adminClient
       .from('internship_places')
@@ -89,6 +89,24 @@ export async function PUT(
       updated = retry.data
     } else if (error) {
       throw error
+    }
+
+    // Handle mentor assignment if mentor_id passed
+    if (mentor_id !== undefined) {
+      if (mentor_id) {
+        // Assign this mentor to this place
+        await adminClient
+          .from('users')
+          .update({ internship_place_id: id })
+          .eq('id', mentor_id)
+      } else {
+        // Unassign mentors from this place if mentor_id is explicitly set to empty/null
+        await adminClient
+          .from('users')
+          .update({ internship_place_id: null })
+          .eq('internship_place_id', id)
+          .eq('role', 'pembimbing')
+      }
     }
 
     await logAudit({

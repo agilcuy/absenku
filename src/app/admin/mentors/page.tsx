@@ -17,6 +17,12 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  KeyRound,
+  Lock,
+  User,
 } from 'lucide-react'
 import { useToast, ToastProvider } from '@/components/Toast'
 import { cachedFetch, invalidateCache } from '@/lib/apiCache'
@@ -32,11 +38,15 @@ function MentorsPageContent() {
   // Create / Edit modal
   const [modalOpen, setModalOpen] = useState(false)
   const [editingMentor, setEditingMentor] = useState<any>(null)
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     full_name: '',
+    username: '',
+    password: '123',
     phone: '',
     internship_place_id: '',
+    role: 'pembimbing',
   })
   const [submitting, setSubmitting] = useState(false)
 
@@ -74,22 +84,30 @@ function MentorsPageContent() {
 
   const handleOpenAdd = () => {
     setEditingMentor(null)
+    setShowPassword(false)
     setFormData({
       email: '',
       full_name: '',
+      username: '',
+      password: '123',
       phone: '',
       internship_place_id: places.length > 0 ? places[0].id : '',
+      role: 'pembimbing',
     })
     setModalOpen(true)
   }
 
   const handleOpenEdit = (mentor: any) => {
     setEditingMentor(mentor)
+    setShowPassword(false)
     setFormData({
-      email: mentor.email,
-      full_name: mentor.full_name,
+      email: mentor.email || '',
+      full_name: mentor.full_name || '',
+      username: mentor.username || '',
+      password: '',
       phone: mentor.phone || '',
       internship_place_id: mentor.internship_place_id || '',
+      role: mentor.role || 'pembimbing',
     })
     setModalOpen(true)
   }
@@ -100,33 +118,40 @@ function MentorsPageContent() {
 
     try {
       if (editingMentor) {
-        // Update mentor profile
-        const res = await fetch(`/api/students/${editingMentor.id}`, {
+        // Update mentor profile using dedicated /api/mentors/[id]
+        const res = await fetch(`/api/mentors/${editingMentor.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             full_name: formData.full_name,
+            username: formData.username || null,
+            email: formData.email,
             phone: formData.phone,
-            internship_place_id: formData.internship_place_id || null,
+            internship_place_id: formData.role === 'pembimbing' ? (formData.internship_place_id || null) : null,
+            role: formData.role,
+            password: formData.password || undefined,
           }),
         })
+        const json = await res.json()
         if (!res.ok) {
-          const err = await res.json()
-          throw new Error(err.error || 'Gagal memperbarui pembimbing')
+          throw new Error(json.error || 'Gagal memperbarui data pembimbing')
         }
-        showToast('Data pembimbing berhasil diperbarui', 'success')
+        showToast('Data pembimbing dan penempatan instansi berhasil diperbarui!', 'success')
       } else {
-        // Create mentor
+        // Create mentor using /api/mentors
         const res = await fetch('/api/mentors', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            ...formData,
+            internship_place_id: formData.role === 'pembimbing' ? formData.internship_place_id : null,
+          }),
         })
         const json = await res.json()
         if (!res.ok) {
           throw new Error(json.error || 'Gagal menambahkan pembimbing')
         }
-        showToast('Pembimbing berhasil ditambahkan', 'success')
+        showToast(json.message || 'Pembimbing berhasil ditambahkan!', 'success')
       }
 
       setModalOpen(false)
@@ -136,6 +161,21 @@ function MentorsPageContent() {
       showToast(err.message, 'error')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDeleteMentor = async (mentor: any) => {
+    if (!confirm(`Hapus pembimbing "${mentor.full_name}"? Akun dan aksesnya akan dinonaktifkan.`)) return
+    try {
+      const res = await fetch(`/api/mentors/${mentor.id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menghapus pembimbing')
+
+      showToast(json.message || 'Pembimbing berhasil dihapus', 'success')
+      invalidateCache('/api/mentors')
+      loadMentors(true)
+    } catch (err: any) {
+      showToast(err.message, 'error')
     }
   }
 
@@ -251,16 +291,29 @@ function MentorsPageContent() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleOpenEdit(mentor)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition"
-                    title="Edit Data"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEdit(mentor)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition"
+                      title="Edit Data"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteMentor(mentor)}
+                      className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition"
+                      title="Hapus Pembimbing"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5 text-xs text-gray-300">
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="font-mono text-[11px] text-indigo-300">@{mentor.username || 'belum_ada_username'}</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                     <span className="truncate">{mentor.email}</span>
@@ -279,7 +332,7 @@ function MentorsPageContent() {
                   <div className="min-w-0">
                     <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-semibold">Tempat PKL Penugasan</span>
                     <span className="text-xs font-bold text-white truncate block">
-                      {mentor.internship_places?.name || 'Belum Ditugaskan'}
+                      {mentor.internship_places?.name || (mentor.role === 'superadmin' ? 'Semua Instansi (Superadmin)' : 'Belum Ditugaskan')}
                     </span>
                   </div>
                 </div>
@@ -317,8 +370,9 @@ function MentorsPageContent() {
         <div className="modal-overlay">
           <div className="glass-card w-full max-w-md p-6 border border-white/10 shadow-2xl animate-fade-in-up">
             <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
-              <h3 className="font-bold text-white">
-                {editingMentor ? 'Edit Pembimbing' : 'Tambah Pembimbing Baru'}
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-indigo-400" />
+                {editingMentor ? 'Edit Data Pengguna' : 'Tambah Akun Pengguna Baru'}
               </h3>
               <button
                 onClick={() => setModalOpen(false)}
@@ -329,36 +383,115 @@ function MentorsPageContent() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+              {/* Role / Menu Akses Selector */}
+              <div>
+                <label className="block text-gray-300 font-medium mb-1.5">
+                  Menu Akses / Peran Akun *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, role: 'pembimbing' })}
+                    className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition ${
+                      formData.role === 'pembimbing'
+                        ? 'bg-purple-600/30 border-purple-500 text-white shadow-md'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <GraduationCap className="w-4 h-4 text-purple-400" />
+                    <span>Pembimbing PKL</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, role: 'superadmin' })}
+                    className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition ${
+                      formData.role === 'superadmin'
+                        ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-md'
+                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                    <span>Superadmin</span>
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-gray-300 font-medium mb-1">
-                  Nama Lengkap Pembimbing *
+                  Nama Lengkap *
                 </label>
                 <input
                   type="text"
                   required
                   placeholder="Contoh: Drs. Bambang Sutrisno, M.Kom"
                   value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  onChange={(e) => {
+                    const name = e.target.value
+                    const autoUser = !editingMentor && (!formData.username || formData.username === formData.full_name.toLowerCase().replace(/[^a-z0-9]/g, ''))
+                    setFormData({
+                      ...formData,
+                      full_name: name,
+                      username: autoUser ? name.toLowerCase().replace(/[^a-z0-9]/g, '') : formData.username,
+                    })
+                  }}
                   className="input-field w-full text-xs"
                 />
               </div>
 
+              {/* Username & Password Login */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">Username Login *</label>
+                  <input
+                    type="text"
+                    required
+                    autoCapitalize="none"
+                    placeholder="Contoh: bambang"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+                    className="input-field w-full text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    {editingMentor ? 'Ubah Password' : 'Password Login *'}
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required={!editingMentor}
+                      placeholder={editingMentor ? 'Kosongkan jika sama' : 'Password login...'}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="input-field w-full text-xs pr-8 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 text-gray-400 hover:text-white p-1"
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-gray-300 font-medium mb-1">
-                  Alamat Email (Akun Login Google) *
+                  Alamat Email (Opsional jika login Username)
                 </label>
                 <input
                   type="email"
-                  required
                   disabled={!!editingMentor}
-                  placeholder="emailpembimbing@gmail.com"
+                  placeholder="pembimbing@kominfo.go.id"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="input-field w-full text-xs disabled:opacity-50"
                 />
                 {!editingMentor && (
                   <p className="text-[10px] text-gray-400 mt-1">
-                    Gunakan email Google yang aktif agar pembimbing dapat login langsung via Google OAuth.
+                    Jika dikosongkan, sistem akan membuatkan email internal otomatis sesuai username.
                   </p>
                 )}
               </div>
@@ -374,27 +507,35 @@ function MentorsPageContent() {
                 />
               </div>
 
-              <div>
-                <label className="block text-gray-300 font-medium mb-1">
-                  Tempat / Instansi PKL Penugasan *
-                </label>
-                <select
-                  required
-                  value={formData.internship_place_id}
-                  onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
-                  className="input-field w-full text-xs"
-                >
-                  <option value="">-- Pilih Tempat / Instansi PKL --</option>
-                  {places.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-indigo-300/80 mt-1">
-                  🔒 <b>Keamanan & Privasi:</b> Pembimbing ini akan ditempatkan di instansi ini dan <u>hanya dapat melihat data siswa pada tempat PKL yang sama</u> saat login.
-                </p>
-              </div>
+              {/* Tempat PKL Penugasan (Khusus Pembimbing) */}
+              {formData.role === 'pembimbing' ? (
+                <div>
+                  <label className="block text-gray-300 font-medium mb-1">
+                    Tempat / Instansi PKL Penugasan <span className="text-rose-400">*</span>
+                  </label>
+                  <select
+                    required
+                    value={formData.internship_place_id}
+                    onChange={(e) => setFormData({ ...formData, internship_place_id: e.target.value })}
+                    className="input-field w-full text-xs"
+                  >
+                    <option value="">-- Pilih Tempat / Instansi PKL --</option>
+                    {places.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-indigo-300/80 mt-1 leading-relaxed">
+                    🔒 <b>Penempatan Instansi:</b> Pembimbing ini akan ditempatkan di instansi ini dan <u>hanya dapat melihat serta mengelola data siswa pada tempat PKL yang sama</u> saat login.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                  <span>Akun Superadmin memiliki akses penuh ke seluruh data instansi dan sistem.</span>
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
                 <button
@@ -409,7 +550,7 @@ function MentorsPageContent() {
                   disabled={submitting}
                   className="btn-primary text-xs py-2 px-5"
                 >
-                  {submitting ? 'Menyimpan...' : 'Simpan Pembimbing'}
+                  {submitting ? 'Menyimpan...' : editingMentor ? 'Simpan Perubahan' : 'Buat Akun Pengguna'}
                 </button>
               </div>
             </form>

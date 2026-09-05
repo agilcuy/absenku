@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isUserSuperadmin } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { formatAuthPassword } from '@/lib/utils'
 
 // GET all mentors with assigned students count & details
 export async function GET() {
@@ -69,35 +70,68 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { email, full_name, phone, internship_place_id } = body
+    const { email, full_name, username, password, phone, internship_place_id } = body
 
-    if (!email?.trim() || !full_name?.trim()) {
-      return NextResponse.json({ error: 'Email dan Nama Pembimbing wajib diisi.' }, { status: 400 })
+    if (!full_name?.trim()) {
+      return NextResponse.json({ error: 'Nama Pembimbing wajib diisi.' }, { status: 400 })
     }
 
-    const normalizedEmail = email.trim().toLowerCase()
+    const cleanUsername = username?.trim().toLowerCase() || null
+    const normalizedEmail = email?.trim()
+      ? email.trim().toLowerCase()
+      : (cleanUsername ? `${cleanUsername}@kominfo.local` : null)
+
+    if (!normalizedEmail) {
+      return NextResponse.json({ error: 'Email atau Username Pembimbing wajib diisi.' }, { status: 400 })
+    }
 
     // Check existing email
-    const { data: existing } = await adminClient
+    const { data: existingEmail } = await adminClient
       .from('users')
       .select('id')
       .eq('email', normalizedEmail)
       .maybeSingle()
 
-    if (existing) {
-      return NextResponse.json({ error: 'Email ini sudah terdaftar di sistem.' }, { status: 400 })
+    if (existingEmail) {
+      return NextResponse.json({ error: `Email "${normalizedEmail}" sudah terdaftar di sistem.` }, { status: 400 })
     }
+
+    // Check existing username
+    if (cleanUsername) {
+      const { data: existingUser } = await adminClient
+        .from('users')
+        .select('id')
+        .eq('username', cleanUsername)
+        .maybeSingle()
+
+      if (existingUser) {
+        return NextResponse.json({ error: `Username "${cleanUsername}" sudah digunakan pembimbing/pengguna lain.` }, { status: 400 })
+      }
+    }
+
+    // Set auth password
+    const rawPass = (password && String(password).trim()) ? String(password).trim() : '123'
+    const authPassword = formatAuthPassword(rawPass)
 
     let mentorId = ''
     try {
-      const { data: authUser } = await adminClient.auth.admin.createUser({
+      const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({
         email: normalizedEmail,
-        user_metadata: { full_name: full_name.trim(), phone: phone?.trim() || null },
+        password: authPassword,
+        user_metadata: {
+          full_name: full_name.trim(),
+          username: cleanUsername,
+          phone: phone?.trim() || null,
+        },
         email_confirm: true,
       })
-      if (authUser?.user) mentorId = authUser.user.id
+      if (authUser?.user) {
+        mentorId = authUser.user.id
+      } else if (authError) {
+        console.warn('Auth admin createUser notice:', authError.message)
+      }
     } catch (e) {
-      console.warn('Could not pre-create mentor in auth.users, using UUID:', e)
+      console.warn('Could not create mentor in auth.users, using UUID:', e)
     }
 
     if (!mentorId) mentorId = crypto.randomUUID()
@@ -108,10 +142,11 @@ export async function POST(req: NextRequest) {
         {
           id: mentorId,
           email: normalizedEmail,
+          username: cleanUsername,
           full_name: full_name.trim(),
           phone: phone?.trim() || null,
           role: 'pembimbing',
-          internship_place_id: internship_place_id || null,
+          internship_place_id: internship_place_id ? internship_place_id : null,
           is_active: true,
         },
         { onConflict: 'email' }
@@ -130,7 +165,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Pembimbing berhasil ditambahkan.',
+      message: `Pembimbing "${full_name}" berhasil ditambahkan dan ditempatkan di instansi.`,
       mentor: newMentor,
     })
   } catch (error: any) {
