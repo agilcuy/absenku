@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "bot": "npm --prefix bot start"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.1",

@@ -229,3 +229,46 @@ export function formatAuthPassword(rawPassword: string): string {
   return trimmed
 }
 
+// Hitung durasi lembur (dalam menit) jika waktu check-out melewati batas waktu lembur
+export function calculateOvertimeMinutes(
+  checkOutDate: Date | string,
+  overtimeStartTimeStr: string = '17:30:00'
+): number {
+  if (!checkOutDate) return 0
+  const dateObj = typeof checkOutDate === 'string' ? new Date(checkOutDate) : checkOutDate
+
+  // Waktu check-out dalam timezone Jakarta
+  const jakartaDate = new Date(dateObj.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
+  const { hours: otHours, minutes: otMinutes } = parseTime(overtimeStartTimeStr)
+
+  const checkOutMinutesSinceMidnight = jakartaDate.getHours() * 60 + jakartaDate.getMinutes()
+  const overtimeStartMinutesSinceMidnight = otHours * 60 + otMinutes
+
+  if (checkOutMinutesSinceMidnight > overtimeStartMinutesSinceMidnight) {
+    return checkOutMinutesSinceMidnight - overtimeStartMinutesSinceMidnight
+  }
+  return 0
+}
+
+// Format menit lembur ke tampilan teks ramah pengguna (contoh: "2 Jam 15 Menit", "45 Menit")
+export function formatOvertimeDuration(minutes: number | null | undefined): string {
+  if (!minutes || minutes <= 0) return '0 Menit'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+
+  if (h > 0 && m > 0) return `${h} Jam ${m} Menit`
+  if (h > 0) return `${h} Jam`
+  return `${m} Menit`
+}
+
+// Format singkat untuk tabel/badge (contoh: "2j 15m", "45m")
+export function formatOvertimeShort(minutes: number | null | undefined): string {
+  if (!minutes || minutes <= 0) return '-'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+
+  if (h > 0 && m > 0) return `${h}j ${m}m`
+  if (h > 0) return `${h}j`
+  return `${m}m`
+}
+

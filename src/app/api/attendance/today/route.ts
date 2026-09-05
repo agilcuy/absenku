@@ -72,6 +72,13 @@ export async function GET() {
         radius_meters: userProfile.internship_places.radius_meters ?? resolved.radiusMeters,
       }
     }
+    userProfile.internship_places = {
+      ...userProfile.internship_places,
+      work_start_time: userProfile.internship_places.work_start_time || '08:30:00',
+      work_end_time: userProfile.internship_places.work_end_time || '16:30:00',
+      overtime_start_time: userProfile.internship_places.overtime_start_time || '17:30:00',
+      allow_overtime: userProfile.internship_places.allow_overtime !== false,
+    }
   }
 
   // 2. Get system settings
@@ -108,10 +115,10 @@ export async function GET() {
     .eq('date', todayStr)
     .maybeSingle()
 
-  // 5. Get student statistics & consecutive on-time streak
+  // 5. Get student statistics, consecutive on-time streak, & overtime accumulation
   const { data: allAttendances } = await adminClient
     .from('attendances')
-    .select('date, check_in_status')
+    .select('date, check_in_status, overtime_minutes, is_overtime')
     .eq('user_id', user.id)
     .order('date', { ascending: false })
 
@@ -119,11 +126,12 @@ export async function GET() {
   let totalOnTime = 0
   let totalLate = 0
   let totalAlpha = 0
+  let totalOvertimeMinutes = 0
   let streak = 0
   let streakActive = true
 
   if (allAttendances) {
-    allAttendances.forEach((a) => {
+    allAttendances.forEach((a: any) => {
       if (a.check_in_status === 'on_time') {
         totalPresent++
         totalOnTime++
@@ -135,6 +143,9 @@ export async function GET() {
       } else if (a.check_in_status === 'alpha') {
         totalAlpha++
         streakActive = false
+      }
+      if (a.overtime_minutes && typeof a.overtime_minutes === 'number') {
+        totalOvertimeMinutes += a.overtime_minutes
       }
     })
   }
@@ -158,6 +169,7 @@ export async function GET() {
       totalLate,
       totalAlpha,
       streak,
+      totalOvertimeMinutes,
     },
   })
 }

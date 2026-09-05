@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { getTodayJakarta, isCheckOutAllowed, formatTime } from '@/lib/utils'
+import { getTodayJakarta, isCheckOutAllowed, formatTime, calculateOvertimeMinutes, formatOvertimeDuration } from '@/lib/utils'
 import { getAddressFromCoords, calculateDistanceMeters, DEFAULT_OFFICE_COORDS, getPlaceCoordinates } from '@/lib/geo'
 
 export async function POST(req: NextRequest) {
@@ -39,14 +39,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 1. Get settings
+    // 1. Get settings and place schedule
     const { data: settings } = await adminClient
       .from('settings')
       .select('*')
       .limit(1)
       .single()
 
-    const checkOutConfig = settings?.check_out_time || '16:30:00'
+    const placeConfig = (userProfile as any)?.internship_places || null
+    const checkOutConfig = placeConfig?.work_end_time || settings?.check_out_time || '16:30:00'
+    const overtimeStartConfig = placeConfig?.overtime_start_time || '17:30:00'
+    const allowOvertime = placeConfig?.allow_overtime !== false
 
     // 2. Validate current time against check out schedule
     if (!isCheckOutAllowed(checkOutConfig)) {
@@ -177,18 +180,50 @@ export async function POST(req: NextRequest) {
       throw new Error(e.message || 'Gagal memproses foto absensi.')
     }
 
+    // Calculate overtime if check-out time is past overtime threshold
+    const nowIso = new Date().toISOString()
+    const checkOutDate = new Date()
+
+    let overtimeMinutes = 0
+    let isOvertime = false
+    let overtimeFormatted = '0 Menit'
+
+    if (allowOvertime) {
+      overtimeMinutes = calculateOvertimeMinutes(checkOutDate, overtimeStartConfig)
+      if (overtimeMinutes > 0) {
+        isOvertime = true
+        overtimeFormatted = formatOvertimeDuration(overtimeMinutes)
+      }
+    }
+
     // Update attendance record with check-out via adminClient
-    const { error: updateErr } = await adminClient
+    const updatePayload: any = {
+      check_out_time: nowIso,
+      check_out_lat: lat,
+      check_out_lng: lng,
+      check_out_address: address,
+      overtime_minutes: overtimeMinutes,
+      is_overtime: isOvertime,
+    }
+
+    let { error: updateErr } = await adminClient
       .from('attendances')
-      .update({
-        check_out_time: new Date().toISOString(),
-        check_out_lat: lat,
-        check_out_lng: lng,
-        check_out_address: address,
-      })
+      .update(updatePayload)
       .eq('id', attendance.id)
 
-    if (updateErr) throw updateErr
+    // Fallback if migration_v5 is not yet run in Supabase SQL Editor
+    if (updateErr && (updateErr.code === '42703' || updateErr.message?.includes('column') || updateErr.message?.includes('overtime'))) {
+      delete updatePayload.overtime_minutes
+      delete updatePayload.is_overtime
+      const retry = await adminClient
+        .from('attendances')
+        .update(updatePayload)
+        .eq('id', attendance.id)
+      if (retry.error) throw retry.error
+      updateErr = null
+    } else if (updateErr) {
+      throw updateErr
+    }
 
     // Save photo record via adminClient
     if (photoUrl) {
@@ -201,14 +236,21 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    const successMessage = isOvertime
+      ? `Absensi pulang berhasil dicatat (⚡ Lembur: ${overtimeFormatted}).`
+      : 'Absensi pulang berhasil dicatat.'
+
     return NextResponse.json({
       success: true,
-      message: 'Absensi pulang berhasil dicatat.',
-      time: new Date().toISOString(),
+      message: successMessage,
+      time: nowIso,
       address,
       distanceMeters,
       isWithinRadius,
       placeName,
+      overtimeMinutes,
+      overtimeFormatted,
+      isOvertime,
     })
   } catch (error: any) {
     console.error('Check-out error:', error)

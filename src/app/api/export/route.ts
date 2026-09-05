@@ -130,6 +130,10 @@ export async function GET(req: NextRequest) {
       const alphaCount = Math.max(0, totalObligation - (totalPresent + izinCount + sakitCount))
       const ratePercent = totalObligation > 0 ? Math.round(((totalPresent + izinCount + sakitCount) / totalObligation) * 100) : 100
 
+      // Overtime accumulation
+      const totalOvertimeMinutes = userAtts.reduce((acc: number, r: any) => acc + (Number(r.overtime_minutes) || 0), 0)
+      const overtimeHours = (totalOvertimeMinutes / 60).toFixed(1)
+
       let predikat = 'Sangat Baik'
       if (ratePercent < 75) predikat = 'Perlu Pembinaan'
       else if (ratePercent < 85) predikat = 'Cukup'
@@ -148,6 +152,7 @@ export async function GET(req: NextRequest) {
         Sakit: sakitCount,
         'Alpha (Tanpa Keterangan)': alphaCount,
         'Total Kehadiran (%)': `${ratePercent}%`,
+        'Total Jam Lembur': totalOvertimeMinutes > 0 ? `${overtimeHours} Jam (${totalOvertimeMinutes} Menit)` : '0 Jam',
         'Evaluasi Kehadiran': predikat,
       }
     })
@@ -165,6 +170,7 @@ export async function GET(req: NextRequest) {
       'Status Masuk': getStatusLabel(r.check_in_status),
       'Alamat Masuk': r.check_in_address || '-',
       'Jam Pulang': r.check_out_time ? formatTime(r.check_out_time) : '-',
+      'Lembur': r.overtime_minutes > 0 ? `${Math.floor(r.overtime_minutes / 60)}j ${r.overtime_minutes % 60}m` : '-',
       'Alamat Pulang': r.check_out_address || '-',
       'Tipe Absen': r.is_manual ? 'Manual Admin' : 'Kamera Langsung & GPS',
       Catatan: r.note || '-',

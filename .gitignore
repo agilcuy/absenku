@@ -22,6 +22,10 @@ yarn-error.log*
 # Vercel
 .vercel
 
+# WhatsApp Bot Sessions & Local Config
+bot/session/
+bot/config.json
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts

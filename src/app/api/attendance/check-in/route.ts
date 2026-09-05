@@ -40,14 +40,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 1. Get settings
+    // 1. Get settings and place configuration
     const { data: settings } = await adminClient
       .from('settings')
       .select('*')
       .limit(1)
       .single()
 
-    const checkInConfig = settings?.check_in_time || '08:30:00'
+    const placeConfig = (userProfile as any)?.internship_places || null
+    const checkInConfig = placeConfig?.work_start_time || settings?.check_in_time || '08:30:00'
     const workingDays = settings?.working_days || [1, 2, 3, 4, 5]
 
     // 1b. Check if check-in is open (mulai jam 06:00 pagi WIB)

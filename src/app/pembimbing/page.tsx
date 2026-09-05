@@ -94,6 +94,16 @@ function PembimbingPortalContent() {
   // Image preview modal
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
+  // Schedule & Overtime Settings Modal states (Pembimbing can configure work hours & overtime)
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
+  const [scheduleForm, setScheduleForm] = useState({
+    work_start_time: '08:30',
+    work_end_time: '16:30',
+    overtime_start_time: '17:30',
+    allow_overtime: true,
+  })
+  const [submittingSchedule, setSubmittingSchedule] = useState(false)
+
   const loadData = useCallback(async () => {
     try {
       // 1. Get current auth user & verify role
@@ -130,6 +140,15 @@ function PembimbingPortalContent() {
         return
       }
       setMentor(profile)
+      if (profile?.internship_places) {
+        const pl = profile.internship_places
+        setScheduleForm({
+          work_start_time: pl.work_start_time ? String(pl.work_start_time).substring(0, 5) : '08:30',
+          work_end_time: pl.work_end_time ? String(pl.work_end_time).substring(0, 5) : '16:30',
+          overtime_start_time: pl.overtime_start_time ? String(pl.overtime_start_time).substring(0, 5) : '17:30',
+          allow_overtime: pl.allow_overtime !== false,
+        })
+      }
 
       // 2. Fetch permits, stats, and journals (both backend endpoints automatically filter by mentor's internship place)
       const [resPermits, resStudents, resJournals] = await Promise.all([
@@ -393,6 +412,34 @@ function PembimbingPortalContent() {
     }
   }
 
+  // Save Custom Work Hours & Overtime Schedule for this Internship Place
+  const handleSaveSchedule = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!mentor?.internship_place_id) {
+      showToast('Akun Anda belum terhubung dengan instansi penugasan PKL.', 'error')
+      return
+    }
+
+    setSubmittingSchedule(true)
+    try {
+      const res = await fetch(`/api/internship-places/${mentor.internship_place_id}/schedule`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scheduleForm),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menyimpan pengaturan jam kerja.')
+
+      showToast('Pengaturan jam kerja & lembur instansi berhasil diperbarui!', 'success')
+      setScheduleModalOpen(false)
+      loadData()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSubmittingSchedule(false)
+    }
+  }
+
   // Export Rekap Presensi Siswa Khusus Instansi Pembimbing (CSV)
   const handleExportReport = () => {
     if (!students || students.length === 0) {
@@ -415,6 +462,7 @@ function PembimbingPortalContent() {
       'Jam Masuk',
       'Status Masuk',
       'Jam Pulang',
+      'Lembur',
       'Status PKL',
     ]
 
@@ -423,6 +471,7 @@ function PembimbingPortalContent() {
       const statusMasuk = att ? getStatusLabel(att.check_in_status) : 'Belum Hadir'
       const jamMasuk = att?.check_in_time ? formatTime(att.check_in_time) : '-'
       const jamPulang = att?.check_out_time ? formatTime(att.check_out_time) : '-'
+      const lembur = att?.is_overtime && att.overtime_minutes > 0 ? `${Math.floor(att.overtime_minutes / 60)}j ${att.overtime_minutes % 60}m` : '-'
       const todayStatus = att
         ? att.check_in_status === 'on_time'
           ? 'Hadir Tepat Waktu'
@@ -443,6 +492,7 @@ function PembimbingPortalContent() {
         `"${jamMasuk}"`,
         `"${statusMasuk}"`,
         `"${jamPulang}"`,
+        `"${lembur}"`,
         `"${s.internship_status || 'aktif'}"`,
       ].join(',')
     })
@@ -597,6 +647,18 @@ function PembimbingPortalContent() {
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            {mentor?.internship_place_id && (
+              <button
+                type="button"
+                onClick={() => setScheduleModalOpen(true)}
+                className="btn-outline border-amber-500/40 text-amber-300 hover:bg-amber-500/15 text-xs py-2 px-3 flex items-center gap-1.5 font-bold shadow-sm"
+                title="Atur Jam Kerja & Lembur Instansi Penugasan"
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Jam Kerja & Lembur</span>
+              </button>
+            )}
+
             <button
               onClick={handleOpenCreate}
               className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs py-2 px-3.5 flex items-center gap-1.5 font-bold shadow-lg shadow-purple-500/20"
@@ -940,15 +1002,23 @@ function PembimbingPortalContent() {
 
                         <td className="py-3 px-3">
                           {todayAtt ? (
-                            <span className={`badge text-[11px] ${getStatusBadge(todayAtt.check_in_status)}`}>
-                              <span>{getStatusEmoji(todayAtt.check_in_status)}</span>
-                              <span>{getStatusLabel(todayAtt.check_in_status)}</span>
-                              {todayAtt.check_in_time && (
-                                <span className="text-[10px] opacity-75">
-                                  ({formatTime(todayAtt.check_in_time)})
+                            <div className="flex flex-col gap-1 items-start">
+                              <span className={`badge text-[11px] ${getStatusBadge(todayAtt.check_in_status)}`}>
+                                <span>{getStatusEmoji(todayAtt.check_in_status)}</span>
+                                <span>{getStatusLabel(todayAtt.check_in_status)}</span>
+                                {todayAtt.check_in_time && (
+                                  <span className="text-[10px] opacity-75">
+                                    ({formatTime(todayAtt.check_in_time)})
+                                  </span>
+                                )}
+                              </span>
+                              {todayAtt.is_overtime && todayAtt.overtime_minutes > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                  <span>⚡ Lembur:</span>
+                                  <span>{Math.floor(todayAtt.overtime_minutes / 60)}j {todayAtt.overtime_minutes % 60}m</span>
                                 </span>
                               )}
-                            </span>
+                            </div>
                           ) : (
                             <span className="text-[11px] text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
                               Belum Absen
@@ -1800,6 +1870,131 @@ function PembimbingPortalContent() {
                   className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-2 px-5 shadow-lg shadow-purple-500/25"
                 >
                   {submittingJournalReview ? 'Menyimpan...' : 'Simpan Nilai & Paraf'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule & Overtime Settings Modal for Mentor's Assigned Place */}
+      {scheduleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="glass-card max-w-lg w-full p-6 border border-white/10 rounded-2xl shadow-2xl relative">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center border border-amber-500/30">
+                  <Clock className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Atur Jam Kerja & Lembur Instansi</h3>
+                  <p className="text-xs text-amber-300/80 font-medium">
+                    {mentor?.internship_places?.name || 'Instansi Penugasan PKL'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setScheduleModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSchedule} className="space-y-4 pt-4">
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-200/90 leading-relaxed">
+                💡 <span className="font-semibold">Aturan Jam Kerja:</span> Pengaturan ini berlaku khusus untuk seluruh siswa PKL yang bertugas di <strong>{mentor?.internship_places?.name || 'instansi ini'}</strong>.
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 text-xs font-semibold mb-1">
+                    Jam Masuk Kerja (WIB)
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={scheduleForm.work_start_time}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, work_start_time: e.target.value }))
+                    }
+                    className="input-field text-xs"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">Batas absensi masuk Tepat Waktu.</p>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-xs font-semibold mb-1">
+                    Jam Pulang Reguler (WIB)
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={scheduleForm.work_end_time}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, work_end_time: e.target.value }))
+                    }
+                    className="input-field text-xs"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">Waktu mulai dibukanya absen pulang.</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-xs font-bold text-white block">Sistem Waktu Lembur</label>
+                    <p className="text-[10px] text-gray-400">Aktifkan penghitungan lembur otomatis bagi siswa</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scheduleForm.allow_overtime}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({ ...prev, allow_overtime: e.target.checked }))
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  </label>
+                </div>
+
+                {scheduleForm.allow_overtime && (
+                  <div>
+                    <label className="block text-gray-300 text-xs font-semibold mb-1">
+                      Waktu Mulai Dihitung Lembur (WIB)
+                    </label>
+                    <input
+                      type="time"
+                      required
+                      value={scheduleForm.overtime_start_time}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({ ...prev, overtime_start_time: e.target.value }))
+                      }
+                      className="input-field text-xs"
+                    />
+                    <p className="text-[10px] text-amber-300/80 mt-1">
+                      Check-out setelah pukul {scheduleForm.overtime_start_time} s.d 24:00 (12 malam) akan otomatis dihitung selisih jam lemburnya.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setScheduleModalOpen(false)}
+                  className="btn-outline py-2 px-4 text-xs"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingSchedule}
+                  className="btn-primary bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-2 px-5 text-xs shadow-lg shadow-amber-500/25"
+                >
+                  {submittingSchedule ? 'Menyimpan...' : 'Simpan Pengaturan'}
                 </button>
               </div>
             </form>

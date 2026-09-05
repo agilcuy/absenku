@@ -19,6 +19,8 @@ import {
   getStatusLabel,
   isCheckInAllowed,
   isCheckOutAllowed,
+  formatOvertimeDuration,
+  formatOvertimeShort,
 } from '@/lib/utils'
 import { calculateDistanceMeters, DEFAULT_OFFICE_COORDS, getPlaceCoordinates } from '@/lib/geo'
 import {
@@ -299,7 +301,15 @@ function StudentDashboardContent() {
           isLate ? '⚠️ Absensi Berhasil (Terlambat)' : '✅ Absensi Berhasil'
         )
       } else {
-        showToast('Absensi pulang berhasil dicatat. Selamat beristirahat!', 'success', '✅ Absensi Pulang')
+        if (resJson.isOvertime && resJson.overtimeFormatted) {
+          showToast(
+            `Absensi pulang berhasil dicatat (⚡ Durasi Lembur: ${resJson.overtimeFormatted}). Terima kasih atas dedikasi kerja Anda!`,
+            'success',
+            '⚡ Lembur Berhasil Dicatat'
+          )
+        } else {
+          showToast('Absensi pulang berhasil dicatat. Selamat beristirahat!', 'success', '✅ Absensi Pulang')
+        }
       }
 
       await loadDashboardData()
@@ -526,12 +536,29 @@ function StudentDashboardContent() {
                 {/* Check-Out Column */}
                 <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
                   <div>
-                    <span className="text-[11px] text-gray-400 font-medium">Absensi Pulang</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-gray-400 font-medium">Absensi Pulang</span>
+                      {attendance?.is_overtime && attendance?.overtime_minutes > 0 && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse">
+                          <span>⚡ Lembur</span>
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xl font-black text-white mt-1">
                       {attendance?.check_out_time ? formatTime(attendance.check_out_time) : '--:--'}
                     </div>
+                    {attendance?.is_overtime && attendance?.overtime_minutes > 0 && (
+                      <div className="text-[11px] font-bold text-amber-300 mt-0.5">
+                        +{formatOvertimeDuration(attendance.overtime_minutes)}
+                      </div>
+                    )}
                     <div className="text-[10px] text-gray-400 mt-0.5">
-                      Jadwal: {settings?.check_out_time ? settings.check_out_time.substring(0, 5) : '16:30'} - 24:00 (12 Malam)
+                      Jadwal: {userProfile?.internship_places?.work_end_time?.substring(0, 5) || settings?.check_out_time?.substring(0, 5) || '16:30'} - 24:00 WIB
+                      {userProfile?.internship_places?.allow_overtime && (
+                        <span className="text-amber-300/80 block mt-0.5">
+                          ⚡ Lembur: Di atas {userProfile.internship_places.overtime_start_time?.substring(0, 5) || '17:30'} WIB
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -688,6 +715,28 @@ function StudentDashboardContent() {
                 <p className="text-2xl font-black text-rose-400 mt-1">{stats?.totalAlpha || 0}</p>
               </div>
             </Link>
+
+            {/* Overtime accumulation banner if student has earned overtime */}
+            {stats?.totalOvertimeMinutes > 0 && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-sm font-black border border-amber-500/30">
+                    ⚡
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-amber-300 block">
+                      Total Akumulasi Lembur
+                    </span>
+                    <p className="text-[10px] text-amber-200/80 mt-0.5">
+                      Dedikasi jam tambahan selama masa penugasan PKL
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-black px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
+                  {formatOvertimeDuration(stats.totalOvertimeMinutes)}
+                </span>
+              </div>
+            )}
 
             {/* Mentor Contact & Direct WhatsApp Card (Khusus Siswa) */}
             {userProfile?.role !== 'superadmin' && (

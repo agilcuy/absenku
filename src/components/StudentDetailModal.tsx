@@ -235,6 +235,17 @@ export default function StudentDetailModal({
                           {todayAtt.check_out_time ? formatTime(todayAtt.check_out_time) : '-'}
                         </span>
                       </div>
+
+                      {todayAtt.is_overtime && todayAtt.overtime_minutes > 0 && (
+                        <div className="col-span-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                          <span className="text-amber-300 font-bold text-xs flex items-center gap-1.5">
+                            ⚡ Waktu Lembur Hari Ini:
+                          </span>
+                          <span className="font-mono font-bold text-amber-300 text-xs">
+                            {Math.floor(todayAtt.overtime_minutes / 60)} Jam {todayAtt.overtime_minutes % 60} Menit
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {todayAtt.check_in_address && (
