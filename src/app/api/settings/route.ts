@@ -15,7 +15,7 @@ export async function GET() {
     if (error) throw error
 
     const defaultSettings = {
-      check_in_time: '07:30:00',
+      check_in_time: '08:30:00',
       check_out_time: '16:30:00',
       timezone: 'Asia/Jakarta',
       working_days: [1, 2, 3, 4, 5],
@@ -61,7 +61,7 @@ export async function PUT(req: NextRequest) {
       .maybeSingle()
 
     const payload = {
-      check_in_time: check_in_time || '07:30:00',
+      check_in_time: check_in_time || '08:30:00',
       check_out_time: check_out_time || '16:30:00',
       timezone: timezone || 'Asia/Jakarta',
       working_days: working_days || [1, 2, 3, 4, 5],

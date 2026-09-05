@@ -50,7 +50,7 @@ export function parseTime(timeStr: string): { hours: number; minutes: number } {
 // Check if current time is on time or late compared to checkInTime
 export function getAttendanceStatus(
   checkInTime: Date,
-  configTime: string // "07:30:00"
+  configTime: string // "08:30:00"
 ): 'on_time' | 'late' {
   const { hours, minutes } = parseTime(configTime)
   const jakartaCheckIn = new Date(checkInTime.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))

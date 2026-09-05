@@ -47,14 +47,15 @@ export async function POST(req: NextRequest) {
       .limit(1)
       .single()
 
-    const checkInConfig = settings?.check_in_time || '07:30:00'
+    const checkInConfig = settings?.check_in_time || '08:30:00'
     const workingDays = settings?.working_days || [1, 2, 3, 4, 5]
 
     // 1b. Check if check-in is open (mulai jam 06:00 pagi WIB)
     if (!isCheckInAllowed('06:00:00')) {
+      const scheduleEnd = checkInConfig.substring(0, 5)
       return NextResponse.json(
         {
-          error: 'Absensi masuk belum dibuka. Absensi masuk dibuka mulai pukul 06:00 s.d 07:30 WIB.',
+          error: `Absensi masuk belum dibuka. Absensi masuk dibuka mulai pukul 06:00 s.d ${scheduleEnd} WIB.`,
         },
         { status: 400 }
       )

@@ -57,7 +57,7 @@ export interface User {
 
 export interface Settings {
   id: string
-  check_in_time: string   // "07:30:00"
+  check_in_time: string   // "08:30:00"
   check_out_time: string  // "16:30:00"
   timezone: string        // "Asia/Jakarta"
   working_days: number[]  // [1,2,3,4,5]

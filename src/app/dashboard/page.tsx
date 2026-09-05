@@ -185,8 +185,9 @@ function StudentDashboardContent() {
 
     if (action === 'check_in') {
       if (!isCheckInAllowed('06:00:00')) {
+        const scheduleEnd = data?.settings?.check_in_time ? data.settings.check_in_time.substring(0, 5) : '08:30'
         showToast(
-          'Absensi masuk belum dibuka. Absensi pagi dibuka mulai pukul 06:00 s.d 07:30 WIB.',
+          `Absensi masuk belum dibuka. Absensi pagi dibuka mulai pukul 06:00 s.d ${scheduleEnd} WIB.`,
           'warning',
           'Belum Waktunya Masuk'
         )
@@ -453,7 +454,7 @@ function StudentDashboardContent() {
                       {attendance?.check_in_time ? formatTime(attendance.check_in_time) : '--:--'}
                     </div>
                     <div className="text-[10px] text-gray-400 mt-0.5">
-                      Jadwal: 06:00 - {settings?.check_in_time ? settings.check_in_time.substring(0, 5) : '07:30'} WIB
+                      Jadwal: 06:00 - {settings?.check_in_time ? settings.check_in_time.substring(0, 5) : '08:30'} WIB
                     </div>
                   </div>
 

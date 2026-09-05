@@ -68,7 +68,7 @@ export async function GET() {
     .single()
 
   const defaultSettings = {
-    check_in_time: '07:30:00',
+    check_in_time: '08:30:00',
     check_out_time: '16:30:00',
     timezone: 'Asia/Jakarta',
     working_days: [1, 2, 3, 4, 5],

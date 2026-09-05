@@ -15,6 +15,14 @@ import {
   X,
   Sliders,
   Sparkles,
+  KeyRound,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  User,
+  Lock,
+  UserPlus,
+  AlertCircle,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { formatDate, DAY_NAMES } from '@/lib/utils'
@@ -24,13 +32,14 @@ function SettingsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const initialTab = searchParams.get('tab') === 'schedule' ? 'schedule' : 'general'
-  const [activeTab, setActiveTab] = useState<'general' | 'schedule'>(initialTab)
+  const tabParam = searchParams.get('tab')
+  const initialTab = tabParam === 'schedule' ? 'schedule' : tabParam === 'admins' ? 'admins' : 'general'
+  const [activeTab, setActiveTab] = useState<'general' | 'schedule' | 'admins'>(initialTab)
 
   // Tab 1: Jam & Identitas
   const [loadingGeneral, setLoadingGeneral] = useState(true)
   const [savingGeneral, setSavingGeneral] = useState(false)
-  const [checkInTime, setCheckInTime] = useState('07:30')
+  const [checkInTime, setCheckInTime] = useState('08:30')
   const [checkOutTime, setCheckOutTime] = useState('16:30')
   const [timezone, setTimezone] = useState('Asia/Jakarta')
   const [siteName, setSiteName] = useState('ABSENKU')
@@ -49,6 +58,28 @@ function SettingsContent() {
   const [holidayName, setHolidayName] = useState('')
   const [submittingHoliday, setSubmittingHoliday] = useState(false)
 
+  // Tab 3: Akun Superadmin & Kredensial Login
+  const [adminFullName, setAdminFullName] = useState('')
+  const [adminUsername, setAdminUsername] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
+  const [adminConfirmPassword, setAdminConfirmPassword] = useState('')
+  const [showAdminPassword, setShowAdminPassword] = useState(false)
+  const [hasPassword, setHasPassword] = useState(false)
+  const [loadingAdminProfile, setLoadingAdminProfile] = useState(false)
+  const [savingAdminProfile, setSavingAdminProfile] = useState(false)
+
+  // Tab 3: Daftar Administrator Tambahan
+  const [administrators, setAdministrators] = useState<any[]>([])
+  const [currentUserId, setCurrentUserId] = useState<string>('')
+  const [loadingAdmins, setLoadingAdmins] = useState(false)
+  const [adminModalOpen, setAdminModalOpen] = useState(false)
+  const [newAdminFullName, setNewAdminFullName] = useState('')
+  const [newAdminUsername, setNewAdminUsername] = useState('')
+  const [newAdminEmail, setNewAdminEmail] = useState('')
+  const [newAdminPassword, setNewAdminPassword] = useState('')
+  const [submittingNewAdmin, setSubmittingNewAdmin] = useState(false)
+
   // Load General Settings
   useEffect(() => {
     const loadGeneral = async () => {
@@ -58,7 +89,7 @@ function SettingsContent() {
           const json = await res.json()
           const s = json.settings
           if (s) {
-            setCheckInTime(s.check_in_time ? s.check_in_time.substring(0, 5) : '07:30')
+            setCheckInTime(s.check_in_time ? s.check_in_time.substring(0, 5) : '08:30')
             setCheckOutTime(s.check_out_time ? s.check_out_time.substring(0, 5) : '16:30')
             setTimezone(s.timezone || 'Asia/Jakarta')
             setSiteName(s.site_name || 'ABSENKU')
@@ -219,9 +250,142 @@ function SettingsContent() {
     }
   }
 
+  // Load Superadmin Profile (Tab 3)
+  const loadAdminProfile = useCallback(async () => {
+    setLoadingAdminProfile(true)
+    try {
+      const res = await fetch('/api/admin/profile')
+      if (res.ok) {
+        const json = await res.json()
+        if (json.profile) {
+          setAdminFullName(json.profile.full_name || '')
+          setAdminUsername(json.profile.username || '')
+          setAdminEmail(json.profile.email || '')
+          setHasPassword(json.has_password || false)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load admin profile:', err)
+    } finally {
+      setLoadingAdminProfile(false)
+    }
+  }, [])
+
+  // Load All Administrators (Tab 3)
+  const loadAdministrators = useCallback(async () => {
+    setLoadingAdmins(true)
+    try {
+      const res = await fetch('/api/admin/administrators')
+      if (res.ok) {
+        const json = await res.json()
+        setAdministrators(json.administrators || [])
+        if (json.current_user_id) setCurrentUserId(json.current_user_id)
+      }
+    } catch (err) {
+      console.error('Failed to load administrators:', err)
+    } finally {
+      setLoadingAdmins(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'admins') {
+      loadAdminProfile()
+      loadAdministrators()
+    }
+  }, [activeTab, loadAdminProfile, loadAdministrators])
+
+  // Save Superadmin Profile & Credentials
+  const handleSaveAdminProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (adminPassword && adminPassword !== adminConfirmPassword) {
+      showToast('Konfirmasi password tidak cocok dengan password baru.', 'warning', 'Password Berbeda')
+      return
+    }
+
+    setSavingAdminProfile(true)
+    try {
+      const res = await fetch('/api/admin/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: adminFullName,
+          username: adminUsername,
+          password: adminPassword || undefined,
+        }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menyimpan kredensial.')
+
+      showToast(json.message || 'Kredensial Superadmin berhasil disimpan!', 'success', 'Tersimpan')
+      setAdminPassword('')
+      setAdminConfirmPassword('')
+      loadAdminProfile()
+      loadAdministrators()
+    } catch (err: any) {
+      showToast(err.message, 'error', 'Error')
+    } finally {
+      setSavingAdminProfile(false)
+    }
+  }
+
+  // Create New Administrator
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newAdminFullName || !newAdminUsername || !newAdminPassword) {
+      showToast('Harap lengkapi semua kolom yang wajib diisi.', 'warning', 'Data Kurang')
+      return
+    }
+
+    setSubmittingNewAdmin(true)
+    try {
+      const res = await fetch('/api/admin/administrators', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: newAdminFullName,
+          username: newAdminUsername,
+          email: newAdminEmail || undefined,
+          password: newAdminPassword,
+        }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal membuat akun admin.')
+
+      showToast(json.message || 'Administrator baru berhasil dibuat!', 'success', 'Berhasil')
+      setAdminModalOpen(false)
+      setNewAdminFullName('')
+      setNewAdminUsername('')
+      setNewAdminEmail('')
+      setNewAdminPassword('')
+      loadAdministrators()
+    } catch (err: any) {
+      showToast(err.message, 'error', 'Error')
+    } finally {
+      setSubmittingNewAdmin(false)
+    }
+  }
+
+  // Delete Administrator
+  const handleDeleteAdmin = async (id: string, name: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus akun administrator "${name}"?`)) return
+    try {
+      const res = await fetch(`/api/admin/administrators/${id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menghapus admin.')
+
+      showToast(json.message || 'Administrator berhasil dihapus.', 'success', 'Dihapus')
+      loadAdministrators()
+    } catch (err: any) {
+      showToast(err.message, 'error', 'Error')
+    }
+  }
+
   const allDays = [1, 2, 3, 4, 5, 6, 7]
 
-  const switchTab = (tab: 'general' | 'schedule') => {
+  const switchTab = (tab: 'general' | 'schedule' | 'admins') => {
     setActiveTab(tab)
     router.replace(`/admin/settings?tab=${tab}`, { scroll: false })
   }
@@ -240,16 +404,16 @@ function SettingsContent() {
               Pengaturan Sistem & Operasional
             </h1>
             <p className="text-xs text-gray-400 mt-1 max-w-2xl">
-              Kelola batas jam absensi, identitas website dinas, jadwal hari kerja aktif, serta daftar hari libur resmi.
+              Kelola batas jam absensi, identitas website dinas, jadwal hari kerja aktif, serta akun dan kredensial login Superadmin.
             </p>
           </div>
 
           {/* Tab Navigation Pill */}
-          <div className="flex items-center p-1 bg-white/5 border border-white/10 rounded-xl self-start sm:self-auto">
+          <div className="flex items-center p-1 bg-white/5 border border-white/10 rounded-xl self-start sm:self-auto flex-wrap gap-1">
             <button
               type="button"
               onClick={() => switchTab('general')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'general'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
                   : 'text-gray-400 hover:text-white'
@@ -261,7 +425,7 @@ function SettingsContent() {
             <button
               type="button"
               onClick={() => switchTab('schedule')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'schedule'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
                   : 'text-gray-400 hover:text-white'
@@ -269,6 +433,18 @@ function SettingsContent() {
             >
               <CalendarCheck className="w-3.5 h-3.5" />
               <span>Hari Kerja & Libur</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => switchTab('admins')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                activeTab === 'admins'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Login Superadmin</span>
             </button>
           </div>
         </div>
@@ -541,6 +717,231 @@ function SettingsContent() {
         </div>
       )}
 
+      {/* ============================================================
+          TAB 3: AKUN SUPERADMIN & KREDENSIAL LOGIN (USER & PASSWORD)
+         ============================================================ */}
+      {activeTab === 'admins' && (
+        <div className="flex flex-col gap-6">
+          {/* Card 1: Kredensial Superadmin Saya (Akun Aktif) */}
+          <form onSubmit={handleSaveAdminProfile} className="glass-card p-6 border border-white/10 flex flex-col gap-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+              <div>
+                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-indigo-400" />
+                  Kredensial Login Akun Saya (Superadmin)
+                </h2>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Atur username dan password akun Anda agar dapat langsung login ke ABSENKU tanpa harus melalui Google.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" />
+                  Superadmin Aktif
+                </span>
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                  hasPassword
+                    ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300'
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                }`}>
+                  {hasPassword ? '🔑 Password Aktif' : '⚠️ Password Belum Disetel'}
+                </span>
+              </div>
+            </div>
+
+            {loadingAdminProfile ? (
+              <div className="text-xs text-gray-400 text-center py-6">Memuat profil akun superadmin...</div>
+            ) : (
+              <>
+                <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-200 flex items-start gap-2.5 leading-relaxed">
+                  <Sparkles className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
+                  <span>
+                    Anda dapat masuk ke sistem ABSENKU menggunakan <b>Username</b> atau <b>Email</b> beserta <b>Password</b> Anda di halaman login utama.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="text-gray-300 font-medium block mb-1.5">
+                      Nama Lengkap
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={adminFullName}
+                      onChange={(e) => setAdminFullName(e.target.value)}
+                      placeholder="Nama lengkap admin"
+                      className="input-field"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-300 font-medium block mb-1.5">
+                      Email Akun (Terdaftar)
+                    </label>
+                    <input
+                      type="email"
+                      disabled
+                      value={adminEmail}
+                      className="input-field opacity-60 cursor-not-allowed bg-black/40"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">Email tertaut dengan autentikasi utama</p>
+                  </div>
+
+                  <div>
+                    <label className="text-gray-300 font-medium block mb-1.5">
+                      Username Login
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        autoCapitalize="none"
+                        value={adminUsername}
+                        onChange={(e) => setAdminUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                        placeholder="Contoh: agiel / admin / superadmin"
+                        className="input-field"
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Ketik username ini di kolom username pada halaman login
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-gray-300 font-medium block mb-1.5">
+                      {hasPassword ? 'Ubah Password (Kosongkan jika tidak diubah)' : 'Buat Password Baru'}
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showAdminPassword ? 'text' : 'password'}
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        placeholder={hasPassword ? 'Ketik password baru...' : 'Buat password login Anda...'}
+                        className="input-field pr-10 font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminPassword(!showAdminPassword)}
+                        className="absolute right-3 text-gray-400 hover:text-white p-1"
+                      >
+                        {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {adminPassword && (
+                    <div className="sm:col-span-2">
+                      <label className="text-gray-300 font-medium block mb-1.5">
+                        Konfirmasi Password Baru
+                      </label>
+                      <input
+                        type={showAdminPassword ? 'text' : 'password'}
+                        required
+                        value={adminConfirmPassword}
+                        onChange={(e) => setAdminConfirmPassword(e.target.value)}
+                        placeholder="Ketik ulang password baru..."
+                        className="input-field font-mono"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end pt-3 border-t border-white/10">
+                  <button
+                    type="submit"
+                    disabled={savingAdminProfile}
+                    className="btn-primary text-xs py-2.5 px-5 flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{savingAdminProfile ? 'Menyimpan Kredensial...' : 'Simpan Kredensial Login'}</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </form>
+
+          {/* Card 2: Daftar Administrator & Tambah Admin Baru */}
+          <div className="glass-card p-6 border border-white/10 flex flex-col gap-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+              <div>
+                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-indigo-400" />
+                  Daftar Administrator Sistem
+                </h2>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Daftar seluruh akun yang memiliki hak akses penuh sebagai Superadmin
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setAdminModalOpen(true)}
+                className="btn-primary text-xs py-2 px-3.5 flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah Administrator Baru</span>
+              </button>
+            </div>
+
+            {loadingAdmins ? (
+              <div className="text-xs text-gray-500 text-center py-6">Memuat daftar admin...</div>
+            ) : administrators.length === 0 ? (
+              <div className="text-xs text-gray-500 text-center py-6 bg-white/[0.01] rounded-xl border border-white/5">
+                Belum ada data administrator lain.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {administrators.map((adm) => {
+                  const isMe = adm.id === currentUserId || adm.email === adminEmail
+                  return (
+                    <div
+                      key={adm.id}
+                      className={`p-4 rounded-xl border flex items-center justify-between gap-3 text-xs transition ${
+                        isMe
+                          ? 'bg-indigo-950/20 border-indigo-500/30'
+                          : 'bg-white/[0.02] border-white/5 hover:border-white/15'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-300 font-bold flex items-center justify-center text-xs flex-shrink-0">
+                          {adm.full_name?.substring(0, 2).toUpperCase() || 'AD'}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-bold text-white truncate">{adm.full_name}</p>
+                            {isMe && (
+                              <span className="text-[9px] bg-indigo-500/30 text-indigo-300 px-1.5 py-0.5 rounded font-bold">
+                                Saya
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-gray-400 truncate">
+                            @{adm.username || 'belum_ada_username'} · {adm.email}
+                          </p>
+                        </div>
+                      </div>
+
+                      {!isMe && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAdmin(adm.id, adm.full_name)}
+                          title="Hapus Administrator"
+                          className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition flex-shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Add Holiday Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -600,6 +1001,104 @@ function SettingsContent() {
                   className="btn-primary py-2 px-4"
                 >
                   {submittingHoliday ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Administrator Modal */}
+      {adminModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-card max-w-md w-full p-6 border border-white/10 flex flex-col gap-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-indigo-400" />
+                Tambah Administrator Baru
+              </h3>
+              <button
+                onClick={() => setAdminModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAdmin} className="flex flex-col gap-4 text-xs">
+              <div>
+                <label className="text-gray-300 font-medium block mb-1.5">
+                  Nama Lengkap <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Administrator Kominfo"
+                  value={newAdminFullName}
+                  onChange={(e) => setNewAdminFullName(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-300 font-medium block mb-1.5">
+                  Username Login <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoCapitalize="none"
+                  placeholder="Contoh: admin2"
+                  value={newAdminUsername}
+                  onChange={(e) => setNewAdminUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-300 font-medium block mb-1.5">
+                  Password Login <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Minimal 6 karakter..."
+                  value={newAdminPassword}
+                  onChange={(e) => setNewAdminPassword(e.target.value)}
+                  className="input-field font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-300 font-medium block mb-1.5">
+                  Email (Opsional)
+                </label>
+                <input
+                  type="email"
+                  placeholder="admin@kominfo.tanggamus.go.id"
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  className="input-field"
+                />
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Jika dikosongkan, sistem akan otomatis membuatkan alamat email internal.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setAdminModalOpen(false)}
+                  className="btn-outline py-2 px-4"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingNewAdmin}
+                  className="btn-primary py-2 px-4"
+                >
+                  {submittingNewAdmin ? 'Membuat Akun...' : 'Buat Administrator'}
                 </button>
               </div>
             </form>

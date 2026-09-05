@@ -50,7 +50,7 @@ create table public.users (
 -- Settings
 create table public.settings (
   id uuid primary key default uuid_generate_v4(),
-  check_in_time time not null default '07:30:00',
+  check_in_time time not null default '08:30:00',
   check_out_time time not null default '16:30:00',
   timezone text not null default 'Asia/Jakarta',
   working_days integer[] not null default '{1,2,3,4,5}',
@@ -366,7 +366,7 @@ create trigger attendances_updated_at before update on public.attendances
 -- ============================================================
 
 insert into public.settings (check_in_time, check_out_time, timezone, working_days, site_name, site_description)
-values ('07:30:00', '16:30:00', 'Asia/Jakarta', '{1,2,3,4,5}', 'ABSENKU', 'Sistem Absensi Peserta Didik PKL Kominfo Tanggamus');
+values ('08:30:00', '16:30:00', 'Asia/Jakarta', '{1,2,3,4,5}', 'ABSENKU', 'Sistem Absensi Peserta Didik PKL Kominfo Tanggamus');
 
 -- ============================================================
 -- STORAGE BUCKET

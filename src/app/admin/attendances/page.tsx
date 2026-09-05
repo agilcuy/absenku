@@ -32,7 +32,7 @@ function getWhatsAppAlertUrl(phone: string, studentName: string): string {
   let cleaned = phone.replace(/[^0-9]/g, '')
   if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1)
   else if (!cleaned.startsWith('62')) cleaned = '62' + cleaned
-  const text = `Halo ${studentName}, sistem ABSENKU Kominfo Tanggamus mendeteksi Anda belum melakukan absensi masuk pagi ini. Batas waktu absensi s.d pukul 07:30 WIB. Harap segera lakukan swafoto di lokasi PKL. Terima kasih.`
+  const text = `Halo ${studentName}, sistem ABSENKU Kominfo Tanggamus mendeteksi Anda belum melakukan absensi masuk pagi ini. Batas waktu absensi s.d pukul 08:30 WIB. Harap segera lakukan swafoto di lokasi PKL. Terima kasih.`
   return `https://wa.me/${cleaned}?text=${encodeURIComponent(text)}`
 }
 
@@ -288,7 +288,7 @@ export default function AdminAttendancesPage() {
                   Peringatan Kehadiran Hari Ini: {absentList.length} Siswa Belum Absen Masuk
                 </h3>
               </div>
-              <span className="text-[10px] text-gray-400">Jadwal Masuk: 06:00 - 07:30 WIB</span>
+              <span className="text-[10px] text-gray-400">Jadwal Masuk: 06:00 - 08:30 WIB</span>
             </div>
 
             <div className="flex flex-wrap gap-2">
