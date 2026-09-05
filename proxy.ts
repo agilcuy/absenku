@@ -86,7 +86,7 @@ export default async function proxy(req: NextRequest) {
 
     // Role: Pembimbing
     if (profile?.role === 'pembimbing') {
-      if (path === '/login' || path === '/' || isOnboardingRoute || isAdminRoute) {
+      if (path === '/login' || path === '/' || isOnboardingRoute || isAdminRoute || isStudentRoute) {
         return NextResponse.redirect(new URL('/pembimbing', req.url))
       }
       return response

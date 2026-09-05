@@ -91,14 +91,28 @@ function PembimbingPortalContent() {
         return
       }
 
-      // Get mentor user info with assigned internship place
-      const { data: profile } = await supabase
-        .from('users')
-        .select('*, internship_places(id, name, address)')
-        .eq('id', user.id)
-        .single()
+      // 1b. Get mentor profile from server API (ensures reliable access bypassing browser RLS)
+      let profile: any = null
+      try {
+        const resProf = await fetch('/api/students/profile')
+        if (resProf.ok) {
+          const profJson = await resProf.json()
+          profile = profJson.profile
+        }
+      } catch (e) {
+        console.warn('Could not load profile from server API:', e)
+      }
 
-      if (profile?.role !== 'pembimbing' && profile?.role !== 'superadmin') {
+      if (!profile) {
+        const { data: clientProfile } = await supabase
+          .from('users')
+          .select('*, internship_places(id, name, address)')
+          .eq('id', user.id)
+          .maybeSingle()
+        profile = clientProfile
+      }
+
+      if (!profile || (profile.role !== 'pembimbing' && profile.role !== 'superadmin')) {
         router.push('/dashboard')
         return
       }

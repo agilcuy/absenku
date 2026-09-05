@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import StudentNavbar from '@/components/StudentNavbar'
 import MobileBottomNav from '@/components/MobileBottomNav'
 import CameraCaptureModal from '@/components/CameraCaptureModal'
@@ -39,6 +39,7 @@ import {
 } from 'lucide-react'
 
 function StudentDashboardContent() {
+  const router = useRouter()
   const { showToast } = useToast()
   const searchParams = useSearchParams()
 
@@ -107,6 +108,10 @@ function StudentDashboardContent() {
         setData(json)
         if (json.userProfile) {
           setUserProfile(json.userProfile)
+          if (json.userProfile.role === 'pembimbing') {
+            router.replace('/pembimbing')
+            return
+          }
         }
       }
     } catch (err) {
@@ -115,14 +120,14 @@ function StudentDashboardContent() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     loadDashboardData()
   }, [loadDashboardData])
 
-  // Student profile completeness evaluation
-  const isStudent = userProfile && userProfile.role !== 'superadmin'
+  // Student profile completeness evaluation (Strictly for student role)
+  const isStudent = userProfile && userProfile.role === 'student'
   const missingBiodata: { key: string; label: string; desc: string }[] = []
   if (isStudent) {
     if (!userProfile?.class_name?.trim()) {
@@ -317,6 +322,29 @@ function StudentDashboardContent() {
 
   const hasCheckedIn = !!attendance?.check_in_time
   const hasCheckedOut = !!attendance?.check_out_time
+
+  // If a mentor account reaches this dashboard, render redirect prompt immediately
+  if (userProfile?.role === 'pembimbing') {
+    return (
+      <div className="min-h-screen bg-[#06070d] text-gray-100 flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-purple-500/20 border border-purple-500/30 text-purple-300 flex items-center justify-center text-3xl font-bold shadow-xl shadow-purple-500/20 animate-pulse">
+          🎓
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-white">Akun Pembimbing PKL Terdeteksi</h2>
+          <p className="text-xs text-gray-400 max-w-sm mt-1 leading-relaxed">
+            Anda login menggunakan akun Pembimbing PKL. Mengarahkan Anda ke Portal Pembimbing untuk memantau presensi dan mengelola pendaftaran siswa...
+          </p>
+        </div>
+        <Link
+          href="/pembimbing"
+          className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs py-2.5 px-6 font-bold rounded-xl shadow-lg shadow-purple-500/25"
+        >
+          Buka Portal Pembimbing PKL Sekarang →
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 pb-safe-nav">

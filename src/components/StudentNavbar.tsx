@@ -231,6 +231,18 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
               </Link>
             )}
 
+            {/* Direct Link to Pembimbing Portal for Pembimbing */}
+            {user?.role === 'pembimbing' && (
+              <Link
+                href="/pembimbing"
+                className="flex items-center gap-1.5 text-xs font-bold text-purple-300 bg-purple-500/20 border border-purple-500/30 px-3 py-2 rounded-xl hover:bg-purple-500/30 transition shadow-sm shadow-purple-500/20"
+                title="Buka Portal Pembimbing PKL"
+              >
+                <span>🎓</span>
+                <span>Portal Pembimbing</span>
+              </Link>
+            )}
+
             {/* Notification Center */}
             <NotificationCenter />
 
