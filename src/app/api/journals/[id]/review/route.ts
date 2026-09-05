@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { isUserSuperadmin } from '@/lib/auth'
 
 // POST review on a journal
 export async function POST(
@@ -17,12 +18,41 @@ export async function POST(
     // Ensure reviewer is superadmin or pembimbing
     const { data: profile } = await adminClient
       .from('users')
-      .select('id, role, full_name')
+      .select('id, role, full_name, internship_place_id')
       .eq('id', user.id)
       .single()
 
-    if (profile?.role !== 'superadmin' && profile?.role !== 'pembimbing') {
+    const isSuperAdmin = await isUserSuperadmin(user, adminClient)
+    const isMentor = profile?.role === 'pembimbing'
+
+    if (!isSuperAdmin && !isMentor) {
       return NextResponse.json({ error: 'Forbidden: Hanya Pembimbing atau Superadmin' }, { status: 403 })
+    }
+
+    // Verify target journal
+    const { data: targetJournal, error: jErr } = await adminClient
+      .from('daily_journals')
+      .select('*, users!daily_journals_user_id_fkey(id, full_name, mentor_id, internship_place_id)')
+      .eq('id', id)
+      .single()
+
+    if (jErr || !targetJournal) {
+      return NextResponse.json({ error: 'Data jurnal tidak ditemukan.' }, { status: 404 })
+    }
+
+    // Restrict mentor to their own students
+    if (isMentor && !isSuperAdmin) {
+      const studentPlace = targetJournal.users?.internship_place_id
+      const mentorPlace = profile?.internship_place_id
+      const isSamePlace = mentorPlace && studentPlace && mentorPlace === studentPlace
+      const isAssigned = targetJournal.users?.mentor_id === user.id
+
+      if (!isSamePlace && !isAssigned) {
+        return NextResponse.json(
+          { error: 'Forbidden: Siswa ini berada di tempat PKL yang berbeda atau bukan bimbingan Anda.' },
+          { status: 403 }
+        )
+      }
     }
 
     const body = await req.json()

@@ -19,6 +19,7 @@ interface GpsLocationBadgeProps {
 export default function GpsLocationBadge({ onLocationFound, targetCoords }: GpsLocationBadgeProps) {
   const [loading, setLoading] = useState(true)
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [accuracy, setAccuracy] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const requestLocation = () => {
@@ -38,6 +39,7 @@ export default function GpsLocationBadge({ onLocationFound, targetCoords }: GpsL
           lng: pos.coords.longitude,
         }
         setCoords(found)
+        setAccuracy(pos.coords.accuracy || null)
         setLoading(false)
         onLocationFound(found)
       },
@@ -97,6 +99,20 @@ export default function GpsLocationBadge({ onLocationFound, targetCoords }: GpsL
                 <span>
                   {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
                 </span>
+                {accuracy !== null && (
+                  <span
+                    className={`text-[9px] px-1.5 py-0.2 rounded font-sans font-normal border ${
+                      accuracy <= 50
+                        ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+                        : accuracy <= 150
+                        ? 'text-amber-300 bg-amber-500/10 border-amber-500/20'
+                        : 'text-rose-300 bg-rose-500/10 border-rose-500/20'
+                    }`}
+                    title="Akurasi sinyal satelit GPS"
+                  >
+                    ±{Math.round(accuracy)}m
+                  </span>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-1.5 text-rose-400 font-medium truncate text-[11px]">
@@ -152,6 +168,16 @@ export default function GpsLocationBadge({ onLocationFound, targetCoords }: GpsL
             }`}
           >
             {isWithinRadius ? 'Aman' : 'Luar Radius'}
+          </span>
+        </div>
+      )}
+
+      {/* Warning for Poor Accuracy or Potential Fake GPS */}
+      {accuracy !== null && accuracy > 150 && (
+        <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-[10px] flex items-center gap-1.5 animate-pulse">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 text-rose-400" />
+          <span>
+            Sinyal GPS terdeteksi lemah (akurasi ±{Math.round(accuracy)}m). Harap aktifkan GPS HP Mode Akurasi Tinggi dan hindari aplikasi manipulasi lokasi.
           </span>
         </div>
       )}

@@ -26,6 +26,10 @@ import {
   KeyRound,
   ShieldCheck,
   Check,
+  Download,
+  BookOpen,
+  Star,
+  MessageSquare,
 } from 'lucide-react'
 import { formatDate, formatTime, getStatusBadge, getStatusEmoji, getStatusLabel, formatLastSeen } from '@/lib/utils'
 import NotificationCenter from '@/components/NotificationCenter'
@@ -39,9 +43,18 @@ function PembimbingPortalContent() {
   const [mentor, setMentor] = useState<any>(null)
   const [students, setStudents] = useState<any[]>([])
   const [permits, setPermits] = useState<any[]>([])
+  const [journals, setJournals] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<'attendance' | 'journals'>('attendance')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
+
+  // Journal Review Modal states
+  const [journalModalOpen, setJournalModalOpen] = useState(false)
+  const [selectedJournalForReview, setSelectedJournalForReview] = useState<any>(null)
+  const [reviewRating, setReviewRating] = useState<number>(5)
+  const [reviewNotes, setReviewNotes] = useState<string>('')
+  const [submittingJournalReview, setSubmittingJournalReview] = useState(false)
 
   // Detail modal
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
@@ -118,15 +131,21 @@ function PembimbingPortalContent() {
       }
       setMentor(profile)
 
-      // 2. Fetch permits and stats (both backend endpoints now automatically filter by mentor's internship place)
-      const [resPermits, resStudents] = await Promise.all([
+      // 2. Fetch permits, stats, and journals (both backend endpoints automatically filter by mentor's internship place)
+      const [resPermits, resStudents, resJournals] = await Promise.all([
         fetch('/api/permits'),
         fetch('/api/admin/stats'),
+        fetch('/api/journals'),
       ])
 
       if (resPermits.ok) {
         const pData = await resPermits.json()
         setPermits(pData.permits || [])
+      }
+
+      if (resJournals.ok) {
+        const jData = await resJournals.json()
+        setJournals(jData.journals || [])
       }
 
       if (resStudents.ok) {
@@ -374,6 +393,111 @@ function PembimbingPortalContent() {
     }
   }
 
+  // Export Rekap Presensi Siswa Khusus Instansi Pembimbing (CSV)
+  const handleExportReport = () => {
+    if (!students || students.length === 0) {
+      showToast('Tidak ada data siswa untuk diexport.', 'warning')
+      return
+    }
+
+    const placeName = mentor?.internship_places?.name || 'Instansi PKL'
+    const today = new Date().toISOString().split('T')[0]
+
+    const headers = [
+      'No',
+      'Nama Lengkap',
+      'Username',
+      'Kelas',
+      'Jurusan',
+      'No WhatsApp',
+      'Tempat PKL',
+      'Status Hari Ini',
+      'Jam Masuk',
+      'Status Masuk',
+      'Jam Pulang',
+      'Status PKL',
+    ]
+
+    const rows = students.map((s, idx) => {
+      const att = s.today_attendance
+      const statusMasuk = att ? getStatusLabel(att.check_in_status) : 'Belum Hadir'
+      const jamMasuk = att?.check_in_time ? formatTime(att.check_in_time) : '-'
+      const jamPulang = att?.check_out_time ? formatTime(att.check_out_time) : '-'
+      const todayStatus = att
+        ? att.check_in_status === 'on_time'
+          ? 'Hadir Tepat Waktu'
+          : att.check_in_status === 'late'
+          ? 'Hadir Terlambat'
+          : att.check_in_status
+        : 'Belum Absen'
+
+      return [
+        idx + 1,
+        `"${(s.full_name || '').replace(/"/g, '""')}"`,
+        `"${(s.username || s.email?.split('@')[0] || '').replace(/"/g, '""')}"`,
+        `"${(s.class_name || '-').replace(/"/g, '""')}"`,
+        `"${(s.major || '-').replace(/"/g, '""')}"`,
+        `"${(s.phone || '-').replace(/"/g, '""')}"`,
+        `"${(s.internship_places?.name || placeName).replace(/"/g, '""')}"`,
+        `"${todayStatus}"`,
+        `"${jamMasuk}"`,
+        `"${statusMasuk}"`,
+        `"${jamPulang}"`,
+        `"${s.internship_status || 'aktif'}"`,
+      ].join(',')
+    })
+
+    const csvString = '\uFEFF' + [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute(
+      'download',
+      `Laporan_Presensi_${placeName.replace(/[^a-zA-Z0-9]/g, '_')}_${today}.csv`
+    )
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    showToast('Laporan presensi siswa berhasil diunduh (CSV)!', 'success')
+  }
+
+  // Journal Review Handlers
+  const handleOpenJournalReview = (journal: any) => {
+    setSelectedJournalForReview(journal)
+    setReviewRating(journal.mentor_rating || 5)
+    setReviewNotes(journal.mentor_notes || '')
+    setJournalModalOpen(true)
+  }
+
+  const handleSaveJournalReview = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedJournalForReview) return
+    setSubmittingJournalReview(true)
+    try {
+      const res = await fetch(`/api/journals/${selectedJournalForReview.id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rating: reviewRating,
+          notes: reviewNotes,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menyimpan ulasan jurnal')
+
+      showToast('Ulasan dan nilai jurnal berhasil disimpan!', 'success')
+      setJournalModalOpen(false)
+      loadData()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSubmittingJournalReview(false)
+    }
+  }
+
   const pendingPermits = permits.filter((p) => p.status === 'menunggu')
   const onlineCount = students.filter((s) => s.is_online).length
   const hadirCount = students.filter(
@@ -602,67 +726,115 @@ function PembimbingPortalContent() {
           </div>
         )}
 
-        {/* Tool Bar Khusus Pembimbing PKL */}
-        <div className="glass-card p-4 sm:p-5 border border-purple-500/30 bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 text-purple-300 flex items-center justify-center font-bold text-lg shadow-lg shadow-purple-500/20 flex-shrink-0">
-              <UserPlus className="w-6 h-6 text-purple-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-white text-sm sm:text-base">
-                  Tool Pendaftaran & Manajemen Siswa PKL
-                </h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">
-                  Akses Pembimbing
-                </span>
-              </div>
-              <p className="text-xs text-gray-300 mt-0.5">
-                Tambahkan akun siswa baru untuk instansi penugasan PKL Anda, perbarui data, atau reset password login.
-              </p>
-            </div>
-          </div>
+        {/* Navigation Mode Tabs */}
+        <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+          <button
+            onClick={() => setActiveTab('attendance')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'attendance'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25'
+                : 'text-gray-400 hover:text-white hover:bg-white/5 border border-white/5'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Monitoring Presensi & Siswa</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 font-mono">
+              {students.length}
+            </span>
+          </button>
 
           <button
-            onClick={handleOpenCreate}
-            className="btn-primary bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white font-bold text-xs py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-purple-500/30 flex-shrink-0 active:scale-95 transition"
+            onClick={() => setActiveTab('journals')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'journals'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25'
+                : 'text-gray-400 hover:text-white hover:bg-white/5 border border-white/5'
+            }`}
           >
-            <UserPlus className="w-4 h-4" />
-            <span>+ Tambah Siswa Baru</span>
+            <BookOpen className="w-4 h-4" />
+            <span>Jurnal Kegiatan Harian (Logbook)</span>
+            {journals.length > 0 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/30 font-mono">
+                {journals.length}
+              </span>
+            )}
           </button>
         </div>
 
-        {/* Students Table */}
-        <div className="glass-card p-5 border border-white/10 flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-            <div>
-              <h3 className="font-bold text-white text-base">Daftar Siswa Bimbingan</h3>
-              <p className="text-xs text-gray-400">
-                Kelola data akun siswa dan pantau kehadiran presensi di instansi Anda
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-60">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Cari siswa / kelas / tempat..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="input-field text-xs pl-9 w-full"
-                />
+        {/* TAB 1: MONITORING PRESENSI & DATA SISWA */}
+        {activeTab === 'attendance' && (
+          <>
+            {/* Tool Bar Khusus Pembimbing PKL */}
+            <div className="glass-card p-4 sm:p-5 border border-purple-500/30 bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 text-purple-300 flex items-center justify-center font-bold text-lg shadow-lg shadow-purple-500/20 flex-shrink-0">
+                  <UserPlus className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-white text-sm sm:text-base">
+                      Tool Pendaftaran & Manajemen Siswa PKL
+                    </h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">
+                      Akses Pembimbing
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-300 mt-0.5">
+                    Tambahkan akun siswa baru untuk instansi penugasan PKL Anda, perbarui data, atau reset password login.
+                  </p>
+                </div>
               </div>
 
               <button
                 onClick={handleOpenCreate}
-                className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs py-2 px-3.5 flex items-center gap-1.5 font-bold shadow-lg shadow-purple-500/20 whitespace-nowrap flex-shrink-0"
+                className="btn-primary bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white font-bold text-xs py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-purple-500/30 flex-shrink-0 active:scale-95 transition"
               >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>Tambah Siswa</span>
+                <UserPlus className="w-4 h-4" />
+                <span>+ Tambah Siswa Baru</span>
               </button>
             </div>
-          </div>
+
+            {/* Students Table */}
+            <div className="glass-card p-5 border border-white/10 flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                <div>
+                  <h3 className="font-bold text-white text-base">Daftar Siswa Bimbingan</h3>
+                  <p className="text-xs text-gray-400">
+                    Kelola data akun siswa dan pantau kehadiran presensi di instansi Anda
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-60">
+                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Cari siswa / kelas / tempat..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="input-field text-xs pl-9 w-full"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleExportReport}
+                    className="btn-outline border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/15 text-xs py-2 px-3 flex items-center gap-1.5 font-bold shadow-sm whitespace-nowrap flex-shrink-0"
+                    title="Unduh Rekap Presensi Siswa (Format CSV / Excel)"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Export CSV</span>
+                  </button>
+
+                  <button
+                    onClick={handleOpenCreate}
+                    className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs py-2 px-3.5 flex items-center gap-1.5 font-bold shadow-lg shadow-purple-500/20 whitespace-nowrap flex-shrink-0"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Tambah Siswa</span>
+                  </button>
+                </div>
+              </div>
 
           {loading ? (
             <div className="py-12 text-center text-xs text-gray-400">Memuat data siswa...</div>
@@ -821,6 +993,160 @@ function PembimbingPortalContent() {
             </div>
           )}
         </div>
+      </>
+    )}
+
+        {/* TAB 2: JURNAL KEGIATAN HARIAN / LOGBOOK */}
+        {activeTab === 'journals' && (
+          <div className="glass-card p-5 border border-white/10 flex flex-col gap-4 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div>
+                <h3 className="font-bold text-white text-base flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-purple-400" />
+                  <span>Jurnal Kegiatan Harian Siswa (Logbook PKL)</span>
+                </h3>
+                <p className="text-xs text-gray-400">
+                  Periksa laporan aktivitas harian, dokumentasi foto, dan berikan penilaian/paraf pembimbing
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">
+                  Total: <b className="text-white">{journals.length}</b> jurnal masuk
+                </span>
+              </div>
+            </div>
+
+            {journals.length === 0 ? (
+              <div className="py-16 text-center glass-card border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl">
+                  📖
+                </div>
+                <h4 className="font-bold text-white text-sm">Belum Ada Jurnal Kegiatan</h4>
+                <p className="text-xs text-gray-400 max-w-sm">
+                  Siswa bimbingan Anda belum mengirimkan laporan kegiatan harian. Saat siswa mengisi jurnal di dashboard, laporannya akan muncul di sini.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {journals.map((j) => {
+                  const studentName = j.users?.full_name || 'Siswa'
+                  const studentClass = j.users?.class_name || '-'
+                  const isReviewed = !!j.reviewed_at
+
+                  return (
+                    <div
+                      key={j.id}
+                      className="glass-card p-4 border border-white/10 rounded-2xl flex flex-col justify-between gap-3 hover:border-purple-500/40 transition bg-white/[0.02]"
+                    >
+                      <div>
+                        {/* Header card */}
+                        <div className="flex items-start justify-between gap-2 border-b border-white/5 pb-2.5">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold text-xs flex-shrink-0">
+                              {studentName.charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-white text-xs truncate">{studentName}</h4>
+                              <p className="text-[10px] text-gray-400">
+                                {studentClass} • {formatDate(j.date)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase flex-shrink-0 border ${
+                              isReviewed
+                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                            }`}
+                          >
+                            {isReviewed ? 'Sudah Diparaf' : 'Menunggu Paraf'}
+                          </span>
+                        </div>
+
+                        {/* Content */}
+                        <div className="mt-3 space-y-2">
+                          <h5 className="font-bold text-white text-xs line-clamp-1">{j.title}</h5>
+                          <p className="text-xs text-gray-300 whitespace-pre-line line-clamp-4 leading-relaxed">
+                            {j.description}
+                          </p>
+
+                          {j.photo_url && (
+                            <div className="mt-2">
+                              <button
+                                type="button"
+                                onClick={() => setPreviewImage(j.photo_url)}
+                                className="group relative rounded-xl overflow-hidden border border-white/10 block w-full max-h-40 bg-black/40 text-left"
+                              >
+                                <img
+                                  src={j.photo_url}
+                                  alt="Dokumentasi Kegiatan"
+                                  className="w-full h-36 object-cover group-hover:scale-105 transition duration-300"
+                                />
+                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                  <span className="text-[11px] bg-black/75 text-white px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                    <Eye className="w-3 h-3" /> Lihat Foto
+                                  </span>
+                                </div>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Review Section / Notes */}
+                      <div className="mt-2 pt-2.5 border-t border-white/5 space-y-2">
+                        {isReviewed && (
+                          <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs space-y-1">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1 text-amber-400">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-3.5 h-3.5 ${
+                                      star <= (j.mentor_rating || 5)
+                                        ? 'fill-amber-400 text-amber-400'
+                                        : 'text-gray-600'
+                                    }`}
+                                  />
+                                ))}
+                                <span className="text-[11px] font-bold ml-1 text-white">
+                                  {j.mentor_rating || 5}/5
+                                </span>
+                              </div>
+                              <span className="text-[9px] text-purple-300 font-medium">
+                                Diparaf: {j.reviewer?.full_name || 'Pembimbing'}
+                              </span>
+                            </div>
+                            {j.mentor_notes && (
+                              <p className="text-[11px] text-purple-200 italic">
+                                &ldquo;{j.mentor_notes}&rdquo;
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenJournalReview(j)}
+                          className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                            isReviewed
+                              ? 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
+                              : 'btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-md shadow-purple-500/20'
+                          }`}
+                        >
+                          <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                          <span>{isReviewed ? 'Edit Nilai & Paraf' : 'Beri Nilai & Paraf'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Review Modal */}
@@ -1387,6 +1713,96 @@ function PembimbingPortalContent() {
                 {deletingStudent ? 'Menghapus...' : 'Ya, Hapus Siswa'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Journal Modal */}
+      {journalModalOpen && selectedJournalForReview && (
+        <div className="modal-overlay">
+          <div className="glass-card w-full max-w-md p-6 border border-purple-500/30 shadow-2xl animate-fade-in-up">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center font-bold">
+                  ⭐
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Penilaian & Paraf Jurnal PKL</h3>
+                  <p className="text-[10px] text-gray-400">
+                    {selectedJournalForReview.users?.full_name} • {formatDate(selectedJournalForReview.date)}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setJournalModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveJournalReview} className="space-y-4 text-xs">
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                <span className="text-[10px] text-gray-400 block uppercase font-semibold">Kegiatan Siswa:</span>
+                <p className="font-bold text-white text-xs">{selectedJournalForReview.title}</p>
+                <p className="text-gray-300 text-[11px] line-clamp-3">{selectedJournalForReview.description}</p>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 text-xs font-semibold mb-2">
+                  Beri Rating Kinerja Kegiatan (1 - 5 Bintang)
+                </label>
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/10 justify-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className="p-1.5 hover:scale-125 transition active:scale-95"
+                    >
+                      <Star
+                        className={`w-7 h-7 ${
+                          star <= reviewRating
+                            ? 'fill-amber-400 text-amber-400 filter drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                            : 'text-gray-600 hover:text-gray-400'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 text-xs font-semibold mb-1">
+                  Catatan Pembimbing / Masukan Apresiatif
+                </label>
+                <textarea
+                  rows={3}
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  placeholder="Contoh: Kerja bagus, dokumentasi rapi dan tugas terselesaikan tepat waktu..."
+                  className="input-field text-xs resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setJournalModalOpen(false)}
+                  className="btn-outline py-2 px-4"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingJournalReview}
+                  className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-2 px-5 shadow-lg shadow-purple-500/25"
+                >
+                  {submittingJournalReview ? 'Menyimpan...' : 'Simpan Nilai & Paraf'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { isUserSuperadmin } from '@/lib/auth'
 import { getTodayJakarta } from '@/lib/utils'
 
 // GET daily journals
@@ -14,24 +15,51 @@ export async function GET(req: NextRequest) {
     const studentId = url.searchParams.get('studentId')
     const date = url.searchParams.get('date')
 
-    // Check user profile
+    // Check user profile & caller authority
     const { data: profile } = await adminClient
       .from('users')
-      .select('id, role')
+      .select('id, role, internship_place_id')
       .eq('id', user.id)
       .single()
 
-    const isPrivileged = profile?.role === 'superadmin' || profile?.role === 'pembimbing'
+    const isSuperAdmin = await isUserSuperadmin(user, adminClient)
+    const isMentor = profile?.role === 'pembimbing'
 
     let query = adminClient
       .from('daily_journals')
       .select('*, users!daily_journals_user_id_fkey(id, full_name, avatar_url, class_name, major, internship_places(name)), reviewer:reviewed_by(id, full_name)')
       .order('date', { ascending: false })
 
-    if (!isPrivileged) {
+    if (!isSuperAdmin && !isMentor) {
       // Student can only see their own
       query = query.eq('user_id', user.id)
+    } else if (isMentor && !isSuperAdmin) {
+      // Mentor can only see journals of students in their assigned internship place
+      let studentQuery = adminClient.from('users').select('id').eq('role', 'student')
+      if (profile?.internship_place_id) {
+        studentQuery = studentQuery.or(
+          `internship_place_id.eq.${profile.internship_place_id},mentor_id.eq.${user.id}`
+        )
+      } else {
+        studentQuery = studentQuery.eq('mentor_id', user.id)
+      }
+
+      const { data: assignedStudents } = await studentQuery
+      const studentIds = (assignedStudents || []).map((s: any) => s.id)
+      if (studentIds.length === 0) {
+        return NextResponse.json({ journals: [] })
+      }
+
+      if (studentId) {
+        if (!studentIds.includes(studentId)) {
+          return NextResponse.json({ journals: [] })
+        }
+        query = query.eq('user_id', studentId)
+      } else {
+        query = query.in('user_id', studentIds)
+      }
     } else if (studentId) {
+      // Superadmin filtering by specific student
       query = query.eq('user_id', studentId)
     }
 

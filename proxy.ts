@@ -20,11 +20,12 @@ export default async function proxy(req: NextRequest) {
 
   // Protected route groups
   const isAdminRoute = path.startsWith('/admin')
+  const isPembimbingRoute = path.startsWith('/pembimbing')
   const isStudentRoute = path.startsWith('/dashboard')
   const isOnboardingRoute = path.startsWith('/onboarding')
 
   // Not authenticated, trying to access protected route
-  if (!user && (isAdminRoute || isStudentRoute || isOnboardingRoute)) {
+  if (!user && (isAdminRoute || isPembimbingRoute || isStudentRoute || isOnboardingRoute)) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
@@ -67,12 +68,12 @@ export default async function proxy(req: NextRequest) {
     }
 
     // Account not in our system
-    if (!profile && (isAdminRoute || isStudentRoute || isOnboardingRoute)) {
+    if (!profile && (isAdminRoute || isPembimbingRoute || isStudentRoute || isOnboardingRoute)) {
       return NextResponse.redirect(new URL('/login?error=not_registered', req.url))
     }
 
     // Account is inactive
-    if (profile && !profile.is_active && (isAdminRoute || isStudentRoute || isOnboardingRoute)) {
+    if (profile && !profile.is_active && (isAdminRoute || isPembimbingRoute || isStudentRoute || isOnboardingRoute)) {
       return NextResponse.redirect(new URL('/login?error=inactive', req.url))
     }
 
@@ -97,8 +98,8 @@ export default async function proxy(req: NextRequest) {
       const isBiodataIncomplete =
         !profile.class_name || !profile.major || !profile.phone || !profile.internship_place_id
 
-      // Student trying to access admin
-      if (isAdminRoute) {
+      // Student trying to access admin or pembimbing portal
+      if (isAdminRoute || isPembimbingRoute) {
         return NextResponse.redirect(new URL('/dashboard', req.url))
       }
 
