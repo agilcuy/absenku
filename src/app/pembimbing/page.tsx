@@ -406,6 +406,16 @@ function PembimbingPortalContent() {
             </Link>
           )}
 
+          {/* Tombol Tambah Siswa di Topbar */}
+          <button
+            onClick={handleOpenCreate}
+            className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs py-1.5 px-3 rounded-xl flex items-center gap-1.5 font-bold shadow-md shadow-purple-500/20 whitespace-nowrap"
+            title="Daftarkan Siswa PKL Baru"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">+ Tambah Siswa</span>
+          </button>
+
           <NotificationCenter />
           <button
             onClick={handleSignOut}
@@ -448,19 +458,30 @@ function PembimbingPortalContent() {
             </div>
           </div>
 
-          <button
-            onClick={async () => {
-              setRefreshing(true)
-              await loadData()
-              showToast('Data bimbingan berhasil diperbarui!', 'success')
-            }}
-            disabled={refreshing}
-            className="btn-outline text-xs py-2 px-3.5 flex items-center gap-1.5 self-start sm:self-auto border-purple-500/30 hover:bg-purple-500/15"
-            title="Perbarui data bimbingan"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-purple-400' : 'text-gray-400'}`} />
-            <span>{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <button
+              onClick={handleOpenCreate}
+              className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs py-2 px-3.5 flex items-center gap-1.5 font-bold shadow-lg shadow-purple-500/20"
+              title="Daftarkan Siswa PKL Baru"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Tambah Siswa Baru</span>
+            </button>
+
+            <button
+              onClick={async () => {
+                setRefreshing(true)
+                await loadData()
+                showToast('Data bimbingan berhasil diperbarui!', 'success')
+              }}
+              disabled={refreshing}
+              className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 border-purple-500/30 hover:bg-purple-500/15"
+              title="Perbarui data bimbingan"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-purple-400' : 'text-gray-400'}`} />
+              <span className="hidden sm:inline">{refreshing ? 'Memperbarui...' : 'Perbarui'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -567,6 +588,36 @@ function PembimbingPortalContent() {
           </div>
         )}
 
+        {/* Tool Bar Khusus Pembimbing PKL */}
+        <div className="glass-card p-4 sm:p-5 border border-purple-500/30 bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 text-purple-300 flex items-center justify-center font-bold text-lg shadow-lg shadow-purple-500/20 flex-shrink-0">
+              <UserPlus className="w-6 h-6 text-purple-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-white text-sm sm:text-base">
+                  Tool Pendaftaran & Manajemen Siswa PKL
+                </h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">
+                  Akses Pembimbing
+                </span>
+              </div>
+              <p className="text-xs text-gray-300 mt-0.5">
+                Tambahkan akun siswa baru untuk instansi penugasan PKL Anda, perbarui data, atau reset password login.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleOpenCreate}
+            className="btn-primary bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white font-bold text-xs py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-purple-500/30 flex-shrink-0 active:scale-95 transition"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>+ Tambah Siswa Baru</span>
+          </button>
+        </div>
+
         {/* Students Table */}
         <div className="glass-card p-5 border border-white/10 flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
@@ -602,8 +653,27 @@ function PembimbingPortalContent() {
           {loading ? (
             <div className="py-12 text-center text-xs text-gray-400">Memuat data siswa...</div>
           ) : filteredStudents.length === 0 ? (
-            <div className="py-12 text-center text-xs text-gray-500">
-              Belum ada siswa yang ditugaskan ke bimbingan Anda.
+            <div className="py-12 px-4 text-center glass-card border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-purple-500/15 border border-purple-500/25 text-purple-300 flex items-center justify-center">
+                <Users className="w-7 h-7 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-base font-bold text-white">Belum Ada Siswa Bimbingan</p>
+                <p className="text-xs text-gray-400 max-w-sm mt-1">
+                  {search
+                    ? 'Tidak ditemukan siswa yang sesuai dengan filter pencarian.'
+                    : 'Mulai daftarkan siswa PKL untuk instansi penugasan bimbingan Anda sekarang.'}
+                </p>
+              </div>
+              {!search && (
+                <button
+                  onClick={handleOpenCreate}
+                  className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs py-2.5 px-5 flex items-center gap-2 font-bold rounded-xl shadow-lg shadow-purple-500/25 mt-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>+ Tambah Siswa PKL Sekarang</span>
+                </button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">

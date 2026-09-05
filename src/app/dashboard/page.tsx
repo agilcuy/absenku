@@ -658,31 +658,35 @@ function StudentDashboardContent() {
               />
             )}
 
-            {/* Topologi & Tupoksi Link Card */}
-            <Link
-              href="/dashboard/structure"
-              className="glass-card p-4 rounded-2xl border border-indigo-500/20 hover:border-indigo-500/40 bg-gradient-to-br from-indigo-500/[0.04] to-cyan-500/[0.02] transition flex items-center justify-between group shadow-sm hover:shadow-indigo-500/10"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-400 flex items-center justify-center font-bold group-hover:scale-105 transition">
-                  <Network className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-xs font-bold text-white group-hover:text-indigo-300 transition">
-                      Topologi Jabatan & Tupoksi
-                    </h4>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">
-                      SOP Teknis
-                    </span>
+            {/* Topologi & Tupoksi Link Card (Khusus instansi penugasan teknis terkait atau superadmin) */}
+            {((userProfile?.internship_places?.name || '').toLowerCase().includes('kominfo') ||
+              (userProfile?.internship_places?.name || '').toLowerCase().includes('egov') ||
+              userProfile?.role === 'superadmin') && (
+              <Link
+                href="/dashboard/structure"
+                className="glass-card p-4 rounded-2xl border border-indigo-500/20 hover:border-indigo-500/40 bg-gradient-to-br from-indigo-500/[0.04] to-cyan-500/[0.02] transition flex items-center justify-between group shadow-sm hover:shadow-indigo-500/10"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-400 flex items-center justify-center font-bold group-hover:scale-105 transition">
+                    <Network className="w-5 h-5" />
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-0.5">
-                    Hierarki tim, Rafi Agil (PJ) & Teknisi PKL (Tiyas & Silvi)
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-white group-hover:text-indigo-300 transition">
+                        Topologi Jabatan & Tupoksi
+                      </h4>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">
+                        SOP Teknis
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      Hierarki tim teknis jaringan & alur eskalasi penanganan gangguan
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition" />
-            </Link>
+                <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition" />
+              </Link>
+            )}
 
             {/* Jurnal Kegiatan Harian PKL Link Card */}
             <Link
