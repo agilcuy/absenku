@@ -20,7 +20,7 @@ import {
   isCheckInAllowed,
   isCheckOutAllowed,
 } from '@/lib/utils'
-import { calculateDistanceMeters, DEFAULT_OFFICE_COORDS } from '@/lib/geo'
+import { calculateDistanceMeters, DEFAULT_OFFICE_COORDS, getPlaceCoordinates } from '@/lib/geo'
 import {
   Clock,
   MapPin,
@@ -224,10 +224,11 @@ function StudentDashboardContent() {
 
     if (isStudent) {
       const place = userProfile?.internship_places || null
-      const placeLat = place?.latitude || DEFAULT_OFFICE_COORDS.lat
-      const placeLng = place?.longitude || DEFAULT_OFFICE_COORDS.lng
-      const placeRadius = place?.radius_meters || DEFAULT_OFFICE_COORDS.radiusMeters
-      const placeName = place?.name || DEFAULT_OFFICE_COORDS.name
+      const resolved = getPlaceCoordinates(place)
+      const placeLat = resolved?.lat ?? (place?.latitude || DEFAULT_OFFICE_COORDS.lat)
+      const placeLng = resolved?.lng ?? (place?.longitude || DEFAULT_OFFICE_COORDS.lng)
+      const placeRadius = resolved?.radiusMeters ?? (place?.radius_meters || DEFAULT_OFFICE_COORDS.radiusMeters)
+      const placeName = resolved?.name || place?.name || DEFAULT_OFFICE_COORDS.name
 
       const distance = calculateDistanceMeters(coords.lat, coords.lng, placeLat, placeLng)
       if (distance > placeRadius) {
@@ -612,16 +613,27 @@ function StudentDashboardContent() {
             {/* GPS Sensor & Geofencing Badge */}
             <GpsLocationBadge
               onLocationFound={(found) => setCoords(found)}
-              targetCoords={
-                userProfile?.internship_places?.latitude && userProfile?.internship_places?.longitude
-                  ? {
-                      lat: Number(userProfile.internship_places.latitude),
-                      lng: Number(userProfile.internship_places.longitude),
-                      radiusMeters: userProfile.internship_places.radius_meters ? Number(userProfile.internship_places.radius_meters) : 200,
-                      name: userProfile.internship_places.name || 'Tempat PKL',
-                    }
-                  : null
-              }
+              targetCoords={(() => {
+                const place = userProfile?.internship_places || null
+                const resolved = getPlaceCoordinates(place)
+                if (resolved) {
+                  return {
+                    lat: resolved.lat,
+                    lng: resolved.lng,
+                    radiusMeters: resolved.radiusMeters,
+                    name: resolved.name,
+                  }
+                }
+                if (place?.latitude && place?.longitude) {
+                  return {
+                    lat: Number(place.latitude),
+                    lng: Number(place.longitude),
+                    radiusMeters: place.radius_meters ? Number(place.radius_meters) : 200,
+                    name: place.name || 'Tempat PKL',
+                  }
+                }
+                return null
+              })()}
             />
           </div>
 

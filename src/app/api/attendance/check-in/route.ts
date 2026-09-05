@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getTodayJakarta, getNowJakarta, getAttendanceStatus, isWorkingDay, isCheckInAllowed } from '@/lib/utils'
-import { getAddressFromCoords, calculateDistanceMeters, DEFAULT_OFFICE_COORDS } from '@/lib/geo'
+import { getAddressFromCoords, calculateDistanceMeters, DEFAULT_OFFICE_COORDS, getPlaceCoordinates } from '@/lib/geo'
 
 export async function POST(req: NextRequest) {
   try {
@@ -137,10 +137,11 @@ export async function POST(req: NextRequest) {
 
     // Geofencing calculation strictly against student's assigned internship place
     const place = (userProfile as any)?.internship_places || null
-    const placeLat = place?.latitude !== undefined && place?.latitude !== null ? Number(place.latitude) : null
-    const placeLng = place?.longitude !== undefined && place?.longitude !== null ? Number(place.longitude) : null
-    const placeRadius = place?.radius_meters ? Number(place.radius_meters) : 200
-    const placeName = place?.name || 'Tempat Penugasan PKL'
+    const resolvedCoords = getPlaceCoordinates(place)
+    const placeLat = resolvedCoords?.lat ?? (place?.latitude !== undefined && place?.latitude !== null ? Number(place.latitude) : null)
+    const placeLng = resolvedCoords?.lng ?? (place?.longitude !== undefined && place?.longitude !== null ? Number(place.longitude) : null)
+    const placeRadius = resolvedCoords?.radiusMeters ?? (place?.radius_meters ? Number(place.radius_meters) : 200)
+    const placeName = resolvedCoords?.name || place?.name || 'Tempat Penugasan PKL'
 
     let distanceMeters: number | null = null
     let isWithinRadius: boolean = true

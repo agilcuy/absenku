@@ -24,6 +24,15 @@ set
 where (name ilike '%kominfo%' or name = 'Kominfo Tanggamus (egov)')
   and (latitude is null or latitude = 0);
 
+-- Perbarui titik koordinat resmi GEN-Z TECH (DeryGarage X Gen z Code di Bernung)
+update public.internship_places
+set 
+  latitude = -5.3647154,
+  longitude = 105.1655531,
+  radius_meters = 200,
+  address = 'DeryGarage X Gen z Code, Bernung'
+where (name ilike '%gen-z%' or name ilike '%gen z%');
+
 -- ============================================================
 -- BAGIAN 2: JURNAL KEGIATAN HARIAN PKL (LOGBOOK)
 -- ============================================================

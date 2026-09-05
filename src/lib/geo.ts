@@ -6,6 +6,64 @@ export const DEFAULT_OFFICE_COORDS = {
   name: 'Lokasi PKL',
 }
 
+export interface PlaceCoords {
+  lat: number
+  lng: number
+  radiusMeters: number
+  name: string
+}
+
+// Known verified coordinates for internship places
+export const KNOWN_PLACE_COORDS: Record<string, PlaceCoords> = {
+  'gen-z': {
+    lat: -5.3647154,
+    lng: 105.1655531,
+    radiusMeters: 200,
+    name: 'GEN-Z TECH (DeryGarage X Gen z Code)',
+  },
+  'kominfo': {
+    lat: -5.4988,
+    lng: 104.7088,
+    radiusMeters: 200,
+    name: 'Kominfo Tanggamus (egov)',
+  },
+}
+
+/**
+ * Resolves place coordinates from database record or known verified fallback dictionary
+ */
+export function getPlaceCoordinates(place: any): PlaceCoords | null {
+  if (!place) return null
+
+  // 1. If coordinates configured in database columns
+  if (
+    place.latitude !== undefined &&
+    place.latitude !== null &&
+    place.longitude !== undefined &&
+    place.longitude !== null &&
+    Number(place.latitude) !== 0 &&
+    !isNaN(Number(place.latitude))
+  ) {
+    return {
+      lat: Number(place.latitude),
+      lng: Number(place.longitude),
+      radiusMeters: place.radius_meters ? Number(place.radius_meters) : 200,
+      name: place.name || 'Tempat PKL',
+    }
+  }
+
+  // 2. Fallback matching by name
+  const lowerName = (place.name || '').toLowerCase()
+  if (lowerName.includes('gen-z') || lowerName.includes('gen z')) {
+    return KNOWN_PLACE_COORDS['gen-z']
+  }
+  if (lowerName.includes('kominfo')) {
+    return KNOWN_PLACE_COORDS['kominfo']
+  }
+
+  return null
+}
+
 // Calculate distance between two coordinates in meters using Haversine formula
 export function calculateDistanceMeters(
   lat1: number,
