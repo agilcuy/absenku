@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isUserSuperadmin } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { getPlaceCoordinates } from '@/lib/geo'
 
 // GET detail of an internship place including assigned students
 export async function GET(
@@ -24,7 +25,15 @@ export async function GET(
 
     if (error) throw error
 
-    return NextResponse.json({ place })
+    const resolved = getPlaceCoordinates(place)
+    const formattedPlace = {
+      ...place,
+      latitude: place?.latitude !== undefined && place?.latitude !== null && Number(place.latitude) !== 0 ? place.latitude : resolved?.lat,
+      longitude: place?.longitude !== undefined && place?.longitude !== null && Number(place.longitude) !== 0 ? place.longitude : resolved?.lng,
+      radius_meters: place?.radius_meters !== undefined && place?.radius_meters !== null && Number(place.radius_meters) !== 0 ? place.radius_meters : (resolved?.radiusMeters || 200),
+    }
+
+    return NextResponse.json({ place: formattedPlace })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

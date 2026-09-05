@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isUserSuperadmin } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { getPlaceCoordinates } from '@/lib/geo'
 
 // GET all internship places with student count
 export async function GET() {
@@ -32,6 +33,7 @@ export async function GET() {
       const allUsers = p.users || []
       const assignedMentors = allUsers.filter((u: any) => u.role === 'pembimbing' || u.role === 'superadmin')
       const students = allUsers.filter((u: any) => u.role === 'student')
+      const resolved = getPlaceCoordinates(p)
 
       return {
         id: p.id,
@@ -40,9 +42,9 @@ export async function GET() {
         phone: p.phone,
         pic_name: p.pic_name,
         pic_phone: p.pic_phone,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        radius_meters: p.radius_meters,
+        latitude: p.latitude !== undefined && p.latitude !== null && Number(p.latitude) !== 0 ? p.latitude : resolved?.lat,
+        longitude: p.longitude !== undefined && p.longitude !== null && Number(p.longitude) !== 0 ? p.longitude : resolved?.lng,
+        radius_meters: p.radius_meters !== undefined && p.radius_meters !== null && Number(p.radius_meters) !== 0 ? p.radius_meters : (resolved?.radiusMeters || 200),
         created_at: p.created_at,
         students_count: students.length,
         mentors: assignedMentors,

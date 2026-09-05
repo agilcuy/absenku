@@ -16,9 +16,11 @@ import {
   Code,
   RefreshCw,
   GraduationCap,
+  Compass,
 } from 'lucide-react'
 import { useToast, ToastProvider } from '@/components/Toast'
 import { cachedFetch, invalidateCache } from '@/lib/apiCache'
+import { getPlaceCoordinates } from '@/lib/geo'
 
 function PlacesPageContent() {
   const { showToast } = useToast()
@@ -26,6 +28,7 @@ function PlacesPageContent() {
   const [mentors, setMentors] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [needsMigration, setNeedsMigration] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -127,16 +130,32 @@ function PlacesPageContent() {
 
   const handleOpenEdit = (place: any) => {
     setEditingPlace(place)
+    const resolved = getPlaceCoordinates(place)
     setFormData({
       name: place.name,
-      address: place.address || '',
+      address: place.address || (resolved?.name && resolved.name.includes('Bernung') ? 'DeryGarage X Gen z Code, Bernung' : ''),
       phone: place.phone || '',
       pic_name: place.pic_name || '',
       pic_phone: place.pic_phone || '',
       mentor_id: place.mentor_id || place.mentors?.[0]?.id || '',
-      latitude: place.latitude !== undefined && place.latitude !== null ? String(place.latitude) : '-5.498800',
-      longitude: place.longitude !== undefined && place.longitude !== null ? String(place.longitude) : '104.708800',
-      radius_meters: place.radius_meters !== undefined && place.radius_meters !== null ? String(place.radius_meters) : '200',
+      latitude:
+        place.latitude !== undefined && place.latitude !== null && Number(place.latitude) !== 0
+          ? String(place.latitude)
+          : resolved
+          ? String(resolved.lat)
+          : '-5.498800',
+      longitude:
+        place.longitude !== undefined && place.longitude !== null && Number(place.longitude) !== 0
+          ? String(place.longitude)
+          : resolved
+          ? String(resolved.lng)
+          : '104.708800',
+      radius_meters:
+        place.radius_meters !== undefined && place.radius_meters !== null && Number(place.radius_meters) !== 0
+          ? String(place.radius_meters)
+          : resolved
+          ? String(resolved.radiusMeters)
+          : '200',
     })
     setModalOpen(true)
   }
@@ -203,6 +222,23 @@ function PlacesPageContent() {
     }
   }
 
+  const handleSyncCoordinates = async () => {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/internship-places/sync', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menyinkronkan koordinat')
+
+      showToast(json.message || 'Titik koordinat berhasil disinkronkan!', 'success')
+      invalidateCache('/api/internship-places')
+      loadPlaces(true)
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   const filtered = places.filter((p) => {
     const q = search.toLowerCase()
     return (
@@ -228,6 +264,16 @@ function PlacesPageContent() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+          <button
+            onClick={handleSyncCoordinates}
+            disabled={syncing}
+            className="btn-outline text-xs py-2.5 px-3.5 flex items-center gap-1.5 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-bold shadow-sm"
+            title="Sinkronkan titik koordinat resmi GPS dan radius per tempat PKL"
+          >
+            <Compass className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-emerald-400' : 'text-emerald-400'}`} />
+            <span>{syncing ? 'Menyinkronkan...' : 'Sinkronkan Koordinat'}</span>
+          </button>
+
           <button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -359,17 +405,29 @@ function PlacesPageContent() {
                   </div>
 
                   {/* Geofencing Coordinates Tag */}
-                  <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-                    <span className="flex items-center gap-1 truncate">
-                      <MapPin className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                      {place.latitude && place.longitude
-                        ? `${Number(place.latitude).toFixed(4)}, ${Number(place.longitude).toFixed(4)}`
-                        : '-5.4988, 104.7088'}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
-                      R: {place.radius_meters || 200}m
-                    </span>
-                  </div>
+                  {(() => {
+                    const resolved = getPlaceCoordinates(place)
+                    const lat =
+                      place.latitude && Number(place.latitude) !== 0 ? Number(place.latitude) : resolved?.lat
+                    const lng =
+                      place.longitude && Number(place.longitude) !== 0 ? Number(place.longitude) : resolved?.lng
+                    const radius = place.radius_meters || resolved?.radiusMeters || 200
+
+                    return (
+                      <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-400 font-mono">
+                        <span
+                          className="flex items-center gap-1 truncate"
+                          title={lat && lng ? `Titik koordinat: ${lat}, ${lng}` : 'Koordinat default'}
+                        >
+                          <MapPin className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                          {lat && lng ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : '-5.4988, 104.7088'}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+                          R: {radius}m
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
 

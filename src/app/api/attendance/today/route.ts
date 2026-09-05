@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getTodayJakarta, getNowJakarta, isWorkingDay } from '@/lib/utils'
+import { getPlaceCoordinates } from '@/lib/geo'
 
 export async function GET() {
   const supabase = await createClient()
@@ -57,6 +58,19 @@ export async function GET() {
       .maybeSingle()
     if (placeMentor) {
       userProfile.mentor = placeMentor
+    }
+  }
+
+  // Enrich userProfile.internship_places with synchronized coordinates
+  if (userProfile?.internship_places) {
+    const resolved = getPlaceCoordinates(userProfile.internship_places)
+    if (resolved) {
+      userProfile.internship_places = {
+        ...userProfile.internship_places,
+        latitude: userProfile.internship_places.latitude ?? resolved.lat,
+        longitude: userProfile.internship_places.longitude ?? resolved.lng,
+        radius_meters: userProfile.internship_places.radius_meters ?? resolved.radiusMeters,
+      }
     }
   }
 

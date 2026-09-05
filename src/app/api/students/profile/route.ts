@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logAudit } from '@/lib/audit'
+import { getPlaceCoordinates } from '@/lib/geo'
 
 // GET current student's own profile and available options
 export async function GET() {
@@ -58,6 +59,19 @@ export async function GET() {
         .maybeSingle()
       if (placeMentor) {
         profile.mentor = placeMentor
+      }
+    }
+
+    // Enrich profile.internship_places with synchronized coordinates
+    if (profile?.internship_places) {
+      const resolved = getPlaceCoordinates(profile.internship_places)
+      if (resolved) {
+        profile.internship_places = {
+          ...profile.internship_places,
+          latitude: profile.internship_places.latitude ?? resolved.lat,
+          longitude: profile.internship_places.longitude ?? resolved.lng,
+          radius_meters: profile.internship_places.radius_meters ?? resolved.radiusMeters,
+        }
       }
     }
 
