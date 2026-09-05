@@ -141,12 +141,45 @@ export default function CameraCaptureModal({
   const [galleryError, setGalleryError] = useState<string | null>(null)
   const [processingImage, setProcessingImage] = useState(false)
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
-  const [isMirrored, setIsMirrored] = useState(false) // Default false: Strictly Anti-Mirror (Normal orientation)
+  const [isMirrored, setIsMirrored] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('absenku_camera_mirror')
+      if (saved !== null) return saved === 'true'
+    }
+    // Default true: Kamera depan smartphone memerlukan pembalik horizontal agar tidak terbalik
+    return true
+  })
   const [streamActive, setStreamActive] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const rawFrameCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Toggle mirror orientation and persist to localStorage
+  const toggleMirror = () => {
+    setIsMirrored((prev) => {
+      const next = !prev
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('absenku_camera_mirror', String(next))
+      }
+      return next
+    })
+  }
+
+  // Toggle front/back camera
+  const toggleFacingMode = () => {
+    setFacingMode((prev) => {
+      const nextMode = prev === 'user' ? 'environment' : 'user'
+      if (nextMode === 'environment') {
+        setIsMirrored(false)
+      } else {
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('absenku_camera_mirror') : null
+        setIsMirrored(saved !== null ? saved === 'true' : true)
+      }
+      return nextMode
+    })
+  }
 
   // Start camera stream
   const startCamera = async () => {
@@ -215,21 +248,33 @@ export default function CameraCaptureModal({
 
     const width = video.videoWidth || 640
     const height = video.videoHeight || 480
+
+    // 1. Render raw frame to offscreen rawFrameCanvasRef (unwatermarked)
+    const rawCanvas = document.createElement('canvas')
+    rawCanvas.width = width
+    rawCanvas.height = height
+    const rawCtx = rawCanvas.getContext('2d')
+    if (!rawCtx) return
+
+    if (isMirrored) {
+      rawCtx.save()
+      rawCtx.translate(width, 0)
+      rawCtx.scale(-1, 1)
+      rawCtx.drawImage(video, 0, 0, width, height)
+      rawCtx.restore()
+    } else {
+      rawCtx.drawImage(video, 0, 0, width, height)
+    }
+
+    rawFrameCanvasRef.current = rawCanvas
+
+    // 2. Render to final canvas and apply tamper-proof watermark
     canvas.width = width
     canvas.height = height
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Draw video frame according to mirror setting (default: normal / anti-mirror)
-    if (isMirrored) {
-      ctx.save()
-      ctx.translate(width, 0)
-      ctx.scale(-1, 1)
-      ctx.drawImage(video, 0, 0, width, height)
-      ctx.restore()
-    } else {
-      ctx.drawImage(video, 0, 0, width, height)
-    }
+    ctx.drawImage(rawCanvas, 0, 0)
 
     // Anti-tamper: Check brightness before applying watermark to prevent black / covered-lens photos
     try {
@@ -275,6 +320,72 @@ export default function CameraCaptureModal({
     )
   }
 
+  // Instant flip tool for preview screen (flips photo horizontally while keeping watermark upright)
+  const handleFlipPreview = () => {
+    if (!rawFrameCanvasRef.current) {
+      // Fallback for gallery upload
+      if (previewUrl) {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          const c = document.createElement('canvas')
+          c.width = img.naturalWidth || img.width
+          c.height = img.naturalHeight || img.height
+          const ctx = c.getContext('2d')
+          if (!ctx) return
+          ctx.translate(c.width, 0)
+          ctx.scale(-1, 1)
+          ctx.drawImage(img, 0, 0)
+          c.toBlob((blob) => {
+            if (!blob) return
+            const file = new File([blob], `absensi-flipped-${Date.now()}.jpg`, { type: 'image/jpeg' })
+            setSelectedFile(file)
+            setPreviewUrl(URL.createObjectURL(blob))
+          }, 'image/jpeg', 0.88)
+        }
+        img.src = previewUrl
+      }
+      return
+    }
+
+    const prevRaw = rawFrameCanvasRef.current
+    const width = prevRaw.width
+    const height = prevRaw.height
+
+    // 1. Flip raw canvas horizontally
+    const newRaw = document.createElement('canvas')
+    newRaw.width = width
+    newRaw.height = height
+    const newRawCtx = newRaw.getContext('2d')
+    if (!newRawCtx) return
+
+    newRawCtx.translate(width, 0)
+    newRawCtx.scale(-1, 1)
+    newRawCtx.drawImage(prevRaw, 0, 0)
+    rawFrameCanvasRef.current = newRaw
+
+    // 2. Recreate final canvas with upright watermark
+    const finalCanvas = document.createElement('canvas')
+    finalCanvas.width = width
+    finalCanvas.height = height
+    const finalCtx = finalCanvas.getContext('2d')
+    if (!finalCtx) return
+
+    finalCtx.drawImage(newRaw, 0, 0)
+    applyWatermark(finalCanvas, watermarkData)
+
+    finalCanvas.toBlob(
+      (blob) => {
+        if (!blob) return
+        const file = new File([blob], `absensi-flipped-${Date.now()}.jpg`, { type: 'image/jpeg' })
+        setSelectedFile(file)
+        setPreviewUrl(URL.createObjectURL(blob))
+      },
+      'image/jpeg',
+      0.88
+    )
+  }
+
   // Handle gallery file selection with client-side compression (if allowed)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setGalleryError(null)
@@ -308,6 +419,7 @@ export default function CameraCaptureModal({
     setSelectedFile(null)
     setGalleryError(null)
     setCameraError(null)
+    rawFrameCanvasRef.current = null
     if (mode === 'camera') {
       startCamera()
     }
@@ -327,6 +439,7 @@ export default function CameraCaptureModal({
     setSelectedFile(null)
     setGalleryError(null)
     setCameraError(null)
+    rawFrameCanvasRef.current = null
     onClose()
   }
 
@@ -426,7 +539,21 @@ export default function CameraCaptureModal({
                   <Check className="w-3.5 h-3.5" /> Terstempel Digital
                 </div>
               </div>
-              <p className="text-xs text-gray-400 mt-3 text-center">
+
+              {/* Instant Flip Button on Preview */}
+              <div className="w-full max-w-sm mt-3 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={handleFlipPreview}
+                  disabled={loading}
+                  className="w-full py-2.5 px-4 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-98 shadow-md"
+                >
+                  <FlipHorizontal className="w-4 h-4 text-indigo-400" />
+                  <span>Foto Terbalik? <b>Klik di Sini untuk Balikkan Foto</b></span>
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-400 mt-2 text-center">
                 Pastikan wajah Anda terlihat jelas dengan stempel data kehadiran sebelum konfirmasi.
               </p>
             </div>
@@ -463,36 +590,38 @@ export default function CameraCaptureModal({
                       autoPlay
                       playsInline
                       muted
-                      className={`w-full h-full object-cover transition-transform duration-150 ${
-                        isMirrored ? '-scale-x-100' : 'scale-x-100'
-                      }`}
+                      style={{ transform: isMirrored ? 'scaleX(-1)' : 'scaleX(1)' }}
+                      className="w-full h-full object-cover transition-transform duration-150"
                     />
                     <canvas ref={canvasRef} className="hidden" />
 
-                    {/* Top Left: Anti-Mirror Status Indicator */}
-                    <div className="absolute top-3 left-3 bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300">
-                      <span className={`w-1.5 h-1.5 rounded-full ${isMirrored ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
-                      <span>{isMirrored ? 'Mode Mirror' : 'Normal (Anti-Mirror)'}</span>
-                    </div>
+                    {/* Top Left: Anti-Mirror Status Indicator (Clickable) */}
+                    <button
+                      type="button"
+                      onClick={toggleMirror}
+                      className="absolute top-3 left-3 bg-black/70 hover:bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 flex items-center gap-1.5 text-[10px] font-semibold text-white transition active:scale-95"
+                      title="Klik untuk membalik posisi kamera"
+                    >
+                      <span className={`w-2 h-2 rounded-full ${isMirrored ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                      <span>{isMirrored ? 'Dibalik (Anti-Mirror)' : 'Normal'}</span>
+                    </button>
 
                     {/* Top Right Controls: Toggle Mirror & Rotate Camera */}
                     <div className="absolute top-3 right-3 flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setIsMirrored((prev) => !prev)}
-                        title={isMirrored ? 'Ubah ke Mode Normal (Anti-Mirror)' : 'Ubah ke Mode Mirror'}
-                        className="bg-black/65 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md border border-white/20 transition flex items-center justify-center active:scale-95"
+                        onClick={toggleMirror}
+                        title={isMirrored ? 'Balikkan Tampilan Kamera' : 'Balikkan Tampilan Kamera'}
+                        className="bg-black/70 hover:bg-black/90 text-white p-2 rounded-full backdrop-blur-md border border-white/20 transition flex items-center justify-center active:scale-95 shadow-lg"
                       >
-                        <FlipHorizontal className={`w-4 h-4 ${isMirrored ? 'text-amber-400' : 'text-emerald-400'}`} />
+                        <FlipHorizontal className={`w-4 h-4 ${isMirrored ? 'text-emerald-400' : 'text-amber-400'}`} />
                       </button>
 
                       <button
                         type="button"
-                        onClick={() =>
-                          setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'))
-                        }
+                        onClick={toggleFacingMode}
                         title="Putar Kamera Depan/Belakang"
-                        className="bg-black/65 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md border border-white/20 transition flex items-center justify-center active:scale-95"
+                        className="bg-black/70 hover:bg-black/90 text-white p-2 rounded-full backdrop-blur-md border border-white/20 transition flex items-center justify-center active:scale-95 shadow-lg"
                       >
                         <RotateCw className="w-4 h-4" />
                       </button>
@@ -504,22 +633,29 @@ export default function CameraCaptureModal({
                     </div>
                   </div>
 
-                  {/* Sub-camera Bar: Mirror status & info */}
-                  <div className="flex items-center justify-between w-full max-w-sm px-2 mt-2 text-[11px] text-gray-400">
+                  {/* Sub-camera Bar: Mirror status & Quick Action */}
+                  <div className="flex items-center justify-between w-full max-w-sm px-1 mt-2.5 gap-2">
                     <button
                       type="button"
-                      onClick={() => setIsMirrored((prev) => !prev)}
-                      className="hover:text-white flex items-center gap-1.5 transition active:scale-95 py-1 px-2 rounded-lg bg-white/[0.03] border border-white/10"
+                      onClick={toggleMirror}
+                      className="flex-1 py-2 px-3 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/25 text-xs text-white flex items-center justify-center gap-2 transition active:scale-95 shadow-sm"
+                      title="Klik untuk membalik tampilan horisontal kamera"
                     >
-                      <FlipHorizontal className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>
-                        Arah Swafoto:{' '}
-                        <b className={isMirrored ? 'text-amber-400' : 'text-emerald-400'}>
-                          {isMirrored ? 'Mirror' : 'Normal (Anti-Mirror)'}
-                        </b>
+                      <FlipHorizontal className={`w-4 h-4 ${isMirrored ? 'text-emerald-400' : 'text-amber-400'}`} />
+                      <span className="font-medium text-[11px]">
+                        Arah Kamera: <strong className={isMirrored ? 'text-emerald-300' : 'text-amber-300'}>{isMirrored ? 'Dibalik (Anti-Mirror)' : 'Normal'}</strong>
                       </span>
                     </button>
-                    <span className="text-[10px] text-gray-500">Stempel Otomatis</span>
+
+                    <button
+                      type="button"
+                      onClick={toggleFacingMode}
+                      className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 hover:text-white flex items-center gap-1.5 transition active:scale-95 shadow-sm"
+                      title="Ganti kamera depan atau belakang"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" />
+                      <span className="text-[11px] font-medium">{facingMode === 'user' ? 'Depan' : 'Belakang'}</span>
+                    </button>
                   </div>
                 </>
               )}
@@ -573,15 +709,25 @@ export default function CameraCaptureModal({
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="p-4 border-t border-white/10 flex items-center justify-between gap-3 bg-black/40">
+        <div className="p-4 border-t border-white/10 flex items-center justify-between gap-2.5 bg-black/40">
           {previewUrl ? (
-            <>
+            <div className="flex items-center gap-2 w-full">
               <button
                 onClick={handleRetake}
                 disabled={loading}
-                className="btn-outline text-xs flex-1 py-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="btn-outline text-xs py-3 px-3.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Foto Ulang
+              </button>
+              <button
+                type="button"
+                onClick={handleFlipPreview}
+                disabled={loading}
+                className="btn-outline text-xs py-3 px-3 flex items-center justify-center gap-1.5 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 transition"
+                title="Balikkan foto secara horisontal"
+              >
+                <FlipHorizontal className="w-4 h-4" />
+                <span>Balik Foto</span>
               </button>
               <button
                 onClick={handleConfirm}
@@ -600,11 +746,11 @@ export default function CameraCaptureModal({
                   'Gunakan Foto Ini'
                 )}
               </button>
-            </>
+            </div>
           ) : mode === 'camera' && streamActive ? (
             <button
               onClick={handleCapture}
-              className="w-full btn-primary py-3 justify-center text-sm font-bold flex items-center gap-2"
+              className="w-full btn-primary py-3 justify-center text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/30"
             >
               <Camera className="w-5 h-5" /> Ambil Foto Sekarang
             </button>
