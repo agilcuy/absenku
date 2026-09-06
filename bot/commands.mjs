@@ -43,6 +43,7 @@ Halo kak *${senderName}*! Berikut adalah daftar perintah yang tersedia:
 📌 *PERINTAH UTAMA:*
 • *!rekap* / *!absen* : Melihat ringkasan kehadiran hari ini per instansi PKL
 • *!belum* : Melihat daftar siswa yang belum melakukan absen masuk
+• *!ruijie* / *!jaringan* : Monitoring status jaringan Ruijie Cloud & cek alat offline
 • *!link* : Mendapatkan tautan login ke aplikasi ABSENKU
 
 ⚙️ *PENGATURAN GRUP (Khusus di Grup WA):*
@@ -214,4 +215,65 @@ Berikut nama-nama siswa yang belum terdeteksi presensi:`
     }
     return
   }
+
+  // 6. Perintah: !ruijie atau !jaringan
+  if (clean.startsWith('!ruijie') || clean.startsWith('!jaringan') || clean.startsWith('!ap')) {
+    await sock.sendMessage(from, { text: '⏳ Sedang memeriksa status perangkat Ruijie Cloud Tanggamus...' }, { quoted: msg })
+    try {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const res = await fetch(`${appUrl}/api/ruijie/devices?status=OFF`)
+      const data = await res.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'API Ruijie mengembalikan status gagal')
+      }
+
+      const { summary, devices } = data
+      const offlineList = devices || []
+
+      let reply = `📡 *STATUS JARINGAN RUIJIE CLOUD TANGGAMUS*
+⏰ Pembaruan: *${getNowJakartaTime()}*
+
+📊 *Ringkasan Sistem:*
+• Total Perangkat: *${summary.total} Unit*
+• 🟢 Online Normal: *${summary.online} Unit*
+• 🔴 Offline / Mati: *${summary.offline} Unit*
+• 🏢 Titik Lokasi: *${summary.totalNetworks} Jaringan*`
+
+      if (offlineList.length === 0) {
+        reply += `\n\n🎉 *Status Normal:* Seluruh perangkat jaringan Ruijie terpantau online!`
+      } else {
+        reply += `\n\n⚠️ *DAFTAR PERANGKAT OFFLINE (${offlineList.length} ALAT):*`
+        const displayLimit = 15
+        offlineList.slice(0, displayLimit).forEach((d, idx) => {
+          const lastTime = d.lastOnline
+            ? new Date(d.lastOnline).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
+            : '-'
+          reply += `\n${idx + 1}. *${d.name || d.aliasName || d.serialNumber}* (${d.productClass || 'AP'})
+   📍 Lokasi: ${d.groupName || '-'}
+   🌐 IP: ${d.localIp || '-'} | Terakhir: ${lastTime}`
+        })
+
+        if (offlineList.length > displayLimit) {
+          reply += `\n\n_...dan ${offlineList.length - displayLimit} perangkat lainnya._`
+        }
+
+        reply += `\n\n👉 *Buka Dashboard Admin Web untuk detail lengkap:*
+${appUrl}/admin/ruijie`
+      }
+
+      await sock.sendMessage(from, { text: reply }, { quoted: msg })
+    } catch (err) {
+      console.error('Error in !ruijie:', err)
+      await sock.sendMessage(
+        from,
+        {
+          text: `❌ Gagal memuat data Ruijie Cloud (${err.message}). Pastikan server ABSENKU sedang berjalan atau cek kredensial di .env.local.`,
+        },
+        { quoted: msg }
+      )
+    }
+    return
+  }
 }
+

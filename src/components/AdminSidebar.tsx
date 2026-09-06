@@ -19,6 +19,7 @@ import {
   BookOpen,
   Zap,
   Megaphone,
+  Radio,
   X,
 } from 'lucide-react'
 
@@ -38,6 +39,7 @@ const MENU_SECTIONS: MenuSection[] = [
     title: 'MONITORING',
     items: [
       { label: 'Dashboard Utama', href: '/admin', icon: LayoutDashboard },
+      { label: 'Monitoring Ruijie Cloud', href: '/admin/ruijie', icon: Radio },
       { label: 'Topologi & Tupoksi', href: '/admin/structure', icon: Network },
     ],
   },
