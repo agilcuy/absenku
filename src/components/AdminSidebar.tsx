@@ -18,6 +18,7 @@ import {
   UserCheck,
   BookOpen,
   Zap,
+  Megaphone,
   X,
 } from 'lucide-react'
 
@@ -55,6 +56,7 @@ const MENU_SECTIONS: MenuSection[] = [
       { label: 'Rekap Lembur', href: '/admin/overtime', icon: Zap },
       { label: 'Pengajuan Izin & Sakit', href: '/admin/permits', icon: FileText },
       { label: 'Jurnal Kegiatan PKL', href: '/admin/journals', icon: BookOpen },
+      { label: 'Pengumuman Siswa', href: '/admin/announcements', icon: Megaphone },
       { label: 'Kalender Presensi', href: '/admin/calendar', icon: CalendarDays },
     ],
   },

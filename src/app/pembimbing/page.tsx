@@ -31,6 +31,8 @@ import {
   Star,
   MessageSquare,
   Zap,
+  Megaphone,
+  Pin,
 } from 'lucide-react'
 import { formatDate, formatTime, getStatusBadge, getStatusEmoji, getStatusLabel, formatLastSeen, formatOvertimeDuration, formatOvertimeShort } from '@/lib/utils'
 import NotificationCenter from '@/components/NotificationCenter'
@@ -46,7 +48,8 @@ function PembimbingPortalContent() {
   const [permits, setPermits] = useState<any[]>([])
   const [journals, setJournals] = useState<any[]>([])
   const [overtimes, setOvertimes] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'attendance' | 'journals' | 'overtime'>('attendance')
+  const [announcements, setAnnouncements] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<'attendance' | 'journals' | 'overtime' | 'announcements'>('attendance')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
@@ -58,6 +61,16 @@ function PembimbingPortalContent() {
   const [editOvertimeMinutesPart, setEditOvertimeMinutesPart] = useState<number>(0)
   const [editOvertimeNotes, setEditOvertimeNotes] = useState<string>('')
   const [submittingEditOvertime, setSubmittingEditOvertime] = useState(false)
+
+  // Announcement states for Pembimbing
+  const [announcementModalOpen, setAnnouncementModalOpen] = useState(false)
+  const [selectedAnnouncementForEdit, setSelectedAnnouncementForEdit] = useState<any>(null)
+  const [announcementTitle, setAnnouncementTitle] = useState('')
+  const [announcementContent, setAnnouncementContent] = useState('')
+  const [announcementType, setAnnouncementType] = useState<'info' | 'warning' | 'urgent' | 'success'>('info')
+  const [announcementPinned, setAnnouncementPinned] = useState(false)
+  const [submittingAnnouncement, setSubmittingAnnouncement] = useState(false)
+  const [deletingAnnouncementId, setDeletingAnnouncementId] = useState<string | null>(null)
 
   // Journal Review Modal states
   const [journalModalOpen, setJournalModalOpen] = useState(false)
@@ -160,12 +173,13 @@ function PembimbingPortalContent() {
         })
       }
 
-      // 2. Fetch permits, stats, journals, and overtimes (backend endpoints automatically filter by mentor's internship place)
-      const [resPermits, resStudents, resJournals, resOvertimes] = await Promise.all([
+      // 2. Fetch permits, stats, journals, overtimes, and announcements (backend endpoints automatically filter by mentor's internship place)
+      const [resPermits, resStudents, resJournals, resOvertimes, resAnnounce] = await Promise.all([
         fetch('/api/permits'),
         fetch('/api/admin/stats'),
         fetch('/api/journals'),
         fetch('/api/overtime'),
+        fetch('/api/announcements'),
       ])
 
       if (resPermits.ok) {
@@ -181,6 +195,11 @@ function PembimbingPortalContent() {
       if (resOvertimes.ok) {
         const oData = await resOvertimes.json()
         setOvertimes(oData.overtimes || [])
+      }
+
+      if (resAnnounce.ok) {
+        const aData = await resAnnounce.json()
+        setAnnouncements(aData.announcements || [])
       }
 
       if (resStudents.ok) {
@@ -602,6 +621,85 @@ function PembimbingPortalContent() {
     }
   }
 
+  // Announcement Handlers for Pembimbing
+  const handleOpenCreateAnnouncement = () => {
+    setSelectedAnnouncementForEdit(null)
+    setAnnouncementTitle('')
+    setAnnouncementContent('')
+    setAnnouncementType('info')
+    setAnnouncementPinned(false)
+    setAnnouncementModalOpen(true)
+  }
+
+  const handleOpenEditAnnouncement = (item: any) => {
+    setSelectedAnnouncementForEdit(item)
+    setAnnouncementTitle(item.title || '')
+    setAnnouncementContent(item.content || '')
+    setAnnouncementType(item.type || 'info')
+    setAnnouncementPinned(Boolean(item.is_pinned))
+    setAnnouncementModalOpen(true)
+  }
+
+  const handleSaveAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!mentor?.internship_place_id) {
+      showToast('Akun Anda belum terhubung dengan instansi penugasan PKL.', 'error')
+      return
+    }
+    setSubmittingAnnouncement(true)
+    try {
+      const isEdit = !!selectedAnnouncementForEdit
+      const endpoint = isEdit
+        ? `/api/announcements/${selectedAnnouncementForEdit.id}`
+        : '/api/announcements'
+      const method = isEdit ? 'PUT' : 'POST'
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: announcementTitle.trim(),
+          content: announcementContent.trim(),
+          type: announcementType,
+          is_pinned: announcementPinned,
+          internship_place_id: mentor.internship_place_id,
+        }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menyimpan pengumuman')
+
+      showToast(
+        isEdit
+          ? 'Pengumuman instansi berhasil diperbarui!'
+          : 'Pengumuman berhasil disiarkan ke anak PKL di instansi Anda!',
+        'success'
+      )
+      setAnnouncementModalOpen(false)
+      loadData()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSubmittingAnnouncement(false)
+    }
+  }
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm('Yakin ingin menghapus pengumuman ini? Siswa tidak akan lagi melihatnya.')) return
+    setDeletingAnnouncementId(id)
+    try {
+      const res = await fetch(`/api/announcements/${id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gagal menghapus pengumuman')
+      showToast('Pengumuman berhasil dihapus.', 'success')
+      loadData()
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setDeletingAnnouncementId(null)
+    }
+  }
+
   const pendingPermits = permits.filter((p) => p.status === 'menunggu')
   const onlineCount = students.filter((s) => s.is_online).length
   const hadirCount = students.filter(
@@ -889,6 +987,23 @@ function PembimbingPortalContent() {
             {overtimes.length > 0 && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-200 border border-amber-400/30 font-mono">
                 {overtimes.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('announcements')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'announcements'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
+                : 'text-gray-400 hover:text-white hover:bg-white/5 border border-white/5'
+            }`}
+          >
+            <Megaphone className="w-4 h-4" />
+            <span>Pengumuman Instansi</span>
+            {announcements.filter((a) => a.internship_place_id === mentor?.internship_place_id).length > 0 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30 font-mono">
+                {announcements.filter((a) => a.internship_place_id === mentor?.internship_place_id).length}
               </span>
             )}
           </button>
@@ -1466,6 +1581,155 @@ function PembimbingPortalContent() {
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: PENGUMUMAN INSTANSI (KHUSUS ANAK PKL INSTANSI PEMBIMBING) */}
+        {activeTab === 'announcements' && (
+          <div className="space-y-6">
+            {/* Header info card */}
+            <div className="glass-card p-5 rounded-2xl border border-blue-500/30 bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 text-blue-300 flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-500/20 flex-shrink-0">
+                  <Megaphone className="w-6 h-6 text-blue-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-white text-base">
+                      Pengumuman Resmi Instansi: {mentor?.internship_places?.name || 'Tempat PKL'}
+                    </h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold">
+                      Khusus Anak PKL Instansi Anda
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-300 mt-0.5">
+                    Pengumuman yang Anda buat di sini HANYA akan disiarkan kepada seluruh siswa PKL yang bertugas di {mentor?.internship_places?.name || 'instansi ini'}. Siswa di instansi lain tidak akan melihatnya.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenCreateAnnouncement}
+                className="btn-primary bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-2.5 px-4 text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 flex-shrink-0"
+              >
+                <Megaphone className="w-4 h-4" />
+                <span>+ Buat Pengumuman</span>
+              </button>
+            </div>
+
+            {/* Announcements List */}
+            <div className="glass-card rounded-2xl border border-white/10 overflow-hidden shadow-xl">
+              <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+                <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-blue-400" />
+                  Daftar Pengumuman Instansi Aktif
+                </h4>
+                <span className="text-xs px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 font-mono">
+                  {announcements.filter((a) => a.internship_place_id === mentor?.internship_place_id).length} Pengumuman
+                </span>
+              </div>
+
+              {announcements.filter((a) => a.internship_place_id === mentor?.internship_place_id).length === 0 ? (
+                <div className="py-16 text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-3">
+                    <Megaphone className="w-7 h-7" />
+                  </div>
+                  <h5 className="font-bold text-white text-base">Belum Ada Pengumuman Instansi</h5>
+                  <p className="text-xs text-gray-400 max-w-sm mx-auto mt-1">
+                    Buat pengumuman penting seperti jadwal briefing, jam kerja lembur, atau penugasan khusus untuk anak PKL di {mentor?.internship_places?.name || 'instansi Anda'}.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateAnnouncement}
+                    className="mt-4 btn-primary bg-gradient-to-r from-blue-600 to-indigo-600 text-xs py-2 px-4 rounded-xl font-bold inline-flex items-center gap-1.5"
+                  >
+                    <span>+ Buat Pengumuman Pertama</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {announcements
+                    .filter((a) => a.internship_place_id === mentor?.internship_place_id)
+                    .map((a) => {
+                      const isUrgent = a.type === 'urgent'
+                      const isWarning = a.type === 'warning'
+                      const isSuccess = a.type === 'success'
+
+                      const badgeBg = isUrgent
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                        : isWarning
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                        : isSuccess
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+
+                      return (
+                        <div
+                          key={a.id}
+                          className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-blue-500/30 transition flex flex-col justify-between space-y-3"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeBg}`}>
+                                  {a.type === 'urgent'
+                                    ? 'Mendesak'
+                                    : a.type === 'warning'
+                                    ? 'Peringatan'
+                                    : a.type === 'success'
+                                    ? 'Pemberitahuan'
+                                    : 'Informasi'}
+                                </span>
+                                {a.is_pinned && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                    <Pin className="w-2.5 h-2.5" />
+                                    Pin
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-gray-400 font-mono">
+                                {formatDate(a.created_at)}
+                              </span>
+                            </div>
+
+                            <h5 className="font-bold text-white text-sm">{a.title}</h5>
+                            <p className="text-xs text-gray-300 mt-1 whitespace-pre-line leading-relaxed">
+                              {a.content}
+                            </p>
+                          </div>
+
+                          <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs">
+                            <span className="text-[10px] text-gray-400">
+                              Oleh: <b>{a.author?.full_name || 'Anda'}</b>
+                            </span>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditAnnouncement(a)}
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition"
+                                title="Edit Pengumuman"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deletingAnnouncementId === a.id}
+                                onClick={() => handleDeleteAnnouncement(a.id)}
+                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition"
+                                title="Hapus Pengumuman"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                 </div>
               )}
             </div>
@@ -2379,6 +2643,113 @@ function PembimbingPortalContent() {
                   className="btn-primary bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-2 px-5 text-xs shadow-lg shadow-amber-500/25"
                 >
                   {submittingEditOvertime ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Announcement Create/Edit Modal for Pembimbing */}
+      {announcementModalOpen && (
+        <div className="modal-overlay">
+          <div className="glass-card w-full max-w-md p-6 border border-blue-500/30 shadow-2xl animate-fade-in-up bg-[#0e1220]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                  <Megaphone className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">
+                    {selectedAnnouncementForEdit ? 'Edit Pengumuman Instansi' : 'Buat Pengumuman Instansi'}
+                  </h3>
+                  <p className="text-[11px] text-gray-400">
+                    Khusus anak PKL di {mentor?.internship_places?.name || 'instansi Anda'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAnnouncementModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAnnouncement} className="space-y-4 text-xs">
+              <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[11px] leading-relaxed">
+                📢 Pengumuman ini <b>HANYA</b> akan ditampilkan kepada siswa PKL yang bertugas di <b>{mentor?.internship_places?.name || 'instansi Anda'}</b>.
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-semibold mb-1">Judul Pengumuman</label>
+                <input
+                  type="text"
+                  required
+                  value={announcementTitle}
+                  onChange={(e) => setAnnouncementTitle(e.target.value)}
+                  placeholder="Contoh: Briefing Penugasan Jaringan Besok Pukul 08:30 WIB"
+                  className="input-field text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-semibold mb-1">Tipe / Kategori Pengumuman</label>
+                <select
+                  value={announcementType}
+                  onChange={(e: any) => setAnnouncementType(e.target.value)}
+                  className="input-field text-xs"
+                >
+                  <option value="info">ℹ️ Informasi Umum</option>
+                  <option value="warning">⚠️ Peringatan Penting</option>
+                  <option value="urgent">🚨 Mendesak (Urgent)</option>
+                  <option value="success">🎉 Pemberitahuan Positif / Sukses</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-semibold mb-1">Isi Pesan Pengumuman</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={announcementContent}
+                  onChange={(e) => setAnnouncementContent(e.target.value)}
+                  placeholder="Tuliskan instruksi atau pengumuman lengkap untuk anak PKL..."
+                  className="input-field text-xs resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="announcement-pin"
+                  checked={announcementPinned}
+                  onChange={(e) => setAnnouncementPinned(e.target.checked)}
+                  className="rounded bg-white/5 border-white/20 text-blue-500 focus:ring-0 w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="announcement-pin" className="text-gray-300 text-xs cursor-pointer select-none">
+                  Sematkan di bagian paling atas (Pin)
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setAnnouncementModalOpen(false)}
+                  className="btn-outline py-2 px-4 text-xs"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingAnnouncement}
+                  className="btn-primary bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-2 px-5 text-xs shadow-lg shadow-blue-500/25"
+                >
+                  {submittingAnnouncement
+                    ? 'Menyimpan...'
+                    : selectedAnnouncementForEdit
+                    ? 'Simpan Perubahan'
+                    : 'Siarkan Pengumuman'}
                 </button>
               </div>
             </form>

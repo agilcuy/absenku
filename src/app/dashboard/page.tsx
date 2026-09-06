@@ -43,6 +43,9 @@ import {
   Building,
   Flame,
   ArrowUpRight,
+  Megaphone,
+  Pin,
+  X,
 } from 'lucide-react'
 
 function StudentDashboardContent() {
@@ -55,6 +58,8 @@ function StudentDashboardContent() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [currentTime, setCurrentTime] = useState<string>('')
+  const [announcements, setAnnouncements] = useState<any[]>([])
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState<string[]>([])
 
   // Live digital clock updater (WIB)
   useEffect(() => {
@@ -104,19 +109,22 @@ function StudentDashboardContent() {
     title: '',
   })
 
-  // Fetch today's data and verify authentication
+  // Fetch today's data, announcements, and verify authentication
   const loadDashboardData = useCallback(async () => {
     try {
-      const res = await fetch('/api/attendance/today')
+      const [resToday, resAnnounce] = await Promise.all([
+        fetch('/api/attendance/today'),
+        fetch('/api/announcements'),
+      ])
 
       // If user session is unauthenticated or expired, auto-redirect to login
-      if (res.status === 401) {
+      if (resToday.status === 401) {
         router.replace('/login')
         return
       }
 
-      if (res.ok) {
-        const json = await res.json()
+      if (resToday.ok) {
+        const json = await resToday.json()
         setData(json)
         if (json.userProfile) {
           setUserProfile(json.userProfile)
@@ -126,6 +134,11 @@ function StudentDashboardContent() {
             return
           }
         }
+      }
+
+      if (resAnnounce.ok) {
+        const aJson = await resAnnounce.json()
+        setAnnouncements(aJson.announcements || [])
       }
     } catch (err) {
       console.error('Error loading dashboard:', err)
@@ -514,6 +527,103 @@ function StudentDashboardContent() {
             </button>
           </div>
         )}
+
+        {/* Active Broadcast Announcements (Global or Specific to this Student's PKL Place) */}
+        {announcements
+          .filter((a) => !dismissedAnnouncements.includes(a.id))
+          .map((a) => {
+            const isUrgent = a.type === 'urgent'
+            const isWarning = a.type === 'warning'
+            const isSuccess = a.type === 'success'
+
+            const borderClass = isUrgent
+              ? 'border-rose-500/50 bg-gradient-to-r from-rose-950/40 via-slate-900/80 to-rose-950/20'
+              : isWarning
+              ? 'border-amber-500/50 bg-gradient-to-r from-amber-950/40 via-slate-900/80 to-amber-950/20'
+              : isSuccess
+              ? 'border-emerald-500/50 bg-gradient-to-r from-emerald-950/40 via-slate-900/80 to-emerald-950/20'
+              : 'border-blue-500/40 bg-gradient-to-r from-blue-950/40 via-slate-900/80 to-indigo-950/20'
+
+            const badgeBg = isUrgent
+              ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+              : isWarning
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+              : isSuccess
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+
+            const iconColor = isUrgent
+              ? 'text-rose-400'
+              : isWarning
+              ? 'text-amber-400'
+              : isSuccess
+              ? 'text-emerald-400'
+              : 'text-blue-400'
+
+            return (
+              <div
+                key={a.id}
+                className={`p-4 rounded-2xl border ${borderClass} shadow-xl relative overflow-hidden animate-fade-in`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 border ${badgeBg}`}
+                    >
+                      <Megaphone className={`w-4 h-4 ${iconColor}`} />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeBg}`}
+                        >
+                          {a.type === 'urgent'
+                            ? 'MENDESAK'
+                            : a.type === 'warning'
+                            ? 'PERINGATAN'
+                            : a.type === 'success'
+                            ? 'PEMBERITAHUAN'
+                            : 'INFORMASI'}
+                        </span>
+
+                        {a.is_pinned && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                            <Pin className="w-2.5 h-2.5" />
+                            Disematkan
+                          </span>
+                        )}
+
+                        <span className="text-[11px] text-gray-400">
+                          {a.place?.name ? `🏢 Khusus: ${a.place.name}` : '🌐 Pengumuman Pusat'}
+                        </span>
+                      </div>
+
+                      <h4 className="text-sm font-black text-white">{a.title}</h4>
+                      <p className="text-xs text-gray-300 whitespace-pre-line leading-relaxed">
+                        {a.content}
+                      </p>
+
+                      <div className="text-[10px] text-gray-400 pt-1 flex items-center gap-2">
+                        <span>
+                          Oleh: <b>{a.author?.full_name || 'Pembimbing / Admin'}</b>
+                        </span>
+                        <span>•</span>
+                        <span>{formatDate(a.created_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setDismissedAnnouncements((prev) => [...prev, a.id])}
+                    className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition flex-shrink-0"
+                    title="Tutup pengumuman"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
 
         {/* ========================================================
             2. MAIN DUAL-COLUMN LAYOUT
