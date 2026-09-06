@@ -10,9 +10,16 @@ export async function GET(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const adminClient = createAdminClient()
-    const isAdmin = await isUserSuperadmin(user, adminClient)
+    const { data: profile } = await adminClient
+      .from('users')
+      .select('role, internship_place_id')
+      .eq('id', user.id)
+      .maybeSingle()
 
-    if (!isAdmin) {
+    const isAdmin = await isUserSuperadmin(user, adminClient)
+    const isMentor = profile?.role === 'pembimbing'
+
+    if (!isAdmin && !isMentor) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -25,9 +32,29 @@ export async function GET(req: NextRequest) {
 
     let query = adminClient
       .from('attendances')
-      .select('*, users(id, full_name, email, avatar_url), attendance_photos(*)')
+      .select('*, users(id, full_name, email, avatar_url, class_name, internship_place_id), attendance_photos(*)')
       .order('date', { ascending: false })
       .order('check_in_time', { ascending: false })
+
+    if (isMentor && !isAdmin) {
+      let sQuery = adminClient
+        .from('users')
+        .select('id')
+        .eq('role', 'student')
+
+      if (profile?.internship_place_id) {
+        sQuery = sQuery.or(`internship_place_id.eq.${profile.internship_place_id},mentor_id.eq.${user.id}`)
+      } else {
+        sQuery = sQuery.eq('mentor_id', user.id)
+      }
+
+      const { data: mStudents } = await sQuery
+      const studentIds = (mStudents || []).map((s: any) => s.id)
+      if (studentIds.length === 0) {
+        return NextResponse.json({ attendances: [] })
+      }
+      query = query.in('user_id', studentIds)
+    }
 
     if (date) {
       query = query.eq('date', date)
