@@ -141,21 +141,21 @@ export default function GpsLocationBadge({ onLocationFound, targetCoords }: GpsL
           className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all animate-fade-in ${
             isWithinRadius
               ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
-              : 'bg-amber-500/10 border-amber-500/25 text-amber-300'
+              : 'bg-indigo-500/10 border-indigo-500/25 text-indigo-300'
           }`}
         >
           <div className="flex items-center gap-2 min-w-0">
             {isWithinRadius ? (
               <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
             ) : (
-              <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-indigo-400 flex-shrink-0" />
             )}
             <div className="min-w-0 text-[11px]">
               <span className="font-bold block truncate">
-                {isWithinRadius ? 'Dalam Radius Lokasi PKL' : 'Peringatan: Di Luar Radius Kantor'}
+                {isWithinRadius ? 'Dalam Radius Lokasi PKL' : 'Lokasi Terdeteksi (Bebas Radius)'}
               </span>
               <span className="text-[10px] opacity-85">
-                Jarak: <b>{formatDistanceMeters(distance)}</b> dari {targetCoords?.name || 'Kantor PKL'} (Maks: {radius}m)
+                Jarak: <b>{formatDistanceMeters(distance)}</b> dari {targetCoords?.name || 'Kantor PKL'} • Absensi Diizinkan
               </span>
             </div>
           </div>
@@ -164,10 +164,10 @@ export default function GpsLocationBadge({ onLocationFound, targetCoords }: GpsL
             className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 border ${
               isWithinRadius
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
             }`}
           >
-            {isWithinRadius ? 'Aman' : 'Luar Radius'}
+            {isWithinRadius ? 'Radius Tepat' : 'Bebas Radius'}
           </span>
         </div>
       )}

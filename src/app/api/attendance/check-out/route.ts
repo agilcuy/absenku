@@ -105,23 +105,13 @@ export async function POST(req: NextRequest) {
 
     const isStudent = userProfile?.role === 'student'
 
-    // Strict GPS requirement for students
-    if (isStudent && (lat === null || lng === null || isNaN(lat) || isNaN(lng))) {
-      return NextResponse.json(
-        {
-          error:
-            'Koordinat GPS wajib aktif! Harap izinkan akses lokasi (GPS) pada browser atau HP Anda agar absensi pulang dapat diverifikasi.',
-        },
-        { status: 400 }
-      )
-    }
-
+    // Catat koordinat & alamat jika tersedia (tidak mewajibkan sama dengan titik koordinat)
     let address = 'Lokasi tidak diketahui'
-    if (lat !== null && lng !== null) {
+    if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)) {
       address = await getAddressFromCoords(lat, lng)
     }
 
-    // Geofencing calculation strictly against student's assigned internship place
+    // Geofencing calculation for audit/logging (informational only, no blocking)
     const place = (userProfile as any)?.internship_places || null
     const resolvedCoords = getPlaceCoordinates(place)
     const placeLat = resolvedCoords?.lat ?? (place?.latitude !== undefined && place?.latitude !== null ? Number(place.latitude) : null)
@@ -135,20 +125,6 @@ export async function POST(req: NextRequest) {
     if (lat !== null && lng !== null && placeLat !== null && placeLng !== null) {
       distanceMeters = calculateDistanceMeters(lat, lng, placeLat, placeLng)
       isWithinRadius = distanceMeters <= placeRadius
-    }
-
-    // Strict Geofencing enforcement for students (only if place coordinates are configured)
-    if (isStudent && placeLat !== null && placeLng !== null && distanceMeters !== null && !isWithinRadius) {
-      const roundedDistance = Math.round(distanceMeters)
-      return NextResponse.json(
-        {
-          error: `Anda terdeteksi berjarak ${roundedDistance} meter dari lokasi PKL (${placeName}). Batas maksimal absensi pulang adalah radius ${placeRadius} meter. Harap lakukan absensi langsung di area instansi penugasan PKL Anda.`,
-          distanceMeters,
-          placeRadius,
-          placeName,
-        },
-        { status: 400 }
-      )
     }
 
     // Upload photo via adminClient
