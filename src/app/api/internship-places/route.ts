@@ -3,6 +3,30 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isUserSuperadmin } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { getPlaceCoordinates } from '@/lib/geo'
+import fs from 'fs'
+import path from 'path'
+
+function getFallbackPlaces(): any[] {
+  try {
+    const cachePath = path.join(process.cwd(), 'src', 'data', 'places_cache.json')
+    if (fs.existsSync(cachePath)) {
+      const content = fs.readFileSync(cachePath, 'utf8')
+      return JSON.parse(content)
+    }
+  } catch (e) {
+    console.error('Failed to read places cache:', e)
+  }
+  return []
+}
+
+function saveFallbackPlaces(places: any[]) {
+  try {
+    const cachePath = path.join(process.cwd(), 'src', 'data', 'places_cache.json')
+    fs.writeFileSync(cachePath, JSON.stringify(places, null, 2), 'utf8')
+  } catch (e) {
+    console.error('Failed to write places cache:', e)
+  }
+}
 
 // GET all internship places with student count
 export async function GET() {
@@ -19,6 +43,11 @@ export async function GET() {
       .order('name', { ascending: true })
 
     if (error) {
+      console.warn('GET /api/internship-places database notice:', error.message)
+      const fallback = getFallbackPlaces()
+      if (fallback.length > 0) {
+        return NextResponse.json({ places: fallback, source: 'cache_fallback' })
+      }
       if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
         return NextResponse.json({
           places: [],
@@ -53,8 +82,17 @@ export async function GET() {
       }
     })
 
+    if (formatted && formatted.length > 0) {
+      saveFallbackPlaces(formatted)
+    }
+
     return NextResponse.json({ places: formatted })
   } catch (error: any) {
+    console.error('GET /api/internship-places fallback handler:', error.message)
+    const fallback = getFallbackPlaces()
+    if (fallback.length > 0) {
+      return NextResponse.json({ places: fallback, source: 'cache_fallback' })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

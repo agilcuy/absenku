@@ -3,6 +3,30 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isUserSuperadmin } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { formatAuthPassword } from '@/lib/utils'
+import fs from 'fs'
+import path from 'path'
+
+function getFallbackMentors(): any[] {
+  try {
+    const cachePath = path.join(process.cwd(), 'src', 'data', 'mentors_cache.json')
+    if (fs.existsSync(cachePath)) {
+      const content = fs.readFileSync(cachePath, 'utf8')
+      return JSON.parse(content)
+    }
+  } catch (e) {
+    console.error('Failed to read mentors cache:', e)
+  }
+  return []
+}
+
+function saveFallbackMentors(mentors: any[]) {
+  try {
+    const cachePath = path.join(process.cwd(), 'src', 'data', 'mentors_cache.json')
+    fs.writeFileSync(cachePath, JSON.stringify(mentors, null, 2), 'utf8')
+  } catch (e) {
+    console.error('Failed to write mentors cache:', e)
+  }
+}
 
 // GET all mentors with assigned students count & details
 export async function GET() {
@@ -20,7 +44,14 @@ export async function GET() {
       .in('role', ['pembimbing', 'superadmin'])
       .order('full_name', { ascending: true })
 
-    if (mError) throw mError
+    if (mError) {
+      console.warn('GET /api/mentors database notice:', mError.message)
+      const fallback = getFallbackMentors()
+      if (fallback.length > 0) {
+        return NextResponse.json({ mentors: fallback, source: 'cache_fallback' })
+      }
+      throw mError
+    }
 
     // 2. Get students assigned to each mentor
     const { data: students, error: sError } = await adminClient
@@ -29,7 +60,14 @@ export async function GET() {
       .eq('role', 'student')
       .not('mentor_id', 'is', null)
 
-    if (sError) throw sError
+    if (sError) {
+      console.warn('GET /api/mentors students query notice:', sError.message)
+      const fallback = getFallbackMentors()
+      if (fallback.length > 0) {
+        return NextResponse.json({ mentors: fallback, source: 'cache_fallback' })
+      }
+      throw sError
+    }
 
     const studentsByMentor: Record<string, any[]> = {}
     ;(students || []).forEach((s: any) => {
@@ -50,8 +88,17 @@ export async function GET() {
       assigned_students_count: (studentsByMentor[m.id] || []).length,
     }))
 
+    if (formatted && formatted.length > 0) {
+      saveFallbackMentors(formatted)
+    }
+
     return NextResponse.json({ mentors: formatted })
   } catch (error: any) {
+    console.error('GET /api/mentors fallback handler:', error.message)
+    const fallback = getFallbackMentors()
+    if (fallback.length > 0) {
+      return NextResponse.json({ mentors: fallback, source: 'cache_fallback' })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

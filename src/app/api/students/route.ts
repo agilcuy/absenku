@@ -3,6 +3,31 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getCallerAccess } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { formatAuthPassword } from '@/lib/utils'
+import fs from 'fs'
+import path from 'path'
+
+function getFallbackStudents(includeAll = false): any[] {
+  try {
+    const cachePath = path.join(process.cwd(), 'src', 'data', 'students_cache.json')
+    if (fs.existsSync(cachePath)) {
+      const content = fs.readFileSync(cachePath, 'utf8')
+      const all = JSON.parse(content)
+      return includeAll ? all : all.filter((s: any) => s.role === 'student')
+    }
+  } catch (e) {
+    console.error('Failed to read students cache:', e)
+  }
+  return []
+}
+
+function saveFallbackStudents(students: any[]) {
+  try {
+    const cachePath = path.join(process.cwd(), 'src', 'data', 'students_cache.json')
+    fs.writeFileSync(cachePath, JSON.stringify(students, null, 2), 'utf8')
+  } catch (e) {
+    console.error('Failed to write students cache:', e)
+  }
+}
 
 // GET all students with filters, relations, and pagination
 export async function GET(req: NextRequest) {
@@ -57,10 +82,26 @@ export async function GET(req: NextRequest) {
 
     const { data: students, error } = await query
 
-    if (error) throw error
+    if (error) {
+      console.warn('GET /api/students database notice:', error.message)
+      const fallback = getFallbackStudents(includeAll)
+      if (fallback.length > 0) {
+        return NextResponse.json({ students: fallback, source: 'cache_fallback' })
+      }
+      throw error
+    }
+
+    if (students && students.length > 0) {
+      saveFallbackStudents(students)
+    }
 
     return NextResponse.json({ students })
   } catch (error: any) {
+    console.error('GET /api/students fallback handler:', error.message)
+    const fallback = getFallbackStudents(false)
+    if (fallback.length > 0) {
+      return NextResponse.json({ students: fallback, source: 'cache_fallback' })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

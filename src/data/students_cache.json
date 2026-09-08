@@ -1,0 +1,82 @@
+[
+  {
+    "id": "194ee346-53c0-47f9-a6a6-a26b16f8ece0",
+    "full_name": "Ade Silvia Ramadani",
+    "email": "ades82955@gmail.com",
+    "role": "student",
+    "class_name": "XII ACP",
+    "major": "Teknik Komputer & Jaringan",
+    "internship_status": "aktif",
+    "internship_place_id": "11111111-1111-1111-1111-111111111111",
+    "internship_places": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Kominfo Tanggamus (egov)"
+    }
+  },
+  {
+    "id": "50aa166e-a058-4b30-91d9-e7eb0ae1591b",
+    "full_name": "Tias Maharani",
+    "email": "tiasmaharani78@gmail.com",
+    "role": "student",
+    "class_name": "XII ACP",
+    "major": "Teknik Komputer & Jaringan",
+    "internship_status": "aktif",
+    "internship_place_id": "11111111-1111-1111-1111-111111111111",
+    "internship_places": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Kominfo Tanggamus (egov)"
+    }
+  },
+  {
+    "id": "a01d3947-725b-4137-9724-9a148127754a",
+    "full_name": "Muhammad Khalid Azkiya",
+    "email": "khalid@absenku.local",
+    "role": "student",
+    "class_name": "XII RPL",
+    "major": "Rekayasa Perangkat Lunak",
+    "internship_status": "aktif",
+    "internship_place_id": "22222222-2222-2222-2222-222222222222",
+    "internship_places": {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "GEN-Z TECH (DeryGarage X Gen z Code)"
+    }
+  },
+  {
+    "id": "0306f537-18f3-4d8e-a577-ff1bcaddf3af",
+    "full_name": "Muhamad Lutfi Vidic Patria",
+    "email": "lutfi@absenku.local",
+    "role": "student",
+    "class_name": "XII RPL",
+    "major": "Rekayasa Perangkat Lunak",
+    "internship_status": "aktif",
+    "internship_place_id": "22222222-2222-2222-2222-222222222222",
+    "internship_places": {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "GEN-Z TECH (DeryGarage X Gen z Code)"
+    }
+  },
+  {
+    "id": "e20b6854-6954-4d4a-8867-f2ead92c3b5e",
+    "full_name": "DERY ZULDA DINAYA",
+    "email": "deryjulda2812@gmail.com",
+    "role": "pembimbing",
+    "class_name": "RPL",
+    "internship_place_id": "22222222-2222-2222-2222-222222222222",
+    "internship_places": {
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "GEN-Z TECH (DeryGarage X Gen z Code)"
+    }
+  },
+  {
+    "id": "452ef0b9-4cea-4183-ab70-4a22f1b42205",
+    "full_name": "Mikrotik",
+    "email": "mikrotikagil@gmail.com",
+    "role": "superadmin",
+    "class_name": "Technical Support",
+    "internship_place_id": "11111111-1111-1111-1111-111111111111",
+    "internship_places": {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Kominfo Tanggamus (egov)"
+    }
+  }
+]
