@@ -272,3 +272,30 @@ export function formatOvertimeShort(minutes: number | null | undefined): string 
   return `${m}m`
 }
 
+// Convert UTC ISO timestamp to Jakarta time string (HH:mm) for input type="time"
+export function isoToJakartaTime(isoStr?: string | null): string {
+  if (!isoStr) return ''
+  const d = new Date(isoStr)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString('en-GB', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+}
+
+// Convert date (YYYY-MM-DD) and WIB time string (HH:mm) to UTC ISO string
+export function parseWibToUtcIso(dateStr: string, timeStr?: string | null): string | null {
+  if (!timeStr || !timeStr.trim()) return null
+  const t = timeStr.trim()
+  if (t.includes('T')) {
+    const d = new Date(t)
+    return isNaN(d.getTime()) ? null : d.toISOString()
+  }
+  const timeOnly = t.length === 5 ? `${t}:00` : t
+  const d = new Date(`${dateStr}T${timeOnly}+07:00`)
+  return isNaN(d.getTime()) ? null : d.toISOString()
+}
+
+

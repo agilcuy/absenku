@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isUserSuperadmin } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
+import { parseWibToUtcIso } from '@/lib/utils'
 
 export async function GET(req: NextRequest) {
   try {
@@ -104,27 +105,49 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { user_id, date, check_in_time, check_out_time, check_in_status, note } = body
+    const {
+      user_id,
+      date,
+      check_in_time,
+      check_out_time,
+      check_in_status,
+      check_in_address,
+      check_out_address,
+      note,
+    } = body
 
     if (!user_id || !date || !check_in_status) {
       return NextResponse.json(
-        { error: 'Siswa, tanggal, dan status kehadiran wajib diisi.' },
+        { error: 'Pengguna, tanggal, dan status kehadiran wajib diisi.' },
         { status: 400 }
       )
+    }
+
+    const inTimeIso = parseWibToUtcIso(date, check_in_time)
+    const outTimeIso = parseWibToUtcIso(date, check_out_time)
+
+    const payload: any = {
+      user_id,
+      date,
+      check_in_time: inTimeIso,
+      check_out_time: outTimeIso,
+      check_in_status,
+      is_manual: true,
+      note: note || 'Ditambahkan manual oleh admin',
+      updated_at: new Date().toISOString(),
+    }
+
+    if (check_in_address) {
+      payload.check_in_address = check_in_address
+    }
+    if (check_out_address) {
+      payload.check_out_address = check_out_address
     }
 
     // Insert or update attendance record
     const { data: newRecord, error } = await adminClient
       .from('attendances')
-      .upsert({
-        user_id,
-        date,
-        check_in_time: check_in_time ? `${date}T${check_in_time}:00.000Z` : null,
-        check_out_time: check_out_time ? `${date}T${check_out_time}:00.000Z` : null,
-        check_in_status,
-        is_manual: true,
-        note: note || 'Ditambahkan manual oleh admin',
-      }, { onConflict: 'user_id,date' })
+      .upsert(payload, { onConflict: 'user_id,date' })
       .select('*, users(full_name, email)')
       .single()
 
@@ -139,7 +162,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Absensi manual berhasil disimpan.',
+      message: 'Absensi manual berhasil disimpan ke database.',
       attendance: newRecord,
     })
   } catch (error: any) {

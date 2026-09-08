@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import {
   ClipboardList,
   Search,
-  Filter,
   Plus,
   Edit2,
   Trash2,
@@ -12,8 +11,15 @@ import {
   MapPin,
   Calendar,
   X,
-  CheckCircle2,
   RefreshCw,
+  Clock,
+  User,
+  AlertTriangle,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  ShieldCheck,
+  Building,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import LeafletMapModal from '@/components/LeafletMapModal'
@@ -24,6 +30,7 @@ import {
   getStatusEmoji,
   getStatusLabel,
   MONTH_NAMES,
+  isoToJakartaTime,
 } from '@/lib/utils'
 import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 
@@ -76,17 +83,21 @@ export default function AdminAttendancesPage() {
     title: '',
   })
 
-  // Form states for manual / edit
+  // Form states for manual attendance
   const [manualUserId, setManualUserId] = useState('')
   const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0])
-  const [manualCheckIn, setManualCheckIn] = useState('07:25')
-  const [manualCheckOut, setManualCheckOut] = useState('16:35')
+  const [manualCheckIn, setManualCheckIn] = useState('07:30')
+  const [manualCheckOut, setManualCheckOut] = useState('16:30')
   const [manualStatus, setManualStatus] = useState('on_time')
+  const [manualAddress, setManualAddress] = useState('')
   const [manualNote, setManualNote] = useState('')
 
+  // Form states for edit attendance
+  const [editDate, setEditDate] = useState('')
   const [editCheckIn, setEditCheckIn] = useState('')
   const [editCheckOut, setEditCheckOut] = useState('')
   const [editStatus, setEditStatus] = useState('on_time')
+  const [editAddress, setEditAddress] = useState('')
   const [editNote, setEditNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -110,13 +121,14 @@ export default function AdminAttendancesPage() {
     }
   }, [filterDate, filterStatus, filterMonth, filterYear, search, refreshing])
 
-  // Fetch students for manual entry dropdown
+  // Fetch all students/users for manual entry dropdown
   const loadStudents = async () => {
     try {
-      const data = await cachedFetch('/api/students', undefined, 30000, refreshing)
-      setStudents(data.students || [])
-      if (data.students?.length > 0 && !manualUserId) {
-        setManualUserId(data.students[0].id)
+      const data = await cachedFetch('/api/students?all=true', undefined, 30000, refreshing)
+      const userList = data.students || []
+      setStudents(userList)
+      if (userList.length > 0 && !manualUserId) {
+        setManualUserId(userList[0].id)
       }
     } catch (err) {
       console.error('Failed to load students:', err)
@@ -137,6 +149,16 @@ export default function AdminAttendancesPage() {
     showToast('Data absensi berhasil diperbarui!', 'success')
   }
 
+  // Quick stats calculation
+  const stats = useMemo(() => {
+    const total = attendances.length
+    const onTime = attendances.filter((a) => a.check_in_status === 'on_time').length
+    const late = attendances.filter((a) => a.check_in_status === 'late').length
+    const izinSakit = attendances.filter((a) => a.check_in_status === 'izin' || a.check_in_status === 'sakit').length
+    const alpha = attendances.filter((a) => a.check_in_status === 'alpha').length
+    return { total, onTime, late, izinSakit, alpha }
+  }, [attendances])
+
   // Submit Manual Attendance
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -148,9 +170,10 @@ export default function AdminAttendancesPage() {
         body: JSON.stringify({
           user_id: manualUserId,
           date: manualDate,
-          check_in_time: manualCheckIn,
-          check_out_time: manualCheckOut,
+          check_in_time: manualCheckIn || null,
+          check_out_time: manualCheckOut || null,
           check_in_status: manualStatus,
+          check_in_address: manualAddress || null,
           note: manualNote,
         }),
       })
@@ -159,7 +182,8 @@ export default function AdminAttendancesPage() {
 
       showToast('Absensi manual berhasil disimpan ke database!', 'success', 'Tersimpan')
       setManualModalOpen(false)
-      loadAttendances()
+      invalidateCache('/api/admin/attendances')
+      await loadAttendances()
     } catch (err: any) {
       showToast(err.message, 'error', 'Error')
     } finally {
@@ -170,14 +194,12 @@ export default function AdminAttendancesPage() {
   // Open Edit Modal
   const handleOpenEdit = (rec: any) => {
     setSelectedRecord(rec)
+    setEditDate(rec.date)
     setEditStatus(rec.check_in_status || 'on_time')
+    setEditAddress(rec.check_in_address || '')
     setEditNote(rec.note || '')
-    setEditCheckIn(
-      rec.check_in_time ? new Date(rec.check_in_time).toISOString().substring(11, 16) : ''
-    )
-    setEditCheckOut(
-      rec.check_out_time ? new Date(rec.check_out_time).toISOString().substring(11, 16) : ''
-    )
+    setEditCheckIn(isoToJakartaTime(rec.check_in_time))
+    setEditCheckOut(isoToJakartaTime(rec.check_out_time))
     setEditModalOpen(true)
   }
 
@@ -187,26 +209,25 @@ export default function AdminAttendancesPage() {
     if (!selectedRecord) return
     setSubmitting(true)
     try {
-      const dateStr = selectedRecord.date
-      const checkInFull = editCheckIn ? `${dateStr}T${editCheckIn}:00.000Z` : null
-      const checkOutFull = editCheckOut ? `${dateStr}T${editCheckOut}:00.000Z` : null
-
       const res = await fetch(`/api/admin/attendances/${selectedRecord.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          check_in_time: checkInFull,
-          check_out_time: checkOutFull,
+          date: editDate,
+          check_in_time: editCheckIn || null,
+          check_out_time: editCheckOut || null,
           check_in_status: editStatus,
+          check_in_address: editAddress || null,
           note: editNote,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal mengubah absensi.')
 
-      showToast('Data absensi berhasil diubah!', 'success', 'Diperbarui')
+      showToast('Data absensi berhasil diperbarui!', 'success', 'Diperbarui')
       setEditModalOpen(false)
-      loadAttendances()
+      invalidateCache('/api/admin/attendances')
+      await loadAttendances()
     } catch (err: any) {
       showToast(err.message, 'error', 'Error')
     } finally {
@@ -225,13 +246,34 @@ export default function AdminAttendancesPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal menghapus absensi.')
 
-      showToast('Data absensi berhasil dihapus.', 'success', 'Dihapus')
+      showToast('Data absensi berhasil dihapus permanen.', 'success', 'Dihapus')
       setDeleteModalOpen(false)
-      loadAttendances()
+      invalidateCache('/api/admin/attendances')
+      await loadAttendances()
     } catch (err: any) {
       showToast(err.message, 'error', 'Error')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // Quick preset helper for manual modal
+  const applyManualPreset = (preset: 'on_time' | 'late' | 'izin' | 'sakit' | 'alpha') => {
+    setManualStatus(preset)
+    if (preset === 'on_time') {
+      setManualCheckIn('07:30')
+      setManualCheckOut('16:30')
+      setManualAddress('Kantor Penugasan PKL')
+    } else if (preset === 'late') {
+      setManualCheckIn('08:45')
+      setManualCheckOut('16:30')
+      setManualAddress('Kantor Penugasan PKL')
+    } else {
+      setManualCheckIn('')
+      setManualCheckOut('')
+      if (preset === 'izin') setManualNote('Pengajuan izin dinas / urusan resmi')
+      if (preset === 'sakit') setManualNote('Surat keterangan sakit')
+      if (preset === 'alpha') setManualNote('Tidak hadir tanpa keterangan')
     }
   }
 
@@ -240,20 +282,24 @@ export default function AdminAttendancesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <ClipboardList className="w-6 h-6 text-indigo-400" />
-            Manajemen Data Absensi
-          </h1>
-          <p className="text-xs text-gray-400 mt-1">
-            Monitoring, koreksi, dan verifikasi kehadiran seluruh peserta didik PKL
-          </p>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <ClipboardList className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white tracking-tight">Manajemen Data Absensi</h1>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Monitoring, koreksi, dan verifikasi kehadiran seluruh peserta didik PKL
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="btn-outline text-xs py-2.5 px-3.5 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40"
+            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 border-white/10 hover:border-indigo-500/40 rounded-xl"
             title="Perbarui data absensi"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-400' : 'text-gray-400'}`} />
@@ -262,11 +308,64 @@ export default function AdminAttendancesPage() {
 
           <button
             onClick={() => setManualModalOpen(true)}
-            className="btn-primary text-xs py-2.5 px-4"
+            className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5 rounded-xl shadow-lg shadow-indigo-500/20"
           >
             <Plus className="w-4 h-4" />
-            <span>Tambah Absensi Manual</span>
+            <span className="font-semibold">Tambah Absensi Manual</span>
           </button>
+        </div>
+      </div>
+
+      {/* Quick Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="glass-card p-3.5 border border-white/10 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] text-gray-400 font-medium">Total Absen</p>
+            <p className="text-lg font-bold text-white mt-0.5">{stats.total}</p>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400">
+            <ClipboardList className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="glass-card p-3.5 border border-emerald-500/20 bg-emerald-500/5 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] text-emerald-400 font-medium">Tepat Waktu</p>
+            <p className="text-lg font-bold text-emerald-300 mt-0.5">{stats.onTime}</p>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <CheckCircle className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="glass-card p-3.5 border border-amber-500/20 bg-amber-500/5 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] text-amber-400 font-medium">Terlambat</p>
+            <p className="text-lg font-bold text-amber-300 mt-0.5">{stats.late}</p>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+            <Clock className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="glass-card p-3.5 border border-blue-500/20 bg-blue-500/5 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] text-blue-400 font-medium">Izin & Sakit</p>
+            <p className="text-lg font-bold text-blue-300 mt-0.5">{stats.izinSakit}</p>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+            <FileText className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="glass-card p-3.5 border border-rose-500/20 bg-rose-500/5 flex items-center justify-between col-span-2 sm:col-span-1">
+          <div>
+            <p className="text-[11px] text-rose-400 font-medium">Alpha</p>
+            <p className="text-lg font-bold text-rose-300 mt-0.5">{stats.alpha}</p>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+            <AlertCircle className="w-4 h-4" />
+          </div>
         </div>
       </div>
 
@@ -274,7 +373,10 @@ export default function AdminAttendancesPage() {
       {(!filterDate || filterDate === new Date().toISOString().split('T')[0]) && (() => {
         const todayDate = new Date().toISOString().split('T')[0]
         const absentList = students.filter((s) => {
-          return !attendances.some((a) => a.user_id === s.id && a.date === todayDate && a.check_in_time)
+          return (
+            s.role === 'student' &&
+            !attendances.some((a) => a.user_id === s.id && a.date === todayDate && a.check_in_time)
+          )
         })
 
         if (absentList.length === 0) return null
@@ -328,25 +430,37 @@ export default function AdminAttendancesPage() {
 
       {/* Filters Toolbar */}
       <div className="glass-card p-4 border border-white/10 flex flex-wrap items-center gap-3">
-        {/* Search by Name */}
+        {/* Search by Name / Email */}
         <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 flex-1 min-w-[200px]">
           <Search className="w-3.5 h-3.5 text-gray-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nama siswa..."
+            placeholder="Cari nama siswa atau email..."
             className="bg-transparent text-xs text-white placeholder:text-gray-500 outline-none w-full"
           />
         </div>
 
-        {/* Date Filter */}
-        <input
-          type="date"
-          value={filterDate}
-          onChange={(e) => setFilterDate(e.target.value)}
-          className="input-field py-1.5 px-3 text-xs w-auto bg-black/40 border-white/10"
-        />
+        {/* Date Filter & Quick Pills */}
+        <div className="flex items-center gap-1.5">
+          <input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="input-field py-1.5 px-3 text-xs w-auto bg-black/40 border-white/10"
+          />
+          <button
+            onClick={() => setFilterDate(new Date().toISOString().split('T')[0])}
+            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition ${
+              filterDate === new Date().toISOString().split('T')[0]
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white/5 text-gray-400 hover:text-white'
+            }`}
+          >
+            Hari Ini
+          </button>
+        </div>
 
         {/* Status Filter */}
         <select
@@ -358,6 +472,8 @@ export default function AdminAttendancesPage() {
           <option value="on_time">🟢 Tepat Waktu</option>
           <option value="late">🟡 Terlambat</option>
           <option value="alpha">🔴 Alpha</option>
+          <option value="izin">🔵 Izin</option>
+          <option value="sakit">🟣 Sakit</option>
         </select>
 
         {/* Month Filter */}
@@ -374,6 +490,19 @@ export default function AdminAttendancesPage() {
           ))}
         </select>
 
+        {/* Year Filter */}
+        <select
+          value={filterYear}
+          onChange={(e) => setFilterYear(e.target.value)}
+          className="input-field py-1.5 px-3 text-xs w-auto bg-black/40 border-white/10"
+        >
+          {[2025, 2026, 2027].map((y) => (
+            <option key={y} value={y.toString()}>
+              {y}
+            </option>
+          ))}
+        </select>
+
         {/* Reset button */}
         {(filterDate || filterStatus || filterMonth || search) && (
           <button
@@ -383,7 +512,7 @@ export default function AdminAttendancesPage() {
               setFilterMonth('')
               setSearch('')
             }}
-            className="text-xs text-rose-400 hover:underline px-2"
+            className="text-xs text-rose-400 hover:underline px-2 py-1 font-medium"
           >
             Reset Filter
           </button>
@@ -397,25 +526,31 @@ export default function AdminAttendancesPage() {
             <thead>
               <tr>
                 <th>Tanggal</th>
-                <th>Siswa</th>
-                <th>Masuk</th>
-                <th>Pulang</th>
+                <th>Peserta Didik / Pengguna</th>
+                <th>Masuk (WIB)</th>
+                <th>Pulang (WIB)</th>
                 <th>Status</th>
-                <th>Bukti Foto / Lokasi</th>
-                <th className="text-right">Aksi</th>
+                <th>Bukti / Lokasi / Keterangan</th>
+                <th className="text-right">Aksi Superadmin</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-xs text-gray-500">
-                    Memuat data absensi...
+                  <td colSpan={7} className="text-center py-12 text-xs text-gray-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <RefreshCw className="w-5 h-5 animate-spin text-indigo-400" />
+                      <span>Memuat data absensi...</span>
+                    </div>
                   </td>
                 </tr>
               ) : attendances.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-xs text-gray-500">
-                    Tidak ada catatan absensi yang sesuai filter.
+                  <td colSpan={7} className="text-center py-12 text-xs text-gray-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <ClipboardList className="w-7 h-7 text-gray-600" />
+                      <span>Tidak ada catatan absensi yang sesuai filter.</span>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -424,33 +559,43 @@ export default function AdminAttendancesPage() {
                   const checkOutPhoto = rec.attendance_photos?.find((p: any) => p.type === 'check_out')
 
                   return (
-                    <tr key={rec.id}>
+                    <tr key={rec.id} className="hover:bg-white/[0.02] transition">
                       <td>
                         <div className="text-xs">
                           <p className="font-semibold text-white">{formatDate(rec.date)}</p>
                           {rec.is_manual && (
-                            <span className="text-[10px] text-amber-400">Manual Admin</span>
+                            <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 text-[9px] font-semibold border border-amber-500/20">
+                              Manual Admin
+                            </span>
                           )}
                         </div>
                       </td>
                       <td>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
                           {rec.users?.avatar_url ? (
                             <img
                               src={rec.users.avatar_url}
                               alt="Avatar"
-                              className="w-7 h-7 rounded-full object-cover border border-white/10"
+                              className="w-8 h-8 rounded-full object-cover border border-white/10 flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center flex-shrink-0">
                               {rec.users?.full_name?.charAt(0) || 'S'}
                             </div>
                           )}
-                          <div>
-                            <p className="font-semibold text-white text-xs">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-white text-xs truncate">
                               {rec.users?.full_name || 'Tidak Diketahui'}
                             </p>
-                            <p className="text-[10px] text-gray-400">{rec.users?.email}</p>
+                            <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                              <span className="truncate">{rec.users?.email}</span>
+                              {rec.users?.class_name && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-indigo-300 font-medium">{rec.users.class_name}</span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -469,65 +614,78 @@ export default function AdminAttendancesPage() {
                         </div>
                       </td>
                       <td>
-                        <div className={`badge text-[10px] ${getStatusBadge(rec.check_in_status)}`}>
+                        <div className={`badge text-[10px] py-1 px-2.5 ${getStatusBadge(rec.check_in_status)}`}>
                           <span>{getStatusEmoji(rec.check_in_status)}</span>
-                          <span>{getStatusLabel(rec.check_in_status)}</span>
+                          <span className="font-semibold">{getStatusLabel(rec.check_in_status)}</span>
                         </div>
                       </td>
                       <td>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {checkInPhoto && (
-                            <button
-                              onClick={() =>
-                                setPhotoModal({
-                                  isOpen: true,
-                                  url: checkInPhoto.photo_url,
-                                  title: `Foto Masuk · ${rec.users?.full_name}`,
-                                })
-                              }
-                              className="p-1 rounded bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 text-[10px] flex items-center gap-1"
-                            >
-                              <Eye className="w-3 h-3" /> Masuk
-                            </button>
+                        <div className="flex flex-col gap-1 max-w-[260px]">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {checkInPhoto && (
+                              <button
+                                onClick={() =>
+                                  setPhotoModal({
+                                    isOpen: true,
+                                    url: checkInPhoto.photo_url,
+                                    title: `Foto Masuk · ${rec.users?.full_name}`,
+                                  })
+                                }
+                                className="px-2 py-0.5 rounded-md bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-medium flex items-center gap-1 transition"
+                              >
+                                <Eye className="w-3 h-3" /> Masuk
+                              </button>
+                            )}
+                            {checkOutPhoto && (
+                              <button
+                                onClick={() =>
+                                  setPhotoModal({
+                                    isOpen: true,
+                                    url: checkOutPhoto.photo_url,
+                                    title: `Foto Pulang · ${rec.users?.full_name}`,
+                                  })
+                                }
+                                className="px-2 py-0.5 rounded-md bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 text-[10px] font-medium flex items-center gap-1 transition"
+                              >
+                                <Eye className="w-3 h-3" /> Pulang
+                              </button>
+                            )}
+                            {rec.check_in_lat && rec.check_in_lng && (
+                              <button
+                                onClick={() =>
+                                  setMapModal({
+                                    isOpen: true,
+                                    lat: rec.check_in_lat,
+                                    lng: rec.check_in_lng,
+                                    title: `Lokasi Masuk · ${rec.users?.full_name}`,
+                                    address: rec.check_in_address,
+                                  })
+                                }
+                                className="px-2 py-0.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-medium flex items-center gap-1 transition"
+                              >
+                                <MapPin className="w-3 h-3" /> Peta GPS
+                              </button>
+                            )}
+                          </div>
+                          {rec.check_in_address && (
+                            <p className="text-[10px] text-gray-400 truncate flex items-center gap-1" title={rec.check_in_address}>
+                              <Building className="w-2.5 h-2.5 text-gray-500 flex-shrink-0" />
+                              <span className="truncate">{rec.check_in_address}</span>
+                            </p>
                           )}
-                          {checkOutPhoto && (
-                            <button
-                              onClick={() =>
-                                setPhotoModal({
-                                  isOpen: true,
-                                  url: checkOutPhoto.photo_url,
-                                  title: `Foto Pulang · ${rec.users?.full_name}`,
-                                })
-                              }
-                              className="p-1 rounded bg-teal-500/10 text-teal-400 hover:bg-teal-500/20 text-[10px] flex items-center gap-1"
-                            >
-                              <Eye className="w-3 h-3" /> Pulang
-                            </button>
-                          )}
-                          {rec.check_in_lat && rec.check_in_lng && (
-                            <button
-                              onClick={() =>
-                                setMapModal({
-                                  isOpen: true,
-                                  lat: rec.check_in_lat,
-                                  lng: rec.check_in_lng,
-                                  title: `Lokasi Masuk · ${rec.users?.full_name}`,
-                                  address: rec.check_in_address,
-                                })
-                              }
-                              className="p-1 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[10px] flex items-center gap-1"
-                            >
-                              <MapPin className="w-3 h-3" /> Peta
-                            </button>
+                          {rec.note && (
+                            <p className="text-[10px] text-amber-300/80 italic truncate" title={rec.note}>
+                              Catatan: {rec.note}
+                            </p>
                           )}
                         </div>
                       </td>
                       <td className="text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handleOpenEdit(rec)}
-                            title="Edit Absensi"
-                            className="p-1.5 rounded-lg text-indigo-400 hover:bg-indigo-500/10 transition"
+                            title="Edit / Koreksi Absensi"
+                            className="p-1.5 rounded-lg text-indigo-400 hover:bg-indigo-500/15 border border-transparent hover:border-indigo-500/30 transition active:scale-95"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
@@ -537,7 +695,7 @@ export default function AdminAttendancesPage() {
                               setDeleteModalOpen(true)
                             }}
                             title="Hapus Absensi"
-                            className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition"
+                            className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/15 border border-transparent hover:border-rose-500/30 transition active:scale-95"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -555,15 +713,20 @@ export default function AdminAttendancesPage() {
       {/* MANUAL ATTENDANCE MODAL */}
       {manualModalOpen && (
         <div className="modal-overlay">
-          <div className="glass-card p-6 w-full max-w-md border border-white/10 shadow-2xl">
+          <div className="glass-card p-6 w-full max-w-lg border border-white/10 shadow-2xl animate-fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Plus className="w-4 h-4 text-indigo-400" />
-                Tambah Absensi Manual
-              </h3>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Tambah Absensi Manual</h3>
+                  <p className="text-[10px] text-gray-400">Input catatan kehadiran resmi oleh Superadmin</p>
+                </div>
+              </div>
               <button
                 onClick={() => setManualModalOpen(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white p-1 rounded-lg"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -571,7 +734,7 @@ export default function AdminAttendancesPage() {
 
             <form onSubmit={handleManualSubmit} className="flex flex-col gap-3.5 text-xs">
               <div>
-                <label className="text-gray-400 font-medium block mb-1">Pilih Siswa</label>
+                <label className="text-gray-400 font-medium block mb-1">Pilih Siswa / Pengguna</label>
                 <select
                   value={manualUserId}
                   onChange={(e) => setManualUserId(e.target.value)}
@@ -580,41 +743,45 @@ export default function AdminAttendancesPage() {
                 >
                   {students.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.full_name} ({s.email})
+                      {s.full_name} ({s.class_name ? `${s.class_name} • ` : ''}{s.email})
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="text-gray-400 font-medium block mb-1">Tanggal</label>
-                <input
-                  type="date"
-                  required
-                  value={manualDate}
-                  onChange={(e) => setManualDate(e.target.value)}
-                  className="input-field"
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-gray-400 font-medium block mb-1">Jam Masuk (WIB)</label>
+                  <label className="text-gray-400 font-medium block mb-1">Tanggal Absensi</label>
                   <input
-                    type="time"
-                    value={manualCheckIn}
-                    onChange={(e) => setManualCheckIn(e.target.value)}
+                    type="date"
+                    required
+                    value={manualDate}
+                    onChange={(e) => setManualDate(e.target.value)}
                     className="input-field"
                   />
                 </div>
                 <div>
-                  <label className="text-gray-400 font-medium block mb-1">Jam Pulang (WIB)</label>
-                  <input
-                    type="time"
-                    value={manualCheckOut}
-                    onChange={(e) => setManualCheckOut(e.target.value)}
-                    className="input-field"
-                  />
+                  <label className="text-gray-400 font-medium block mb-1">Shortcut Tanggal</label>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setManualDate(new Date().toISOString().split('T')[0])}
+                      className="btn-outline flex-1 py-1.5 text-[10px]"
+                    >
+                      Hari Ini
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const yesterday = new Date()
+                        yesterday.setDate(yesterday.getDate() - 1)
+                        setManualDate(yesterday.toISOString().split('T')[0])
+                      }}
+                      className="btn-outline flex-1 py-1.5 text-[10px]"
+                    >
+                      Kemarin
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -628,7 +795,105 @@ export default function AdminAttendancesPage() {
                   <option value="on_time">🟢 Tepat Waktu</option>
                   <option value="late">🟡 Terlambat</option>
                   <option value="alpha">🔴 Alpha</option>
+                  <option value="izin">🔵 Izin</option>
+                  <option value="sakit">🟣 Sakit</option>
                 </select>
+              </div>
+
+              {/* Presets shortcut buttons */}
+              <div>
+                <span className="text-[10px] text-gray-500 block mb-1">Shortcut Preset Cepat:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => applyManualPreset('on_time')}
+                    className="px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20 hover:bg-emerald-500/25"
+                  >
+                    🟢 Tepat Waktu (07:30 - 16:30)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyManualPreset('late')}
+                    className="px-2 py-1 rounded-md bg-amber-500/15 text-amber-400 text-[10px] font-semibold border border-amber-500/20 hover:bg-amber-500/25"
+                  >
+                    🟡 Terlambat (08:45 - 16:30)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyManualPreset('izin')}
+                    className="px-2 py-1 rounded-md bg-blue-500/15 text-blue-400 text-[10px] font-semibold border border-blue-500/20 hover:bg-blue-500/25"
+                  >
+                    🔵 Izin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyManualPreset('sakit')}
+                    className="px-2 py-1 rounded-md bg-purple-500/15 text-purple-400 text-[10px] font-semibold border border-purple-500/20 hover:bg-purple-500/25"
+                  >
+                    🟣 Sakit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyManualPreset('alpha')}
+                    className="px-2 py-1 rounded-md bg-rose-500/15 text-rose-400 text-[10px] font-semibold border border-rose-500/20 hover:bg-rose-500/25"
+                  >
+                    🔴 Alpha
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-gray-400 font-medium">Jam Masuk (WIB)</label>
+                    {manualCheckIn && (
+                      <button
+                        type="button"
+                        onClick={() => setManualCheckIn('')}
+                        className="text-[9px] text-gray-500 hover:text-rose-400"
+                      >
+                        Kosongkan
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="time"
+                    value={manualCheckIn}
+                    onChange={(e) => setManualCheckIn(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-gray-400 font-medium">Jam Pulang (WIB)</label>
+                    {manualCheckOut && (
+                      <button
+                        type="button"
+                        onClick={() => setManualCheckOut('')}
+                        className="text-[9px] text-gray-500 hover:text-rose-400"
+                      >
+                        Kosongkan
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="time"
+                    value={manualCheckOut}
+                    onChange={(e) => setManualCheckOut(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-gray-400 font-medium block mb-1">Lokasi / Keterangan Penugasan (Opsional)</label>
+                <input
+                  type="text"
+                  value={manualAddress}
+                  onChange={(e) => setManualAddress(e.target.value)}
+                  placeholder="Contoh: Kantor Dinas Kominfo / Dinas Luar"
+                  className="input-field"
+                />
               </div>
 
               <div>
@@ -636,7 +901,7 @@ export default function AdminAttendancesPage() {
                 <textarea
                   value={manualNote}
                   onChange={(e) => setManualNote(e.target.value)}
-                  placeholder="Contoh: Diberi izin dispensasi kegiatan dinas luar..."
+                  placeholder="Contoh: Ditambahkan manual karena gangguan jaringan / tugas lapangan..."
                   rows={2}
                   className="input-field resize-none"
                 />
@@ -653,7 +918,7 @@ export default function AdminAttendancesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary py-2 px-4"
+                  className="btn-primary py-2 px-5 font-semibold"
                 >
                   {submitting ? 'Menyimpan...' : 'Simpan Absensi'}
                 </button>
@@ -666,32 +931,70 @@ export default function AdminAttendancesPage() {
       {/* EDIT ATTENDANCE MODAL */}
       {editModalOpen && (
         <div className="modal-overlay">
-          <div className="glass-card p-6 w-full max-w-md border border-white/10 shadow-2xl">
+          <div className="glass-card p-6 w-full max-w-lg border border-white/10 shadow-2xl animate-fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-indigo-400" />
-                Koreksi Data Absensi
-              </h3>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                  <Edit2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Koreksi Data Absensi</h3>
+                  <p className="text-[10px] text-gray-400">Sesuaikan waktu, tanggal, atau status kehadiran</p>
+                </div>
+              </div>
               <button
                 onClick={() => setEditModalOpen(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white p-1 rounded-lg"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleEditSubmit} className="flex flex-col gap-3.5 text-xs">
-              <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-                <p className="text-gray-400">Siswa:</p>
-                <p className="font-bold text-white text-sm">{selectedRecord?.users?.full_name}</p>
-                <p className="text-[11px] text-gray-400 mt-1">
-                  Tanggal: {selectedRecord ? formatDate(selectedRecord.date) : ''}
-                </p>
+              {/* Student Summary Info */}
+              <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+                {selectedRecord?.users?.avatar_url ? (
+                  <img
+                    src={selectedRecord.users.avatar_url}
+                    alt="Avatar"
+                    className="w-9 h-9 rounded-full object-cover border border-white/10"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center text-sm">
+                    {selectedRecord?.users?.full_name?.charAt(0) || 'S'}
+                  </div>
+                )}
+                <div>
+                  <p className="font-bold text-white text-xs">{selectedRecord?.users?.full_name}</p>
+                  <p className="text-[11px] text-gray-400">{selectedRecord?.users?.email}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-gray-400 font-medium block mb-1">Tanggal Absensi</label>
+                <input
+                  type="date"
+                  required
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="input-field"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-gray-400 font-medium block mb-1">Jam Masuk (WIB)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-gray-400 font-medium">Jam Masuk (WIB)</label>
+                    {editCheckIn && (
+                      <button
+                        type="button"
+                        onClick={() => setEditCheckIn('')}
+                        className="text-[9px] text-gray-500 hover:text-rose-400"
+                      >
+                        Kosongkan
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="time"
                     value={editCheckIn}
@@ -700,7 +1003,18 @@ export default function AdminAttendancesPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-gray-400 font-medium block mb-1">Jam Pulang (WIB)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-gray-400 font-medium">Jam Pulang (WIB)</label>
+                    {editCheckOut && (
+                      <button
+                        type="button"
+                        onClick={() => setEditCheckOut('')}
+                        className="text-[9px] text-gray-500 hover:text-rose-400"
+                      >
+                        Kosongkan
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="time"
                     value={editCheckOut}
@@ -720,7 +1034,20 @@ export default function AdminAttendancesPage() {
                   <option value="on_time">🟢 Tepat Waktu</option>
                   <option value="late">🟡 Terlambat</option>
                   <option value="alpha">🔴 Alpha</option>
+                  <option value="izin">🔵 Izin</option>
+                  <option value="sakit">🟣 Sakit</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="text-gray-400 font-medium block mb-1">Alamat / Lokasi</label>
+                <input
+                  type="text"
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  placeholder="Lokasi kehadiran..."
+                  className="input-field"
+                />
               </div>
 
               <div>
@@ -728,6 +1055,7 @@ export default function AdminAttendancesPage() {
                 <textarea
                   value={editNote}
                   onChange={(e) => setEditNote(e.target.value)}
+                  placeholder="Alasan koreksi absensi..."
                   rows={2}
                   className="input-field resize-none"
                 />
@@ -744,7 +1072,7 @@ export default function AdminAttendancesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary py-2 px-4"
+                  className="btn-primary py-2 px-5 font-semibold"
                 >
                   {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>
@@ -757,17 +1085,50 @@ export default function AdminAttendancesPage() {
       {/* DELETE MODAL */}
       {deleteModalOpen && (
         <div className="modal-overlay">
-          <div className="glass-card p-6 w-full max-w-sm border border-rose-500/30 shadow-2xl flex flex-col gap-4">
-            <h3 className="text-base font-bold text-white text-center">Hapus Catatan Absensi?</h3>
-            <p className="text-xs text-gray-300 text-center">
-              Apakah Anda yakin ingin menghapus data absensi tanggal <b>{selectedRecord?.date}</b> milik{' '}
-              <b>{selectedRecord?.users?.full_name}</b>?
+          <div className="glass-card p-6 w-full max-w-md border border-rose-500/30 shadow-2xl flex flex-col gap-4 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 flex-shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Hapus Catatan Absensi?</h3>
+                <p className="text-xs text-gray-400">Tindakan ini tidak dapat dibatalkan</p>
+              </div>
+            </div>
+
+            {/* Record details preview */}
+            <div className="p-3 rounded-xl bg-black/40 border border-white/10 flex flex-col gap-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Siswa:</span>
+                <span className="font-semibold text-white">{selectedRecord?.users?.full_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Tanggal:</span>
+                <span className="text-white font-medium">{selectedRecord ? formatDate(selectedRecord.date) : ''}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Jam Masuk:</span>
+                <span className="text-white font-medium">
+                  {selectedRecord?.check_in_time ? formatTime(selectedRecord.check_in_time) : '-'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Status:</span>
+                <span className={`badge text-[10px] ${getStatusBadge(selectedRecord?.check_in_status)}`}>
+                  {getStatusEmoji(selectedRecord?.check_in_status)} {getStatusLabel(selectedRecord?.check_in_status)}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-rose-300/80 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">
+              Perhatian: Menghapus record ini juga akan membersihkan foto swafoto bukti terkait dan dicatat ke Audit Log sistem.
             </p>
-            <div className="flex items-center justify-center gap-2 pt-2">
+
+            <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setDeleteModalOpen(false)}
-                className="btn-outline text-xs flex-1 py-2.5"
+                className="btn-outline text-xs py-2 px-4"
               >
                 Batal
               </button>
@@ -775,9 +1136,9 @@ export default function AdminAttendancesPage() {
                 type="button"
                 onClick={handleDeleteSubmit}
                 disabled={submitting}
-                className="btn-danger text-xs flex-1 py-2.5"
+                className="btn-danger text-xs py-2 px-5 font-semibold"
               >
-                {submitting ? 'Menghapus...' : 'Ya, Hapus'}
+                {submitting ? 'Menghapus...' : 'Ya, Hapus Absensi'}
               </button>
             </div>
           </div>
@@ -797,14 +1158,14 @@ export default function AdminAttendancesPage() {
       {/* PHOTO PREVIEW MODAL */}
       {photoModal.isOpen && (
         <div className="modal-overlay">
-          <div className="glass-card p-4 max-w-sm w-full border border-white/10 flex flex-col items-center">
+          <div className="glass-card p-4 max-w-sm w-full border border-white/10 flex flex-col items-center animate-fade-in">
             <div className="flex items-center justify-between w-full pb-3 border-b border-white/10 mb-3">
               <h4 className="text-xs font-semibold text-white truncate max-w-[280px]">
                 {photoModal.title}
               </h4>
               <button
                 onClick={() => setPhotoModal({ isOpen: false, url: '', title: '' })}
-                className="text-gray-400 hover:text-white text-xs"
+                className="text-gray-400 hover:text-white text-xs p-1"
               >
                 ✕
               </button>
@@ -812,7 +1173,7 @@ export default function AdminAttendancesPage() {
             <img
               src={photoModal.url}
               alt="Bukti Foto"
-              className="w-full max-h-[350px] object-cover rounded-xl border border-white/10"
+              className="w-full max-h-[350px] object-cover rounded-xl border border-white/10 shadow-lg"
             />
           </div>
         </div>

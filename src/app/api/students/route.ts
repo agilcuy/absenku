@@ -23,12 +23,16 @@ export async function GET(req: NextRequest) {
     const mentorId = searchParams.get('mentor_id')
     const status = searchParams.get('status')
     const search = searchParams.get('search')
+    const includeAll = searchParams.get('all') === 'true'
 
     let query = adminClient
       .from('users')
       .select('*, internship_places(id, name), mentor:mentor_id(id, full_name)')
-      .eq('role', 'student')
       .order('full_name', { ascending: true })
+
+    if (!includeAll || isMentor) {
+      query = query.eq('role', 'student')
+    }
 
     // If caller is mentor (not superadmin), restrict strictly to mentor's assigned place or mentored students
     if (isMentor) {
