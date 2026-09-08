@@ -1,82 +1,190 @@
 [
   {
-    "id": "194ee346-53c0-47f9-a6a6-a26b16f8ece0",
-    "full_name": "Ade Silvia Ramadani",
-    "email": "ades82955@gmail.com",
+    "id": "a01d3947-725b-4137-9724-9a148127754a",
+    "email": "khalid@absenku.local",
+    "full_name": "Muhammad Khalid Azkiya",
+    "phone": "0895619642949",
+    "avatar_url": null,
     "role": "student",
-    "class_name": "XII ACP",
-    "major": "Teknik Komputer & Jaringan",
+    "is_active": true,
+    "created_at": "2026-09-05T10:58:24.87313+00:00",
+    "updated_at": "2026-09-06T00:39:04.598216+00:00",
+    "username": "khalid",
+    "class_name": "XII RPL",
+    "major": "Rekayasa Perangkat Lunak",
+    "internship_place_id": "34475533-8a7a-49bb-b51e-975bafb0055c",
+    "mentor_id": "e20b6854-6954-4d4a-8867-f2ead92c3b5e",
+    "start_date": null,
+    "end_date": null,
     "internship_status": "aktif",
-    "internship_place_id": "11111111-1111-1111-1111-111111111111",
+    "last_seen": "2026-09-06T00:39:03.969+00:00",
+    "is_online": true,
     "internship_places": {
-      "id": "11111111-1111-1111-1111-111111111111",
-      "name": "Kominfo Tanggamus (egov)"
+      "id": "34475533-8a7a-49bb-b51e-975bafb0055c",
+      "name": "GEN-Z TECH"
+    },
+    "mentor": {
+      "id": "e20b6854-6954-4d4a-8867-f2ead92c3b5e",
+      "full_name": "DERY ZULDA DINAYA"
     }
   },
   {
     "id": "50aa166e-a058-4b30-91d9-e7eb0ae1591b",
-    "full_name": "Tias Maharani",
     "email": "tiasmaharani78@gmail.com",
+    "full_name": "Tias Maharani",
+    "phone": "085758952048",
+    "avatar_url": "https://xgxbdqgevsmoaxzhgpfe.supabase.co/storage/v1/object/public/attendance-photos/avatars/50aa166e-a058-4b30-91d9-e7eb0ae1591b-1788451989230.jpg",
     "role": "student",
+    "is_active": true,
+    "created_at": "2026-09-03T15:59:46.891463+00:00",
+    "updated_at": "2026-09-07T09:46:29.171323+00:00",
+    "username": "tiasmaharani",
     "class_name": "XII ACP",
-    "major": "Teknik Komputer & Jaringan",
+    "major": "Teknik Komputer dan Jaringan (TKJ)",
+    "internship_place_id": "8218cfcc-017b-4fc1-89ec-4a911e1066fa",
+    "mentor_id": "452ef0b9-4cea-4183-ab70-4a22f1b42205",
+    "start_date": null,
+    "end_date": null,
     "internship_status": "aktif",
-    "internship_place_id": "11111111-1111-1111-1111-111111111111",
+    "last_seen": "2026-09-07T09:46:28.641+00:00",
+    "is_online": true,
     "internship_places": {
-      "id": "11111111-1111-1111-1111-111111111111",
+      "id": "8218cfcc-017b-4fc1-89ec-4a911e1066fa",
       "name": "Kominfo Tanggamus (egov)"
-    }
-  },
-  {
-    "id": "a01d3947-725b-4137-9724-9a148127754a",
-    "full_name": "Muhammad Khalid Azkiya",
-    "email": "khalid@absenku.local",
-    "role": "student",
-    "class_name": "XII RPL",
-    "major": "Rekayasa Perangkat Lunak",
-    "internship_status": "aktif",
-    "internship_place_id": "22222222-2222-2222-2222-222222222222",
-    "internship_places": {
-      "id": "22222222-2222-2222-2222-222222222222",
-      "name": "GEN-Z TECH (DeryGarage X Gen z Code)"
-    }
-  },
-  {
-    "id": "0306f537-18f3-4d8e-a577-ff1bcaddf3af",
-    "full_name": "Muhamad Lutfi Vidic Patria",
-    "email": "lutfi@absenku.local",
-    "role": "student",
-    "class_name": "XII RPL",
-    "major": "Rekayasa Perangkat Lunak",
-    "internship_status": "aktif",
-    "internship_place_id": "22222222-2222-2222-2222-222222222222",
-    "internship_places": {
-      "id": "22222222-2222-2222-2222-222222222222",
-      "name": "GEN-Z TECH (DeryGarage X Gen z Code)"
-    }
-  },
-  {
-    "id": "e20b6854-6954-4d4a-8867-f2ead92c3b5e",
-    "full_name": "DERY ZULDA DINAYA",
-    "email": "deryjulda2812@gmail.com",
-    "role": "pembimbing",
-    "class_name": "RPL",
-    "internship_place_id": "22222222-2222-2222-2222-222222222222",
-    "internship_places": {
-      "id": "22222222-2222-2222-2222-222222222222",
-      "name": "GEN-Z TECH (DeryGarage X Gen z Code)"
+    },
+    "mentor": {
+      "id": "452ef0b9-4cea-4183-ab70-4a22f1b42205",
+      "full_name": "Mikrotik"
     }
   },
   {
     "id": "452ef0b9-4cea-4183-ab70-4a22f1b42205",
-    "full_name": "Mikrotik",
     "email": "mikrotikagil@gmail.com",
+    "full_name": "Mikrotik",
+    "phone": "089630929122",
+    "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocKQg9YXl-B01-kVsN6O2MdkGvtcgixfAnhjtowiQJV59r-wkA=s96-c",
     "role": "superadmin",
+    "is_active": true,
+    "created_at": "2026-09-02T19:49:29.488887+00:00",
+    "updated_at": "2026-09-07T13:00:58.998524+00:00",
+    "username": "rafi",
     "class_name": "Technical Support",
-    "internship_place_id": "11111111-1111-1111-1111-111111111111",
+    "major": "Pembimbing",
+    "internship_place_id": null,
+    "mentor_id": null,
+    "start_date": null,
+    "end_date": null,
+    "internship_status": "aktif",
+    "last_seen": "2026-09-07T13:00:58.845+00:00",
+    "is_online": true,
+    "internship_places": null,
+    "mentor": null
+  },
+  {
+    "id": "0306f537-18f3-4d8e-a577-ff1bcaddf3af",
+    "email": "lutfi@absenku.local",
+    "full_name": "Muhamad Lutfi Vidic Patria",
+    "phone": "085609688694",
+    "avatar_url": null,
+    "role": "student",
+    "is_active": true,
+    "created_at": "2026-09-05T10:58:48.994251+00:00",
+    "updated_at": "2026-09-05T11:13:29.579735+00:00",
+    "username": null,
+    "class_name": "XII RPL",
+    "major": "rekayasa perangkat lunak",
+    "internship_place_id": "34475533-8a7a-49bb-b51e-975bafb0055c",
+    "mentor_id": "e20b6854-6954-4d4a-8867-f2ead92c3b5e",
+    "start_date": null,
+    "end_date": null,
+    "internship_status": "aktif",
+    "last_seen": "2026-09-05T11:13:29.447+00:00",
+    "is_online": true,
     "internship_places": {
-      "id": "11111111-1111-1111-1111-111111111111",
-      "name": "Kominfo Tanggamus (egov)"
+      "id": "34475533-8a7a-49bb-b51e-975bafb0055c",
+      "name": "GEN-Z TECH"
+    },
+    "mentor": {
+      "id": "e20b6854-6954-4d4a-8867-f2ead92c3b5e",
+      "full_name": "DERY ZULDA DINAYA"
     }
+  },
+  {
+    "id": "194ee346-53c0-47f9-a6a6-a26b16f8ece0",
+    "email": "ades82955@gmail.com",
+    "full_name": "Ade Silvia Ramadani",
+    "phone": "081292989144",
+    "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocJ6e_nPshYZ07l0-zkiTVqKYgZDIK-fNEkVAslnBcPgaR_Hnw=s96-c",
+    "role": "student",
+    "is_active": true,
+    "created_at": "2026-09-03T23:03:22.47966+00:00",
+    "updated_at": "2026-09-08T02:38:22.982643+00:00",
+    "username": "adesilvia",
+    "class_name": "XII ACP",
+    "major": "Teknik Komputer dan Jaringan (TKJ)",
+    "internship_place_id": "8218cfcc-017b-4fc1-89ec-4a911e1066fa",
+    "mentor_id": "452ef0b9-4cea-4183-ab70-4a22f1b42205",
+    "start_date": null,
+    "end_date": null,
+    "internship_status": "aktif",
+    "last_seen": "2026-09-08T02:38:22.436+00:00",
+    "is_online": true,
+    "internship_places": {
+      "id": "8218cfcc-017b-4fc1-89ec-4a911e1066fa",
+      "name": "Kominfo Tanggamus (egov)"
+    },
+    "mentor": {
+      "id": "452ef0b9-4cea-4183-ab70-4a22f1b42205",
+      "full_name": "Mikrotik"
+    }
+  },
+  {
+    "id": "e20b6854-6954-4d4a-8867-f2ead92c3b5e",
+    "email": "deryjulda2812@gmail.com",
+    "full_name": "DERY ZULDA DINAYA",
+    "phone": "0895610063378",
+    "avatar_url": null,
+    "role": "pembimbing",
+    "is_active": true,
+    "created_at": "2026-09-05T09:17:55.414334+00:00",
+    "updated_at": "2026-09-05T10:27:53.328899+00:00",
+    "username": "dery",
+    "class_name": "RPL",
+    "major": "Rekayasa Perangkat Lunak",
+    "internship_place_id": "34475533-8a7a-49bb-b51e-975bafb0055c",
+    "mentor_id": null,
+    "start_date": null,
+    "end_date": null,
+    "internship_status": "aktif",
+    "last_seen": "2026-09-05T10:27:53.18+00:00",
+    "is_online": false,
+    "internship_places": {
+      "id": "34475533-8a7a-49bb-b51e-975bafb0055c",
+      "name": "GEN-Z TECH"
+    },
+    "mentor": null
+  },
+  {
+    "id": "ce65e040-1b5b-4f26-bbfd-d9d914c1ef04",
+    "email": "test@gmail.com",
+    "full_name": "test",
+    "phone": "1",
+    "avatar_url": null,
+    "role": "pembimbing",
+    "is_active": true,
+    "created_at": "2026-09-05T12:50:06.931377+00:00",
+    "updated_at": "2026-09-05T12:50:07.229935+00:00",
+    "username": "test",
+    "class_name": null,
+    "major": null,
+    "internship_place_id": null,
+    "mentor_id": null,
+    "start_date": null,
+    "end_date": null,
+    "internship_status": "aktif",
+    "last_seen": "2026-09-05T12:50:06.931377+00:00",
+    "is_online": false,
+    "internship_places": null,
+    "mentor": null
   }
 ]
