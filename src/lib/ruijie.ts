@@ -32,6 +32,13 @@ export interface RuijieSummary {
   lastChecked: string;
 }
 
+export interface RuijieFetchResult {
+  summary: RuijieSummary;
+  devices: RuijieDevice[];
+  networks: string[];
+  fromCache: boolean;
+}
+
 const RUIJIE_BASE_URL = 'https://cloud-as.ruijienetworks.com';
 const RSA_PUBLIC_KEY_BASE64 =
   'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKjeUvf/EGSrhYUApZlJRYYsYIkWQu5tcPc8bkWVqnlAFrJlVWmvgD5zd9Sevi7qNIl9+1NvNlFcqiUGgsevCNMCAwEAAQ==';
@@ -140,8 +147,16 @@ async function authenticateSession(force = false): Promise<{ jar: SessionJar; te
     return { jar: cachedJar, tenantId: cachedTenantId };
   }
 
-  const account = process.env.RUIJIE_ACCOUNT;
-  const password = process.env.RUIJIE_PASSWORD;
+  let account = (process.env.RUIJIE_ACCOUNT || '').trim();
+  let password = (process.env.RUIJIE_PASSWORD || '').trim();
+
+  // Strip wrapping quotes if present
+  if ((account.startsWith('"') && account.endsWith('"')) || (account.startsWith("'") && account.endsWith("'"))) {
+    account = account.slice(1, -1);
+  }
+  if ((password.startsWith('"') && password.endsWith('"')) || (password.startsWith("'") && password.endsWith("'"))) {
+    password = password.slice(1, -1);
+  }
 
   if (!account || !password) {
     throw new Error('Kredensial Ruijie Cloud belum dikonfigurasi di .env.local');
@@ -173,31 +188,29 @@ async function authenticateSession(force = false): Promise<{ jar: SessionJar; te
   const encryptedPassword = encryptPassword(password);
 
   // 2. Validate password via CAS endpoint
-  try {
-    const valRes = await fetch(`${RUIJIE_BASE_URL}/sso/validate/password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Cookie: jar.getCookieHeader(),
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-      body: JSON.stringify({ account, password: encryptedPassword }),
-    });
+  const valRes = await fetch(`${RUIJIE_BASE_URL}/sso/validate/password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: jar.getCookieHeader(),
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    },
+    body: JSON.stringify({ account, password: encryptedPassword }),
+  });
 
-    const valJson = await valRes.json();
-    if (valJson.code === 1105) {
-      throw new Error(`Ruijie Cloud Rate Limit: ${valJson.msg}`);
-    }
-
-    const valCookies =
-      typeof valRes.headers.getSetCookie === 'function'
-        ? valRes.headers.getSetCookie()
-        : [valRes.headers.get('set-cookie') || ''];
-    jar.setCookies(valCookies);
-  } catch (err: any) {
-    if (err.message?.includes('Rate Limit')) throw err;
+  const valJson = await valRes.json();
+  if (valJson.code === 1105) {
+    throw new Error(`Ruijie Cloud Rate Limit: ${valJson.msg}`);
+  } else if (valJson.code !== 0) {
+    throw new Error(`Ruijie Cloud Auth Error (${valJson.code}): ${valJson.msg || 'Gagal validasi password'}`);
   }
+
+  const valCookies =
+    typeof valRes.headers.getSetCookie === 'function'
+      ? valRes.headers.getSetCookie()
+      : [valRes.headers.get('set-cookie') || ''];
+  jar.setCookies(valCookies);
 
   // 3. POST form to CAS login endpoint
   const formParams = new URLSearchParams({
@@ -308,17 +321,14 @@ async function callProxyApi(
 /**
  * Mengambil semua perangkat Ruijie Cloud Tanggamus dan statusnya.
  */
-export async function getRuijieDevices(options?: { refresh?: boolean }): Promise<{
-  summary: RuijieSummary;
-  devices: RuijieDevice[];
-  networks: string[];
-}> {
+export async function getRuijieDevices(options?: { refresh?: boolean }): Promise<RuijieFetchResult> {
   const now = Date.now();
   if (!options?.refresh && cachedDevices.length > 0 && now - devicesFetchedAt < DEVICE_CACHE_TTL && cachedSummary) {
     return {
       summary: cachedSummary,
       devices: cachedDevices,
       networks: cachedNetworks,
+      fromCache: false,
     };
   }
 
@@ -340,6 +350,9 @@ export async function getRuijieDevices(options?: { refresh?: boolean }): Promise
       );
 
       if (!data || data.code !== 0) {
+        if (data?.msg) {
+          console.warn(`[Ruijie] Error fetching devices page ${page}:`, data.msg);
+        }
         break;
       }
 
@@ -380,7 +393,10 @@ export async function getRuijieDevices(options?: { refresh?: boolean }): Promise
         summary,
         devices: allDevices,
         networks: uniqueNetworks,
+        fromCache: false,
       };
+    } else {
+      throw new Error('Tidak ada data perangkat yang diterima dari Ruijie Cloud');
     }
   } catch (err: any) {
     console.warn('[Ruijie] Live fetch failed, using fallback cache:', err.message);
@@ -393,7 +409,10 @@ export async function getRuijieDevices(options?: { refresh?: boolean }): Promise
   cachedNetworks = fallback.networks;
   devicesFetchedAt = now;
 
-  return fallback;
+  return {
+    ...fallback,
+    fromCache: true,
+  };
 }
 
 /**

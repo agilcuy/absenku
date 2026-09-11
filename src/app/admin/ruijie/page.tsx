@@ -64,6 +64,7 @@ export default function RuijieMonitoringPage() {
   const [devices, setDevices] = useState<RuijieDevice[]>([]);
   const [networks, setNetworks] = useState<string[]>([]);
   const [deviceTypes, setDeviceTypes] = useState<string[]>([]);
+  const [isFromCache, setIsFromCache] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<'all' | 'OFF' | 'ON'>('OFF'); // Default to OFF to highlight problems
@@ -98,6 +99,7 @@ export default function RuijieMonitoringPage() {
         setDevices(data.devices || []);
         setNetworks(data.networks || []);
         setDeviceTypes(data.deviceTypes || []);
+        setIsFromCache(Boolean(data.fromCache));
       } catch (err: any) {
         console.error('Error fetching Ruijie devices:', err);
         setError(err.message || 'Terjadi kesalahan saat memuat data Ruijie Cloud');
@@ -114,11 +116,11 @@ export default function RuijieMonitoringPage() {
     fetchData(false);
   }, [fetchData]);
 
-  // Auto-refresh timer every 60 seconds
+  // Auto-refresh timer every 60 seconds (reads cache or updates smoothly without forcing re-login)
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
-      fetchData(true);
+      fetchData(false);
     }, 60000);
     return () => clearInterval(interval);
   }, [autoRefresh, fetchData]);
@@ -214,10 +216,17 @@ export default function RuijieMonitoringPage() {
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
                   Ruijie Cloud Live Monitoring
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    Live Cloud Sync
-                  </span>
+                  {isFromCache ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                      Snapshot Cache
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      Live Cloud Sync
+                    </span>
+                  )}
                 </h1>
                 <p className="text-sm text-slate-400 mt-0.5">
                   Pemantauan real-time 320+ Access Point & Router se-Kabupaten Tanggamus
@@ -262,13 +271,32 @@ export default function RuijieMonitoringPage() {
 
         {summary.lastChecked && (
           <div className="mt-4 pt-3 border-t border-white/5 text-xs text-slate-400 flex items-center gap-1.5">
-            <span>Pemeriksaan terakhir:</span>
+            <span>{isFromCache ? 'Waktu snapshot cache:' : 'Pemeriksaan live terakhir:'}</span>
             <span className="text-slate-300 font-mono">
-              {new Date(summary.lastChecked).toLocaleTimeString('id-ID')} WIB
+              {new Date(summary.lastChecked).toLocaleString('id-ID')}
             </span>
           </div>
         )}
       </div>
+
+      {/* Snapshot Cache Notice */}
+      {isFromCache && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              Menampilkan <strong>data snapshot lokal cadangan</strong>. Klik tombol <strong>Refresh Sekarang</strong> untuk mencoba sinkronisasi langsung ke Ruijie Cloud.
+            </span>
+          </div>
+          <button
+            onClick={() => fetchData(true)}
+            disabled={refreshing || loading}
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 shrink-0 transition-colors"
+          >
+            Sinkronkan Ulang
+          </button>
+        </div>
+      )}
 
       {/* Error Alert */}
       {error && (

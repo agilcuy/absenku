@@ -40,6 +40,6 @@ export default async function Home() {
     }
     redirect('/dashboard')
   } else {
-    redirect('/admin')
+    redirect('/login')
   }
 }

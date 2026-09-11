@@ -25,7 +25,7 @@ export async function isUserSuperadmin(
     .eq('id', user.id)
     .maybeSingle()
 
-  if (profile?.role === 'superadmin' || profile?.role === 'admin') {
+  if (profile?.role === 'superadmin') {
     return true
   }
 
@@ -37,7 +37,7 @@ export async function isUserSuperadmin(
       .eq('email', userEmail)
       .maybeSingle()
 
-    if (byEmail?.role === 'superadmin' || byEmail?.role === 'admin') {
+    if (byEmail?.role === 'superadmin') {
       return true
     }
     profile = byEmail

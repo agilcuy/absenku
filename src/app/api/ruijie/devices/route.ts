@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRuijieDevices } from '@/lib/ruijie';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,12 +13,12 @@ export async function GET(request: NextRequest) {
     const group = searchParams.get('group') || '';
     const type = searchParams.get('type') || '';
 
-    const { summary, devices, networks } = await getRuijieDevices({ refresh });
+    const { summary, devices, networks, fromCache } = await getRuijieDevices({ refresh });
 
     // Collect unique types
     const deviceTypes = Array.from(new Set(devices.map((d) => d.commonType || 'Other').filter(Boolean))).sort();
 
-    // Apply filtering
+    // Apply filtering — summary stays unfiltered (shows real totals for summary cards)
     let filtered = devices;
 
     if (status === 'OFF') {
@@ -56,14 +57,21 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
-      summary,
+      fromCache: !!fromCache,
+      summary,          // Always unfiltered — for summary cards
       networks,
       deviceTypes,
       totalFiltered: filtered.length,
       devices: filtered,
     });
+
+    // Prevent browser/CDN caching so data is always fresh
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+
+    return response;
   } catch (error: any) {
     console.error('[API /api/ruijie/devices] Error:', error);
     return NextResponse.json(
