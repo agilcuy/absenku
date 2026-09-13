@@ -65,10 +65,23 @@ export async function POST(req: NextRequest) {
     switch (command) {
       case '/start':
       case '/help': {
+        const cache = getCachedMonitoring();
+        if (!cache.telegram_config) cache.telegram_config = {};
+        if (!cache.telegram_config.default_chat_id) {
+          cache.telegram_config.default_chat_id = String(chatId);
+          try {
+            fs.writeFileSync(CACHE_PATH, JSON.stringify(cache, null, 2), 'utf-8');
+          } catch {}
+        }
+
         const welcomeText = `👋 <b>Halo, ${userName}!</b>
 
 Selamat datang di <b>Ruijie NOC Bot — Kabupaten Tanggamus</b>.
 Bot ini terhubung secara cloud ke sistem monitoring ABSENKU.
+
+📌 <b>Informasi Chat Ini:</b>
+• ID Chat: <code>${chatId}</code>
+• Tipe: <i>${message.chat?.type || 'private'}</i>
 
 📋 <b>Daftar Perintah Tersedia:</b>
 • <code>/status</code> — Ringkasan realtime total AP, online, & offline.
@@ -77,11 +90,28 @@ Bot ini terhubung secara cloud ke sistem monitoring ABSENKU.
 • <code>/device [SN]</code> — Cek detail teknis perangkat berdasarkan Serial Number.
 • <code>/wifi</code> — Informasi konfigurasi SSID Wi-Fi resmi instansi.
 • <code>/qrcode [SSID]</code> — Generate QR Code Wi-Fi siap scan untuk HP.
+• <code>/setchat</code> — Jadikan chat/grup ini sebagai target penerima alert padam.
 • <code>/check</code> — Jalankan pengecekan paksa cloud monitoring saat ini.
 
 🔒 <b>Status Akses:</b> ✅ <i>Terotorisasi (ID: ${userId})</i>`;
 
         await sendTelegramMessage(chatId, welcomeText);
+        break;
+      }
+
+      case '/setchat':
+      case '/daftargrup': {
+        const cache = getCachedMonitoring();
+        if (!cache.telegram_config) cache.telegram_config = {};
+        cache.telegram_config.default_chat_id = String(chatId);
+        try {
+          fs.writeFileSync(CACHE_PATH, JSON.stringify(cache, null, 2), 'utf-8');
+        } catch {}
+
+        await sendTelegramMessage(
+          chatId,
+          `✅ <b>Target Alert Berhasil Disimpan!</b>\n\nID Target: <code>${chatId}</code>\nNotifikasi otomatis jika ada Access Point/Switch Ruijie padam (24/7) akan langsung dikirimkan ke chat/grup ini.`
+        );
         break;
       }
 

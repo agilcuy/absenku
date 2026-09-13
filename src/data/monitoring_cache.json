@@ -8259,6 +8259,7 @@
     "alerts_sent_count": 0
   },
   "telegram_config": {
+    "bot_token": "8858219898:AAHgTA1ARc67k3A_0z9T85fgCHMqa2WXdCs",
     "alert_enabled": true,
     "check_interval_minutes": 5,
     "retry_threshold": 2
