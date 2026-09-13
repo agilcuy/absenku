@@ -54,7 +54,7 @@ export async function PUT(req: NextRequest) {
       site_logo_url,
     } = body
 
-    const { data: existing } = await supabase
+    const { data: existing } = await adminClient
       .from('settings')
       .select('*')
       .limit(1)
@@ -74,7 +74,7 @@ export async function PUT(req: NextRequest) {
 
     let savedData
     if (existing) {
-      const { data, error } = await supabase
+      const { data, error } = await adminClient
         .from('settings')
         .update(payload)
         .eq('id', existing.id)
@@ -83,7 +83,7 @@ export async function PUT(req: NextRequest) {
       if (error) throw error
       savedData = data
     } else {
-      const { data, error } = await supabase
+      const { data, error } = await adminClient
         .from('settings')
         .insert(payload)
         .select()

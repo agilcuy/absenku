@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { data: newHoliday, error } = await supabase
+    const { data: newHoliday, error } = await adminClient
       .from('holidays')
       .insert({
         date,

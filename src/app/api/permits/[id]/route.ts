@@ -93,9 +93,10 @@ export async function PUT(
     // INTEGRASI DENGAN ABSENSI JIKA DISETUJUI:
     // Otomatis catat status kehadiran sebagai 'izin' atau 'sakit' untuk seluruh tanggal pada rentang
     if (status === 'disetujui') {
-      const start = new Date(permit.start_date)
-      const end = new Date(permit.end_date)
-      const cur = new Date(start)
+      const [sy, sm, sd] = permit.start_date.split('-').map(Number)
+      const [ey, em, ed] = permit.end_date.split('-').map(Number)
+      const cur = new Date(Date.UTC(sy, sm - 1, sd, 12, 0, 0))
+      const end = new Date(Date.UTC(ey, em - 1, ed, 12, 0, 0))
 
       while (cur <= end) {
         const dateStr = cur.toISOString().split('T')[0]
@@ -114,7 +115,7 @@ export async function PUT(
           onConflict: 'user_id,date',
         })
 
-        cur.setDate(cur.getDate() + 1)
+        cur.setUTCDate(cur.getUTCDate() + 1)
       }
     }
 

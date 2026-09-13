@@ -27,6 +27,29 @@ export async function GET(
       return NextResponse.json({ error: 'Siswa tidak ditemukan.' }, { status: 404 })
     }
 
+    // IDOR Protection: Non-admins and non-mentors can only view their own profile
+    if (user.id !== id) {
+      const { isAdmin, isMentor, profile: callerProfile } = await getCallerAccess(user, adminClient)
+      if (!isAdmin && !isMentor) {
+        return NextResponse.json(
+          { error: 'Forbidden: Anda tidak memiliki akses untuk melihat profil siswa lain.' },
+          { status: 403 }
+        )
+      }
+      if (isMentor && !isAdmin) {
+        const isSamePlace =
+          callerProfile?.internship_place_id &&
+          student.internship_place_id === callerProfile.internship_place_id
+        const isAssigned = student.mentor_id === user.id
+        if (!isSamePlace && !isAssigned) {
+          return NextResponse.json(
+            { error: 'Forbidden: Siswa ini bukan bimbingan Anda atau berada di instansi berbeda.' },
+            { status: 403 }
+          )
+        }
+      }
+    }
+
     // Get attendance stats for this student
     const { data: attendances } = await adminClient
       .from('attendances')
@@ -232,6 +255,22 @@ export async function DELETE(
           { status: 403 }
         )
       }
+    }
+
+    // Clean up dependent child records to prevent Foreign Key constraint blocks
+    try {
+      await adminClient.from('notifications').delete().eq('user_id', id)
+      await adminClient.from('user_sessions').delete().eq('user_id', id)
+      await adminClient.from('daily_journals').delete().eq('user_id', id)
+      await adminClient.from('permits').delete().eq('user_id', id)
+      const { data: userAtts } = await adminClient.from('attendances').select('id').eq('user_id', id)
+      const attIds = (userAtts || []).map((a: any) => a.id)
+      if (attIds.length > 0) {
+        await adminClient.from('attendance_photos').delete().in('attendance_id', attIds)
+        await adminClient.from('attendances').delete().eq('user_id', id)
+      }
+    } catch (cleanErr) {
+      console.warn('Pre-delete student relations cleanup notice:', cleanErr)
     }
 
     const { error } = await adminClient.from('users').delete().eq('id', id)

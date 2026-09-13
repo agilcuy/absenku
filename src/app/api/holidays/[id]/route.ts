@@ -20,13 +20,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { data: oldData } = await supabase
+    const { data: oldData } = await adminClient
       .from('holidays')
       .select('*')
       .eq('id', id)
       .single()
 
-    const { error } = await supabase.from('holidays').delete().eq('id', id)
+    const { error } = await adminClient.from('holidays').delete().eq('id', id)
     if (error) throw error
 
     await logAudit({

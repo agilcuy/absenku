@@ -169,13 +169,21 @@ export async function GET() {
         ? Math.round(((presentToday + izinToday + sakitToday) / activeObligationStudents) * 100)
         : 100
 
-    // 4. Multi-device check
+    // 4. Multi-device check (Graceful fallback if user_sessions not migrated)
     const ninetySecAgo = new Date(Date.now() - 90 * 1000).toISOString()
-    const { data: activeSessions } = await adminClient
-      .from('user_sessions')
-      .select('id, user_id, device_type, os, browser, users(full_name)')
-      .eq('is_active', true)
-      .gte('last_active_at', ninetySecAgo)
+    let activeSessions: any[] = []
+    try {
+      const { data, error: sessErr } = await adminClient
+        .from('user_sessions')
+        .select('id, user_id, device_type, os, browser, users(full_name)')
+        .eq('is_active', true)
+        .gte('last_active_at', ninetySecAgo)
+      if (!sessErr && data) {
+        activeSessions = data
+      }
+    } catch {
+      // Non-blocking
+    }
 
     const sessionsByUser: Record<string, any[]> = {}
     ;(activeSessions || []).forEach((s: any) => {

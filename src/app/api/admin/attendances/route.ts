@@ -66,9 +66,12 @@ export async function GET(req: NextRequest) {
     }
 
     if (year && month) {
-      const padMonth = month.padStart(2, '0')
-      const start = `${year}-${padMonth}-01`
-      const end = `${year}-${padMonth}-31`
+      const yNum = parseInt(year)
+      const mNum = parseInt(month)
+      const padMonth = String(mNum).padStart(2, '0')
+      const lastDay = new Date(yNum, mNum, 0).getDate()
+      const start = `${yNum}-${padMonth}-01`
+      const end = `${yNum}-${padMonth}-${String(lastDay).padStart(2, '0')}`
       query = query.gte('date', start).lte('date', end)
     }
 

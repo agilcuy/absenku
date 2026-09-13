@@ -37,6 +37,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Administrator tidak ditemukan.' }, { status: 404 })
     }
 
+    // Absolute protection for Master Superadmin
+    if (targetAdmin.email?.toLowerCase() === 'mikrotikagil@gmail.com') {
+      return NextResponse.json(
+        { error: 'Akun Master Superadmin utama dilindungi oleh sistem dan tidak dapat dihapus.' },
+        { status: 403 }
+      )
+    }
+
     // 1. Delete from public.users
     const { error: delError } = await adminClient
       .from('users')

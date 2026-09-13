@@ -62,7 +62,17 @@ export async function GET(req: NextRequest) {
     }
 
     const { data: sessions, error } = await query
-    if (error) throw error
+    if (error) {
+      if (error.code === 'PGRST205' || error.code === '42P01' || error.message?.includes('schema cache')) {
+        return NextResponse.json({
+          sessions: [],
+          multiDeviceAlerts: [],
+          needsMigration: true,
+          message: 'Tabel user_sessions belum dibuat di database. Harap jalankan migration_v6.sql.',
+        })
+      }
+      throw error
+    }
 
     // Detect multi-device active sessions (within last 90 seconds)
     const threshold = new Date(Date.now() - 90 * 1000).toISOString()
