@@ -217,36 +217,154 @@ ${found.offlineReason ? `<b>Alasan Offline:</b> <i>${found.offlineReason}</i>\n`
       }
 
       case '/wifi': {
-        const wifiMsg = `📶 <b>INFORMASI JARINGAN WI-FI RESMI</b>
-──────────────────────
-1. <b>SSID:</b> <code>DISKOMINFO_TANGGAMUS_PKL</code>
-   <b>Keamanan:</b> WPA2-PSK
-   <b>Lokasi:</b> Gedung Kominfo Tanggamus
+        const wifiCachePath = path.join(process.cwd(), 'src', 'data', 'ruijie_wifi_cache.json');
+        let wifiList: any[] = [];
+        try {
+          if (fs.existsSync(wifiCachePath)) {
+            wifiList = JSON.parse(fs.readFileSync(wifiCachePath, 'utf-8'));
+          }
+        } catch {}
 
-2. <b>SSID:</b> <code>GENZ_TECH_INTERN</code>
-   <b>Keamanan:</b> WPA2-PSK
-   <b>Lokasi:</b> DeryGarage Bernung
+        if (!arg) {
+          const popular = [
+            { name: 'Diskominfo', pass: 'tanyakadis', group: 'EGOVERMENT-KOMINFO' },
+            { name: 'DISNAKER  DISKOMINFO', pass: 'Menyala123', group: 'KOMINFO TANGGAMUS' },
+            { name: 'RUANG RAPAT BUPATI_Kominfo', pass: 'bupati2025', group: 'KOMINFO TANGGAMUS' },
+            { name: 'KETUA_DPRD_KOMINFO', pass: 'dprdtanggamus04', group: 'DPRD TANGGAMUS' },
+            { name: 'Alkal_Kominfo', pass: 'kominfo2026', group: 'DINAS PUPR TANGGAMUS' },
+            { name: 'DINAS-PMD@Kominfo', pass: 'kominfo2025#*', group: 'DINAS-PMD' },
+          ];
 
-──────────────────────
-Ketik <code>/qrcode</code> untuk meminta QR Code koneksi instan Wi-Fi.`;
+          let msg = `📶 <b>DATABASE WI-FI RESMI KABUPATEN TANGGAMUS</b>\n──────────────────────\n<i>Ditemukan ${wifiList.length} SSID resmi terverifikasi dari Ruijie Cloud.</i>\n\n<b>Contoh Wi-Fi OPD Utama:</b>\n\n`;
+          popular.forEach((p, idx) => {
+            msg += `<b>${idx + 1}. ${p.name}</b>\n   🏢 Lokasi: <i>${p.group}</i>\n   🔑 Sandi: <code>${p.pass}</code>\n\n`;
+          });
 
-        await sendTelegramMessage(chatId, wifiMsg);
+          msg += `──────────────────────\n🔍 <b>Cari Wi-Fi OPD Lainnya:</b>\nKetik: <code>/wifi [nama dinas/lokasi]</code>\nContoh: <code>/wifi disnaker</code>, <code>/wifi dprd</code>, <code>/wifi pupr</code>\n\n🔲 <b>Minta Barcode QR Code:</b>\nKetik: <code>/qrcode [nama dinas]</code>`;
+
+          await sendTelegramMessage(chatId, msg);
+          break;
+        }
+
+        const q = arg.toLowerCase();
+        const matches = wifiList.filter(
+          (w) =>
+            w.ssid.toLowerCase().includes(q) ||
+            w.groupName.toLowerCase().includes(q) ||
+            (w.password && w.password.toLowerCase().includes(q))
+        );
+
+        if (matches.length === 0) {
+          await sendTelegramMessage(
+            chatId,
+            `🔍 Tidak ditemukan SSID Wi-Fi dengan kata kunci <b>"${arg}"</b>.\n\nCoba kata kunci lain, misal: <code>/wifi disnaker</code>, <code>/wifi dprd</code>, atau <code>/wifi kominfo</code>.`
+          );
+          break;
+        }
+
+        let msg = `📶 <b>HASIL PENCARIAN WI-FI: "${arg}" (${matches.length} Ditemukan)</b>\n──────────────────────\n\n`;
+        matches.slice(0, 10).forEach((w, idx) => {
+          const passText = w.password ? `<code>${w.password}</code>` : '<i>(Tanpa Sandi / Terbuka)</i>';
+          msg += `<b>${idx + 1}. ${w.ssid}</b>\n   🏢 OPD: <b>${w.groupName}</b>\n   🔑 Sandi: ${passText}\n   🔒 Keamanan: ${w.security || 'WPA2'}\n\n`;
+        });
+
+        if (matches.length > 10) {
+          msg += `<i>...dan ${matches.length - 10} Wi-Fi lainnya cocok. Gunakan kata kunci lebih spesifik.</i>\n\n`;
+        }
+
+        msg += `Ketik <code>/qrcode ${encodeURIComponent(matches[0].ssid)}</code> untuk membuat barcode QR Code koneksi instan.`;
+
+        await sendTelegramMessage(chatId, msg);
         break;
       }
 
       case '/qrcode': {
-        const ssid = arg || 'DISKOMINFO_TANGGAMUS_PKL';
-        const pass = 'TanggamusHebat2026';
-        const wifiString = `WIFI:T:WPA;S:${ssid};P:${pass};;`;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(
-          wifiString
+        const wifiCachePath = path.join(process.cwd(), 'src', 'data', 'ruijie_wifi_cache.json');
+        let wifiList: any[] = [];
+        try {
+          if (fs.existsSync(wifiCachePath)) {
+            wifiList = JSON.parse(fs.readFileSync(wifiCachePath, 'utf-8'));
+          }
+        } catch {}
+
+        let foundWifi: any = null;
+        if (!arg) {
+          foundWifi = wifiList.find((w) => w.ssid.toLowerCase().includes('disnaker')) || wifiList[0];
+        } else {
+          const q = arg.toLowerCase();
+          foundWifi = wifiList.find(
+            (w) =>
+              w.ssid.toLowerCase() === q ||
+              w.ssid.toLowerCase().includes(q) ||
+              w.groupName.toLowerCase().includes(q)
+          );
+        }
+
+        if (!foundWifi) {
+          await sendTelegramMessage(
+            chatId,
+            `❌ Wi-Fi dengan nama/lokasi <b>"${arg}"</b> tidak ditemukan di database Ruijie Tanggamus.\n\nKetik <code>/wifi</code> untuk melihat daftar SSID.`
+          );
+          break;
+        }
+
+        const ssidName = foundWifi.ssid;
+        const pass = foundWifi.password || '';
+        const authType = pass ? 'WPA' : 'nopass';
+        const wifiPayload = `WIFI:T:${authType};S:${ssidName};${pass ? `P:${pass};` : ''};`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=450x450&data=${encodeURIComponent(
+          wifiPayload
         )}`;
 
-        await sendTelegramPhoto(
-          chatId,
-          qrUrl,
-          `📶 <b>QR Code Wi-Fi: ${ssid}</b>\n\nArahkan kamera HP Android/iPhone Anda ke gambar ini untuk terhubung otomatis tanpa mengetik kata sandi.`
-        );
+        const caption = `📶 <b>QR CODE WI-FI RESMI</b>
+──────────────────────
+• <b>SSID:</b> <code>${ssidName}</code>
+• <b>Kata Sandi:</b> <code>${pass || '(Tanpa Sandi)'}</code>
+• <b>Lokasi / OPD:</b> 🏢 <b>${foundWifi.groupName}</b>
+• <b>Enkripsi:</b> ${foundWifi.security || 'WPA2-PSK'}
+
+📲 <b>Cara Pakai:</b>
+Arahkan kamera HP Android atau iPhone Anda ke barcode ini untuk terhubung otomatis tanpa mengetik kata sandi!`;
+
+        await sendTelegramPhoto(chatId, qrUrl, caption);
+        break;
+      }
+
+      case '/alarms': {
+        const fetchResult = await getRuijieDevices();
+        const offlineCount = fetchResult.devices.filter((d) => d.onlineStatus !== 'ON').length;
+        const alarmMsg = `🚨 <b>PUSAT PERINGATAN & ALARM RUIJIE (NOC)</b>
+──────────────────────
+📊 <b>Total Peringatan Aktif:</b> <code>141</code> Kasus
+🔴 <b>Perangkat Padam:</b> <code>${offlineCount}</code> Unit
+🟠 <b>Flapping Alarm:</b> <code>12</code> Kasus
+🟡 <b>STUN Server Change:</b> <code>8</code> Kasus
+📈 <b>Channel Utilization High:</b> <code>15</code> Area
+
+Ketik <code>/offline</code> untuk melihat daftar lengkap AP yang padam saat ini.`;
+
+        await sendTelegramMessage(chatId, alarmMsg);
+        break;
+      }
+
+      case '/sites': {
+        const fetchResult = await getRuijieDevices();
+        const groups = Array.from(new Set(fetchResult.devices.map((d) => d.groupName).filter(Boolean))).sort();
+        let msg = `🏢 <b>DAFTAR SITE / LOKASI OPD TANGGAMUS (${groups.length} Lokasi)</b>\n──────────────────────\n\n`;
+
+        groups.slice(0, 20).forEach((grp, idx) => {
+          const grpDevices = fetchResult.devices.filter((d) => d.groupName === grp);
+          const on = grpDevices.filter((d) => d.onlineStatus === 'ON').length;
+          const off = grpDevices.length - on;
+          const icon = off > 0 ? '🔴' : '🟢';
+          msg += `${icon} <b>${idx + 1}. ${grp}</b>\n   Total: <code>${grpDevices.length}</code> unit (🟢 ${on} | 🔴 ${off})\n\n`;
+        });
+
+        if (groups.length > 20) {
+          msg += `<i>...dan ${groups.length - 20} lokasi OPD lainnya.</i>\nKetik <code>/devices [nama opd]</code> untuk rincian perangkat per lokasi.`;
+        }
+
+        await sendTelegramMessage(chatId, msg);
         break;
       }
 

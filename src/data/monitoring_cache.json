@@ -8267,5 +8267,2847 @@
     "authorized_user_ids": [
       "6555969768"
     ]
+  },
+  "wifi_configs": [
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 6873860,
+      "templateId": 2340978,
+      "ssid": "MMS Network",
+      "password": "Password",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 6873860,
+      "templateId": 2340978,
+      "ssid": "TAMAN_KOTA_KOMINFO",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 6831436,
+      "templateId": 2340967,
+      "ssid": "BAGIAN UMUM",
+      "password": "umum1234",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 6832283,
+      "templateId": 2340968,
+      "ssid": "KESEHATAN HEWAN",
+      "password": "tanggamus123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 6831433,
+      "templateId": 2340966,
+      "ssid": "OPERATOR",
+      "password": "operator123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 6831088,
+      "templateId": 2340964,
+      "ssid": "CAPIL",
+      "password": "capil123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 6828308,
+      "templateId": 2340960,
+      "ssid": "DISNAKER  DISKOMINFO",
+      "password": "Menyala123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 6828308,
+      "templateId": 2340960,
+      "ssid": "DISNAKER  DISKOMINFO_guest",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 5780117,
+      "templateId": 2340957,
+      "ssid": "MoU",
+      "password": "tanyakabag",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 6831085,
+      "templateId": 2340963,
+      "ssid": "INOVASI PDIP",
+      "password": "inovasipdip123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 6831093,
+      "templateId": 2340965,
+      "ssid": "PIAK",
+      "password": "piak1234",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 7225326,
+      "templateId": 2340984,
+      "ssid": "Ruang Perencanaan@kominfo",
+      "password": "kominfo2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 7226040,
+      "templateId": 2340985,
+      "ssid": "Nurulfaizin1_kominfo",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 7226041,
+      "templateId": 2340986,
+      "ssid": "Nurulfaizin2_kominfo",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOMINFO TANGGAMUS",
+      "groupId": 7086229,
+      "templateId": 2340979,
+      "ssid": "RUANG RAPAT BUPATI_Kominfo",
+      "password": "bupati2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7246688,
+      "templateId": 2340994,
+      "ssid": "NurulFaizin3_Kominfo",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7248181,
+      "templateId": 2340997,
+      "ssid": "Dinas_Ekonomi_Kreatif_Kominfo",
+      "password": "kreatif123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7245500,
+      "templateId": 2340992,
+      "ssid": "Kadis_Perpus@Kominfo",
+      "password": "kadisperpus",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7253187,
+      "templateId": 2341009,
+      "ssid": "RUANG_KB-KOMINFO",
+      "password": "@BerencanaKB2",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7247621,
+      "templateId": 2340995,
+      "ssid": "DAMKAR113_Kominfo",
+      "password": "DAMKARJAYA",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7245470,
+      "templateId": 2340991,
+      "ssid": "Ruang_Sekretariat@Kominfo",
+      "password": "sekreperpus",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7248665,
+      "templateId": 2340999,
+      "ssid": "DISBUNNAK_disKominfo",
+      "password": "tanggamus",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7246354,
+      "templateId": 2340993,
+      "ssid": "Dispora-Kominfo",
+      "password": "dispora300425",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7248184,
+      "templateId": 2340998,
+      "ssid": "Dinas_Pariwisata_Kominfo",
+      "password": "pariwisata123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7252894,
+      "templateId": 2341008,
+      "ssid": "RUANG_PPKP",
+      "password": "ppkp1234",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7252894,
+      "templateId": 2341008,
+      "ssid": "UMUM & KEPEGAWAIAN",
+      "password": "um020271",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kominfo Tanggamus UPD",
+      "groupId": 7252687,
+      "templateId": 2341007,
+      "ssid": "RUANG_PPKP",
+      "password": "ppkp1234",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PMD",
+      "groupId": 7245967,
+      "templateId": 2309777,
+      "ssid": "DINAS-PMD@Kominfo",
+      "password": "kominfo2025#*",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PMD",
+      "groupId": 7245959,
+      "templateId": 2309775,
+      "ssid": "KEUANGAN & ASET PEKON@Kominfo",
+      "password": "bidangtiga2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOPRINDAK",
+      "groupId": 7252752,
+      "templateId": 2341012,
+      "ssid": "RUANG_KOPERASI_KOMINFO",
+      "password": "koperasi123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOPRINDAK",
+      "groupId": 7255257,
+      "templateId": 2341016,
+      "ssid": "AULA_KOPERINDAG_KOMINFO",
+      "password": "aula1234",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOPRINDAK",
+      "groupId": 7255252,
+      "templateId": 2341014,
+      "ssid": "DINAS_KOPERINDAG_KOMINFO",
+      "password": "koperasi123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOPRINDAK",
+      "groupId": 7255252,
+      "templateId": 2341014,
+      "ssid": "RUANG_KOPERINDAG_KOMINFO",
+      "password": "koperasi123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KOPRINDAK",
+      "groupId": 7255254,
+      "templateId": 2341015,
+      "ssid": "RUANG_SEKRETARIS_KOMINFO",
+      "password": "sekretaris123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283238,
+      "templateId": 2309807,
+      "ssid": "KETUA_DPRD_KOMINFO",
+      "password": "dprdtanggamus04",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283238,
+      "templateId": 2309807,
+      "ssid": "UMUM_DPRD_KOMINFO",
+      "password": "dprdtanggamus01",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283357,
+      "templateId": 2309810,
+      "ssid": "KETUA_DPRD_KOMINFO",
+      "password": "dprdtanggamus04",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283235,
+      "templateId": 2309805,
+      "ssid": "KETUA_DPRD_KOMINFO",
+      "password": "dprdtanggamus04",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283414,
+      "templateId": 2309811,
+      "ssid": "KETUA_DPRD_KOMINFO",
+      "password": "dprdtanggamus04",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283414,
+      "templateId": 2309811,
+      "ssid": "RUANG_SIDANG_DPRD_KOMINFO",
+      "password": "ruangsidang07",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283291,
+      "templateId": 2309809,
+      "ssid": "DPRD_TANGGAMUS",
+      "password": "dprdtanggamus06",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283291,
+      "templateId": 2309809,
+      "ssid": "KETUA_DPRD_KOMINFO",
+      "password": "dprdtanggamus04",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283236,
+      "templateId": 2309806,
+      "ssid": "KETUA_DPRD_KOMINFO",
+      "password": "dprdtanggamus04",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283236,
+      "templateId": 2309806,
+      "ssid": "WAKIL_KETUA_DPRD",
+      "password": "dprdtanggamus03",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283443,
+      "templateId": 2309812,
+      "ssid": "KETUA_DPRD_KOMINFO",
+      "password": "dprdtanggamus04",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283443,
+      "templateId": 2309812,
+      "ssid": "RUANG_SIDANG_DPRD_KOMINFO",
+      "password": "ruangsidang07",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283739,
+      "templateId": 2309813,
+      "ssid": "GEDUNG_BARU_KOMINFO",
+      "password": "gedungbaru",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283240,
+      "templateId": 2309808,
+      "ssid": "KETUA_DPRD_KOMINFO",
+      "password": "dprdtanggamus04",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283240,
+      "templateId": 2309808,
+      "ssid": "SEKWAN_DPRD_KOMINFO",
+      "password": "dprdtanggamus02",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DPRD TANGGAMUS",
+      "groupId": 7283791,
+      "templateId": 2309814,
+      "ssid": "EGAN",
+      "password": "egan12345",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS PUPR TANGGAMUS",
+      "groupId": 7315001,
+      "templateId": 2309803,
+      "ssid": "BIDANG_BINA_PROGRAM_KOMINFO",
+      "password": "programpupr06",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS PUPR TANGGAMUS",
+      "groupId": 7315001,
+      "templateId": 2309803,
+      "ssid": "RUANG_BENDAHARA_KOMINFO",
+      "password": "keuangan2040",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS PUPR TANGGAMUS",
+      "groupId": 7287341,
+      "templateId": 2309795,
+      "ssid": "BIDANG_PERAIRAN_KOMINFO",
+      "password": "perairan01",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS PUPR TANGGAMUS",
+      "groupId": 7287342,
+      "templateId": 2309796,
+      "ssid": "BIDANG_UMUM_KOMINFO",
+      "password": "umumpupr02",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS PUPR TANGGAMUS",
+      "groupId": 7287292,
+      "templateId": 2309794,
+      "ssid": "Alkal_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS PUPR TANGGAMUS",
+      "groupId": 7287356,
+      "templateId": 2309800,
+      "ssid": "BIDANG_BINA_PROGRAM_KOMINFO",
+      "password": "programpupr06",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS PUPR TANGGAMUS",
+      "groupId": 7287363,
+      "templateId": 2309802,
+      "ssid": "PERKIM_PUPR_KOMINFO",
+      "password": "perkim123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS PUPR TANGGAMUS",
+      "groupId": 7287352,
+      "templateId": 2309799,
+      "ssid": "RUANG_SEKRETARIS_KOMINFO",
+      "password": "tanyasekretaris",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS PUPR TANGGAMUS",
+      "groupId": 7287348,
+      "templateId": 2309798,
+      "ssid": "RUANG_KADIS_KOMINFO",
+      "password": "tanyakadis04",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "EGOVERMENT-KOMINFO",
+      "groupId": 7317243,
+      "templateId": 2309793,
+      "ssid": "Diskominfo",
+      "password": "tanyakadis",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "EGOVERMENT-KOMINFO",
+      "groupId": 7317243,
+      "templateId": 2309793,
+      "ssid": "egoverment",
+      "password": "tanyakabid",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "EGOVERMENT-KOMINFO",
+      "groupId": 7314379,
+      "templateId": 2309792,
+      "ssid": "HUMAS",
+      "password": "tanyadia",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "EGOVERMENT-KOMINFO",
+      "groupId": 7314379,
+      "templateId": 2309792,
+      "ssid": "egoverment",
+      "password": "tanyakabid",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "EGOVERMENT-KOMINFO",
+      "groupId": 7314378,
+      "templateId": 2309791,
+      "ssid": "egoverment",
+      "password": "tanyakabid",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-SATU-PINTU",
+      "groupId": 7593239,
+      "templateId": 2700981,
+      "ssid": "IZIN_MIRUD_KOMINFO",
+      "password": "miftahulrudi",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-SATU-PINTU",
+      "groupId": 7316276,
+      "templateId": 2700980,
+      "ssid": "PERENCANAAN_KOMINFO",
+      "password": "tanyaamin",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-SATU-PINTU",
+      "groupId": 7316275,
+      "templateId": 2700979,
+      "ssid": "PENANAMAN_MODAL_KOMINFO",
+      "password": "modal123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "RSBM-TANGGAMUS",
+      "groupId": 7356908,
+      "templateId": 2608277,
+      "ssid": "RSUD-KANTOR@KOMINFO",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 104,
+      "hidden": "false"
+    },
+    {
+      "groupName": "RSBM-TANGGAMUS",
+      "groupId": 7318150,
+      "templateId": 2608275,
+      "ssid": "LOBBY-RSUD@KOMINFO",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 106,
+      "hidden": "false"
+    },
+    {
+      "groupName": "RSBM-TANGGAMUS",
+      "groupId": 7318152,
+      "templateId": 2608276,
+      "ssid": "RUANG-KOMITE@KOMINFO",
+      "password": "rsudbm123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-SOSIAL",
+      "groupId": 7353021,
+      "templateId": 2138157,
+      "ssid": "DINAS SOSIAL@disKominfo",
+      "password": "tanggamusmaju",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-SOSIAL",
+      "groupId": 7353021,
+      "templateId": 2138157,
+      "ssid": "Dinsos_sekertariat@disKominfo",
+      "password": "tanggamusmaju",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-SOSIAL",
+      "groupId": 7353021,
+      "templateId": 2138157,
+      "ssid": "Kepala Dinas@disKominfo",
+      "password": "tanggamusmaju",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-SOSIAL",
+      "groupId": 7353016,
+      "templateId": 2138154,
+      "ssid": "Dinsos_sekertariat@disKominfo",
+      "password": "tanggamusmaju",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-SOSIAL",
+      "groupId": 7353017,
+      "templateId": 2138155,
+      "ssid": "Linjamsos_@diskomifo",
+      "password": "tanggamusmaju",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-SOSIAL",
+      "groupId": 7353019,
+      "templateId": 2138156,
+      "ssid": "DINAS SOSIAL@disKominfo",
+      "password": "tanggamusmaju",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-SOSIAL",
+      "groupId": 7353019,
+      "templateId": 2138156,
+      "ssid": "Kepala Dinas@disKominfo",
+      "password": "tanggamusmaju",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "SATPOLPP",
+      "groupId": 7354155,
+      "templateId": 2139040,
+      "ssid": "AULA_POL_PP_KOMINFO",
+      "password": "pamongpraja01",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "SATPOLPP",
+      "groupId": 7354155,
+      "templateId": 2139040,
+      "ssid": "LINMAS_POLPP_KOMINFO",
+      "password": "pamongpraja02",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "SATPOLPP",
+      "groupId": 7354151,
+      "templateId": 2139038,
+      "ssid": "AULA_POL_PP_KOMINFO",
+      "password": "pamongpraja01",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "SATPOLPP",
+      "groupId": 7354151,
+      "templateId": 2139038,
+      "ssid": "LINMAS_POLPP_KOMINFO",
+      "password": "pamongpraja02",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KESBANGPOL",
+      "groupId": 7355692,
+      "templateId": 2140305,
+      "ssid": "Kesbangpol_Kominfo",
+      "password": "Matahari76",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-LINGKUNGAN-HIDUP",
+      "groupId": 7355857,
+      "templateId": 2140437,
+      "ssid": "KEUANGAN_KOMINFO",
+      "password": "keuangan123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-LINGKUNGAN-HIDUP",
+      "groupId": 7355890,
+      "templateId": 2140486,
+      "ssid": "TATA-RUANG-KOMINFO",
+      "password": "bidangguyub",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-LINGKUNGAN-HIDUP",
+      "groupId": 7355854,
+      "templateId": 2140436,
+      "ssid": "UMUM-KOMINFO",
+      "password": "umum1234",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-LINGKUNGAN-HIDUP",
+      "groupId": 7355892,
+      "templateId": 2140491,
+      "ssid": "PERENCANAAN-KOMINFO",
+      "password": "perencanaan123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PERIKANAN",
+      "groupId": 7356760,
+      "templateId": 2141236,
+      "ssid": "PERIKANAN 2_KOMINFO",
+      "password": "perikanan2",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PERIKANAN",
+      "groupId": 7356762,
+      "templateId": 2141238,
+      "ssid": "PERIKANAN 4 KOMINFO",
+      "password": "perikanan4",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PERIKANAN",
+      "groupId": 7356761,
+      "templateId": 2141237,
+      "ssid": "Perikanan 3_Kominfo",
+      "password": "perikanan3",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PERIKANAN",
+      "groupId": 7356759,
+      "templateId": 2141235,
+      "ssid": "PERIKANAN 1_KOMINFO",
+      "password": "perikanan1",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPKAD_KEUANGAN",
+      "groupId": 7422036,
+      "templateId": 2196048,
+      "ssid": "GEDUNG AULA_kominfo",
+      "password": "silakantanyabpk",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPKAD_KEUANGAN",
+      "groupId": 7422039,
+      "templateId": 2196051,
+      "ssid": "UMUM_kominfo",
+      "password": "silakantanyabpk",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPKAD_KEUANGAN",
+      "groupId": 7422037,
+      "templateId": 2196049,
+      "ssid": "PERBEN_kominfo",
+      "password": "silakantanyabpk",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPKAD_KEUANGAN",
+      "groupId": 7422038,
+      "templateId": 2196050,
+      "ssid": "KABAN_kominfo",
+      "password": "silakantanyabpk",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPKAD_KEUANGAN",
+      "groupId": 7422043,
+      "templateId": 2196054,
+      "ssid": "ANGGARAN-ASET_ kominfo",
+      "password": "silakantanyabpk",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPKAD_KEUANGAN",
+      "groupId": 7422044,
+      "templateId": 2196056,
+      "ssid": "AKUNTANSI_kominfo",
+      "password": "silakantanyabpk",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PERHUBUNGAN",
+      "groupId": 7542158,
+      "templateId": 2296589,
+      "ssid": "DISHUB_KOMINFO",
+      "password": "dishub2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PERHUBUNGAN",
+      "groupId": 7542161,
+      "templateId": 2296592,
+      "ssid": "PERENCANAAN_KOMINFO",
+      "password": "perencanaan2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PERHUBUNGAN",
+      "groupId": 7542160,
+      "templateId": 2296590,
+      "ssid": "RUANG KADIS",
+      "password": "tanyakadis",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542261,
+      "templateId": 2296683,
+      "ssid": "BAGIAN_UMUM_KOMINFO",
+      "password": "tanggamusumum",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542262,
+      "templateId": 2296684,
+      "ssid": "Bagian Perencanaan@Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542201,
+      "templateId": 2296627,
+      "ssid": "SETDA4_Kominfo",
+      "password": "terserahsaya",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542201,
+      "templateId": 2296627,
+      "ssid": "Tapmem_Kominfo",
+      "password": "Kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542202,
+      "templateId": 2296628,
+      "ssid": "BUPATI TANGGAMUS_KOMINFO",
+      "password": "tanggamus2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542263,
+      "templateId": 2296685,
+      "ssid": "Asisten Sekda@Kominfo",
+      "password": "asistentanggamus26",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542263,
+      "templateId": 2296685,
+      "ssid": "SETDA_KOMINFO",
+      "password": "setda123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542260,
+      "templateId": 2296682,
+      "ssid": "SEKDA_BUPATI_KOMINFO",
+      "password": "tanggamus3",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542259,
+      "templateId": 2296681,
+      "ssid": "Ruang Bidding ULP",
+      "password": "UKPBJOke2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542259,
+      "templateId": 2296681,
+      "ssid": "Ruang_ULP_Kominfo_iot_5G",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG_BUPATI 8 AP",
+      "groupId": 7542259,
+      "templateId": 2296681,
+      "ssid": "UKPBJ_kominfo",
+      "password": "UKPBJOke2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PENDIDIKAN",
+      "groupId": 7542233,
+      "templateId": 2296657,
+      "ssid": "RUANG_PMME_KOMINFO",
+      "password": "pendidikan02",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PENDIDIKAN",
+      "groupId": 7542239,
+      "templateId": 2296663,
+      "ssid": "BAGIAN_UMUM_KOMINFO",
+      "password": "pendidikan01",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PENDIDIKAN",
+      "groupId": 7542238,
+      "templateId": 2296662,
+      "ssid": "RUANG_DIKDAS_KOMINFO",
+      "password": "pendidikan04",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PENDIDIKAN",
+      "groupId": 7542234,
+      "templateId": 2296658,
+      "ssid": "BIDANG_KEBUDAYAAN_KOMINFO",
+      "password": "pendidikan08",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PENDIDIKAN",
+      "groupId": 7542236,
+      "templateId": 2296660,
+      "ssid": "AULA_PENDIDIKAN_KOMINFO",
+      "password": "pendidikan06",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PENDIDIKAN",
+      "groupId": 7542240,
+      "templateId": 2296664,
+      "ssid": "KEUANGAN_KOMINFO",
+      "password": "pendidikan03",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PENDIDIKAN",
+      "groupId": 7542237,
+      "templateId": 2296661,
+      "ssid": "BIDANG_PKNPI_KOMINFO",
+      "password": "pendidikan05",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-PENDIDIKAN",
+      "groupId": 7542235,
+      "templateId": 2296659,
+      "ssid": "BIDANG_SAPRAS_KOMINFO",
+      "password": "pendidikan07",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KPTPH",
+      "groupId": 7542273,
+      "templateId": 2296693,
+      "ssid": "DKPTPH UMUM_kominfo",
+      "password": "tanyakadis",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KPTPH",
+      "groupId": 7542272,
+      "templateId": 2296692,
+      "ssid": "BID_LUH_kominfo",
+      "password": "penyuluh105!",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KPTPH",
+      "groupId": 7542271,
+      "templateId": 2296690,
+      "ssid": "KETAHANAN PANGAN _ kominfo",
+      "password": "tanyasamadian",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KPTPH",
+      "groupId": 7542269,
+      "templateId": 2296689,
+      "ssid": "TANAMAN_PANGAN_kominfo",
+      "password": "pajale12",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "INSPEKTORAT",
+      "groupId": 7542289,
+      "templateId": 2296707,
+      "ssid": "LORONG_IRBAN_KOMINFO",
+      "password": "irban123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "INSPEKTORAT",
+      "groupId": 7542286,
+      "templateId": 2296705,
+      "ssid": "LORONG_AULA_KOMINFO",
+      "password": "aula1234",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "INSPEKTORAT",
+      "groupId": 7542285,
+      "templateId": 2296704,
+      "ssid": "IRBAN 5_KOMINFO",
+      "password": "irban123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BKPSDM",
+      "groupId": 7542303,
+      "templateId": 2296719,
+      "ssid": "UMUM_kominfo",
+      "password": "Sekretariat2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BKPSDM",
+      "groupId": 7542302,
+      "templateId": 2296718,
+      "ssid": "PEMBINAAN_kominfo",
+      "password": "Binlahta3",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BKPSDM",
+      "groupId": 7542301,
+      "templateId": 2296717,
+      "ssid": "FORMUT_kominfo",
+      "password": "Bidangsatu",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BKPSDM",
+      "groupId": 7542300,
+      "templateId": 2296716,
+      "ssid": "DATA_kominfo",
+      "password": "Datin2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KESEHATAN",
+      "groupId": 7542316,
+      "templateId": 2296729,
+      "ssid": "SEKRETARIAT_kominfo",
+      "password": "sekretariat25",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KESEHATAN",
+      "groupId": 7542317,
+      "templateId": 2296730,
+      "ssid": "AULA_kominfo",
+      "password": "aulakesehatan26",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KESEHATAN",
+      "groupId": 7542315,
+      "templateId": 2296728,
+      "ssid": "BINKESMAS_KOMINFO",
+      "password": "binkesmas25",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KESEHATAN",
+      "groupId": 7542319,
+      "templateId": 2296732,
+      "ssid": "P2PL_kominfo",
+      "password": "p2pl2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KESEHATAN",
+      "groupId": 7840569,
+      "templateId": 2545411,
+      "ssid": "RUANG_YANKES_KOMINFO",
+      "password": "yankes2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KESEHATAN",
+      "groupId": 7542321,
+      "templateId": 2296734,
+      "ssid": "FARMASI_kominfo",
+      "password": "farmasi25",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KESEHATAN",
+      "groupId": 7542322,
+      "templateId": 2296735,
+      "ssid": "BINKESMAS_KOMINFO",
+      "password": "binkesmas25",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS-KESEHATAN",
+      "groupId": 7542323,
+      "templateId": 2296736,
+      "ssid": "KEUANGAN_kominfo",
+      "password": "keuangan25",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BAPENDA",
+      "groupId": 7563437,
+      "templateId": 2314189,
+      "ssid": "BAPENDA3_KOMINFO",
+      "password": "pendapatan3",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BAPENDA",
+      "groupId": 7563438,
+      "templateId": 2314190,
+      "ssid": "BAPENDA_KOMINFO",
+      "password": "adly0980",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "true"
+    },
+    {
+      "groupName": "BAPENDA",
+      "groupId": 7563441,
+      "templateId": 2314192,
+      "ssid": "BAPENDA1_KOMINFO",
+      "password": "pendapatan1",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "ISLAMIC-CENTER",
+      "groupId": 7565535,
+      "templateId": 2315943,
+      "ssid": "GSG_Kominfo",
+      "password": "gsg230726",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "RESTAREA-GISTING",
+      "groupId": 7566199,
+      "templateId": 2316486,
+      "ssid": "Pos Pelayanan Polres Tanggamus",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "RESTAREA-GISTING",
+      "groupId": 7566199,
+      "templateId": 2316486,
+      "ssid": "REST AREA GISTING@KOMINFO",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PERPUSTAKAAN",
+      "groupId": 7621222,
+      "templateId": 2362458,
+      "ssid": "Bidang pelayanan_Kominfo",
+      "password": "bidangpelayanan2",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PERPUSTAKAAN",
+      "groupId": 8123685,
+      "templateId": 2778083,
+      "ssid": "Bidang pelayanan 1_Kominfo",
+      "password": "bidangpelayanan1",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "WAY_LALAAN",
+      "groupId": 7658118,
+      "templateId": 2392926,
+      "ssid": "SANGGAR@KOMINFO",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "WAY_LALAAN",
+      "groupId": 7657924,
+      "templateId": 2392776,
+      "ssid": "INFORMASI@KOMINFO",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "RUMAH DINAS KETUA DEWAN",
+      "groupId": 7719071,
+      "templateId": 2444240,
+      "ssid": "Rumah Dinas Dewan_kominfo",
+      "password": "ketuadewan2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumah Bupati Kemiling",
+      "groupId": 7782323,
+      "templateId": 2541213,
+      "ssid": "Santi123",
+      "password": "12345678",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumah Dinas Bupati",
+      "groupId": 7787822,
+      "templateId": 2501674,
+      "ssid": "RD Bupati_Kominfo",
+      "password": "jalanlurus",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Pantai Muara Indah",
+      "groupId": 7803805,
+      "templateId": 2514887,
+      "ssid": "Muara_Indah@Kominfo",
+      "password": "",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumah Bupati Talang Padang",
+      "groupId": 7869148,
+      "templateId": 2568904,
+      "ssid": "CCTV",
+      "password": "00001234",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumah Bupati Talang Padang",
+      "groupId": 7869148,
+      "templateId": 2568904,
+      "ssid": "Rumah_Bapak2@Kominfo",
+      "password": "jalanlurus2",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumah Bupati Talang Padang",
+      "groupId": 7869356,
+      "templateId": 2569073,
+      "ssid": "CCTV",
+      "password": "00001234",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumah Bupati Talang Padang",
+      "groupId": 7869356,
+      "templateId": 2569073,
+      "ssid": "Rumah_Bapak3@Kominfo",
+      "password": "jalanlurus3",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Mess Pemda Gisting",
+      "groupId": 7877614,
+      "templateId": 2575884,
+      "ssid": "Mes Pemda_Kominfo",
+      "password": "mespemda2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "GEDUNG PKK",
+      "groupId": 7969472,
+      "templateId": 2650788,
+      "ssid": "PKK_KOMINFO",
+      "password": "ibumahmudah",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "WARUNG MBAH",
+      "groupId": 7975413,
+      "templateId": 2655581,
+      "ssid": "Warung Mbah",
+      "password": "mbahgaol",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kantor Camat Kota Agung",
+      "groupId": 8124848,
+      "templateId": 2779058,
+      "ssid": "Camat Kota Agung_Kominfo",
+      "password": "tanyacamat",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kantor Camat Kota Agung",
+      "groupId": 8274984,
+      "templateId": 2896726,
+      "ssid": "Dukcapil_Kominfo",
+      "password": "dukcapilkogung_1",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BUPATI_TANGGAMUS",
+      "groupId": 8142678,
+      "templateId": 2793585,
+      "ssid": "Wakil bupati_disKominfo",
+      "password": "tanggamus2",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Baperrida",
+      "groupId": 8155527,
+      "templateId": 2809072,
+      "ssid": "Bidang PIK@Kominfo",
+      "password": "BidangPIK46",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Baperrida",
+      "groupId": 8155527,
+      "templateId": 2809072,
+      "ssid": "Bidang Rida@Kominfo",
+      "password": "rida41@Kominfo",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Baperrida",
+      "groupId": 8155527,
+      "templateId": 2809072,
+      "ssid": "Ruang Sekretaris@Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Baperrida",
+      "groupId": 8161557,
+      "templateId": 2808923,
+      "ssid": "R.Rapat Utama@Kominfo",
+      "password": "rapatutama41",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Baperrida",
+      "groupId": 8161563,
+      "templateId": 2808928,
+      "ssid": "Bidang PPD@Kominfo",
+      "password": "bidangppd41",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Baperrida",
+      "groupId": 8161562,
+      "templateId": 2808927,
+      "ssid": "Klinik Pak RT@Kominfo",
+      "password": "klinikpakrt41",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Baperrida",
+      "groupId": 8161543,
+      "templateId": 2808908,
+      "ssid": "Ruang_Sekertariat@Kominfo",
+      "password": "Sekertariat41",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Baperrida",
+      "groupId": 8161561,
+      "templateId": 2808926,
+      "ssid": "Bidang P3M@Kominfo",
+      "password": "bidangp3m41",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Baperrida",
+      "groupId": 8161555,
+      "templateId": 2808921,
+      "ssid": "Bidang PIK@Kominfo",
+      "password": "BidangPIK46",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan Talang Padang",
+      "groupId": 8234185,
+      "templateId": 2867729,
+      "ssid": "Ruang Tengah@Kominfo",
+      "password": "ruangtengah#*",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan Talang Padang",
+      "groupId": 8234184,
+      "templateId": 2867728,
+      "ssid": "Aula@Kominfo",
+      "password": "aulacamat#*",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan Talang Padang",
+      "groupId": 8242088,
+      "templateId": 2874051,
+      "ssid": "PLKB@Kominfo",
+      "password": "plkbkominfo#*",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan Talang Padang",
+      "groupId": 8234186,
+      "templateId": 2867730,
+      "ssid": "Kantor Camat@Kominfo",
+      "password": "kantorcamat#*",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "TLP-PUSKES",
+      "groupId": 8243700,
+      "templateId": 2875470,
+      "ssid": "PUSKESMAS TLP@KOMINFO",
+      "password": "kominfo2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "TLP-DAMKAR",
+      "groupId": 8244524,
+      "templateId": 2876238,
+      "ssid": "DAMKAR@KOMINFO",
+      "password": "kominfo2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KELURAHAN BAROS",
+      "groupId": 8927606,
+      "templateId": 3443729,
+      "ssid": "Kopdes_Kominfo",
+      "password": "kopdes2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KELURAHAN BAROS",
+      "groupId": 9582962,
+      "templateId": 3914055,
+      "ssid": "KANTOR BAROS",
+      "password": "tanyalurah",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KELURAHAN BAROS",
+      "groupId": 8244824,
+      "templateId": 2876497,
+      "ssid": "Aula@Kominfo",
+      "password": "tanyasaya",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KEL-PASAR-MADANG",
+      "groupId": 8245694,
+      "templateId": 2877295,
+      "ssid": "Pasar Madang_Kominfo",
+      "password": "jangantanya",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KEL-KURIPAN",
+      "groupId": 8247367,
+      "templateId": 2878657,
+      "ssid": "Kuripan_Kominfo",
+      "password": "tanyalurah",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "UPTD-PUSKESMAS-KOTAAGUNG",
+      "groupId": 8248006,
+      "templateId": 2879339,
+      "ssid": "PKM KOTA AGUNG_KOMINFO",
+      "password": "pkmkotaagung2025",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PUSKES-NEGARA-BATIN",
+      "groupId": 8251084,
+      "templateId": 2882006,
+      "ssid": "PKM NEGARA BATIN_KOMINFO",
+      "password": "negarabatinkominfo",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PUSKES-NEGARA-BATIN",
+      "groupId": 9135829,
+      "templateId": 3613589,
+      "ssid": "Management_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KANTOR-KECAMATAN",
+      "groupId": 8251093,
+      "templateId": 2882012,
+      "ssid": "KOBAR_KOMINFO",
+      "password": "tanyacamat",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-SIRING-BETIK",
+      "groupId": 8252331,
+      "templateId": 2883025,
+      "ssid": "PKM Siring Betik_Kominfo",
+      "password": "wonosobo25",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KANTOR-BPP",
+      "groupId": 8252333,
+      "templateId": 2883027,
+      "ssid": "Kantor BPP Wonosobo_Kominfo",
+      "password": "tanyapakcatur",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-WONOSOBO",
+      "groupId": 8252339,
+      "templateId": 2883032,
+      "ssid": "PKM Wonosobo_Kominfo",
+      "password": "pkmwonosobo14",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KANTOR-KEC-WONOSOBO",
+      "groupId": 8252419,
+      "templateId": 2883102,
+      "ssid": "Kantor Kecamatan_Kominfo",
+      "password": "kecwonosobo25",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KB-Kobar",
+      "groupId": 8269965,
+      "templateId": 2892647,
+      "ssid": "BALAI KB_Kominfo",
+      "password": "20260101.",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPP-KOBAR",
+      "groupId": 8270595,
+      "templateId": 2893178,
+      "ssid": "BPP Kobar_Kominfo",
+      "password": "ikutsaja",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-SIMPANG KOTIM",
+      "groupId": 8289865,
+      "templateId": 2909353,
+      "ssid": "PKM Simpang @Kominfo",
+      "password": "marisehat",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KANTOR CAMAT ULU BELU",
+      "groupId": 8291920,
+      "templateId": 2911198,
+      "ssid": "Kantor Camat UBL_Kominfo",
+      "password": "camat_16",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KANTOR CAMAT ULU BELU",
+      "groupId": 8336307,
+      "templateId": 2949213,
+      "ssid": "UPT_KB_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM AIR NANGINAN",
+      "groupId": 8296027,
+      "templateId": 2914825,
+      "ssid": "PKM AIR NANINGAN_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kantor Camat Kota Agung_Auto",
+      "groupId": 8297514,
+      "templateId": 2915997,
+      "ssid": "Balai KB_Kominfo",
+      "password": "stunting",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KB-Kota Agung Timur",
+      "groupId": 8298564,
+      "templateId": 2916876,
+      "ssid": "Balai KB Kotim_Kominfo",
+      "password": "Bintangnovita",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "RUANG-CAMAT-KELUMBAYAN",
+      "groupId": 8299355,
+      "templateId": 2917524,
+      "ssid": "@Ruang_camat.kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KANTOR_CAMAT_KELUMBAYAN",
+      "groupId": 8299437,
+      "templateId": 2917597,
+      "ssid": "@kantor_camat.kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-KELUMBAYAN BARAT",
+      "groupId": 8300676,
+      "templateId": 2919023,
+      "ssid": "@PKM_Kelbar.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KEC-GISTING",
+      "groupId": 8304484,
+      "templateId": 2922332,
+      "ssid": "Kecamatan Gisting @Kominfo",
+      "password": "gisting2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-GISTING",
+      "groupId": 8304497,
+      "templateId": 2922341,
+      "ssid": "PKM Gisting @Kominfo",
+      "password": "gisting2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DAMKAR-GISTING",
+      "groupId": 8304498,
+      "templateId": 2922343,
+      "ssid": "Damkar @Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "CAPIL-GISTING",
+      "groupId": 8304530,
+      "templateId": 2922373,
+      "ssid": "Capil Gisting @Kominfo",
+      "password": "gisting2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-Margoyoso",
+      "groupId": 8304706,
+      "templateId": 2922522,
+      "ssid": "PKM Margoyoso @Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Damkar_KotaAgungPusat",
+      "groupId": 8305611,
+      "templateId": 2923462,
+      "ssid": "DAMKAR TANGGAMUS@KOMINFO",
+      "password": "posdamkar01",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KECAMATAN CUKUH BALAK",
+      "groupId": 8305776,
+      "templateId": 2923611,
+      "ssid": "@Kantor_Camat_Cukubalak.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KECAMATAN CUKUH BALAK",
+      "groupId": 8305811,
+      "templateId": 2923631,
+      "ssid": "@Ruangan_Sekcam.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KECAMATAN CUKUH BALAK",
+      "groupId": 8305807,
+      "templateId": 2923629,
+      "ssid": "@Ruangan_Disdukcapil.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KECAMATAN-LIMAU",
+      "groupId": 8310549,
+      "templateId": 2937303,
+      "ssid": "@Kec_Limau.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KECAMATAN-LIMAU",
+      "groupId": 8449096,
+      "templateId": 3047302,
+      "ssid": "@PKM_Limau.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KECAMATAN-LIMAU",
+      "groupId": 8322150,
+      "templateId": 2937323,
+      "ssid": "@PLKB_Limau.kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KANTOR-KECAMATAN",
+      "groupId": 8316761,
+      "templateId": 2932669,
+      "ssid": "KOTIM @KOMINFO",
+      "password": "kotim2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kantor Kec. Pematang Sawah",
+      "groupId": 8321612,
+      "templateId": 2936855,
+      "ssid": "Kecamatan PS@Kominfo",
+      "password": "amrizal1975",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kantor Kec. Pematang Sawah",
+      "groupId": 8322341,
+      "templateId": 2937475,
+      "ssid": "PKM Way Nipah_Kominfo",
+      "password": "12345678",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kantor Kec. Pematang Sawah",
+      "groupId": 8322237,
+      "templateId": 2937398,
+      "ssid": "Balai KB Pemsa @Kominfo",
+      "password": "balaikbpemsa2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PUSKESMAS CUKUHBALAK",
+      "groupId": 8322371,
+      "templateId": 2946202,
+      "ssid": "@PKM_CukuBalak.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PUSKESMAS CUKUHBALAK",
+      "groupId": 8332826,
+      "templateId": 2946269,
+      "ssid": "@Ruang_Aula.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec Pugung",
+      "groupId": 8462613,
+      "templateId": 3058518,
+      "ssid": "@PKM_Sumanda.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec Pugung",
+      "groupId": 8331443,
+      "templateId": 2945037,
+      "ssid": "Puskes_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec Pugung",
+      "groupId": 8334561,
+      "templateId": 2947665,
+      "ssid": "PLKB_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec Pugung",
+      "groupId": 8331438,
+      "templateId": 2945031,
+      "ssid": "PuskesWan_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec Pugung",
+      "groupId": 8324778,
+      "templateId": 2939395,
+      "ssid": "Kantor_Kecamatan_Kominfo",
+      "password": "@kecamatanpugung",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumah_Wakil_Gisting",
+      "groupId": 8331498,
+      "templateId": 2945089,
+      "ssid": "Griselda@Kominfo",
+      "password": "Agus Suranto",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumah Dinas Sekda Kota Agung",
+      "groupId": 8332585,
+      "templateId": 2946055,
+      "ssid": "RD Sekda_kominfo",
+      "password": "gaktau??",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumah Dinas Wakil Bupati",
+      "groupId": 8335846,
+      "templateId": 2948804,
+      "ssid": "RD Wabup_Kominfo",
+      "password": "pangeranjayakusuma",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-NGARIP-ULUBELU",
+      "groupId": 8335873,
+      "templateId": 2948829,
+      "ssid": "PKM_Ngarip_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-GUNUNGSARI-ULUBELU",
+      "groupId": 8336929,
+      "templateId": 2949778,
+      "ssid": "PKM_GunungSari_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "UPTD Perikanan Kota Agung",
+      "groupId": 8337087,
+      "templateId": 2949906,
+      "ssid": "Perikanan Kota Agung_Kominfo",
+      "password": "abubakar",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPP-ULUBELU",
+      "groupId": 8337391,
+      "templateId": 2950206,
+      "ssid": "BPP_Kominfo",
+      "password": "ulu180615belu",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KEC PULPA",
+      "groupId": 8353060,
+      "templateId": 2964135,
+      "ssid": "Kantor_Kec.Pulpa_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KEC PULPA",
+      "groupId": 8353146,
+      "templateId": 2964229,
+      "ssid": "Kantor_Capil_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DAMKAR-PULPA",
+      "groupId": 8353569,
+      "templateId": 2964614,
+      "ssid": "Damkar_Pulpa_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-PULPA",
+      "groupId": 8354131,
+      "templateId": 2965116,
+      "ssid": "PKM_PULPA_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPP Talang Padang",
+      "groupId": 8354704,
+      "templateId": 2965636,
+      "ssid": "BPP Talang Padang_Kominfo",
+      "password": "talangpadang123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "UPT_KB_PULPA",
+      "groupId": 8354736,
+      "templateId": 2965667,
+      "ssid": "KB_PULPA.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPP Pugung",
+      "groupId": 8355132,
+      "templateId": 2966053,
+      "ssid": "BPP Pugung@Kominfo",
+      "password": "9449gung",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KEC-AIRNANINGAN",
+      "groupId": 8355535,
+      "templateId": 2966461,
+      "ssid": "Kantor_Kec.AirNaningan.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KB-AIRNANINGAN",
+      "groupId": 8355830,
+      "templateId": 2966745,
+      "ssid": "KB_Airnaningan.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKMWAN-PULPA",
+      "groupId": 8356646,
+      "templateId": 2967433,
+      "ssid": "PKMWAN_PULPA.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPP-PULPA",
+      "groupId": 8356867,
+      "templateId": 2967625,
+      "ssid": "BPP-PULPA.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PLKB-Kelumbayan",
+      "groupId": 8384335,
+      "templateId": 2991601,
+      "ssid": "@PLKB_Kelumbayan.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-Kelumbayan",
+      "groupId": 8384439,
+      "templateId": 2991706,
+      "ssid": "@PKM_Kelumbayan.kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KEC-Kelumbayan-Barat",
+      "groupId": 8386417,
+      "templateId": 2993475,
+      "ssid": "@Kec_Kelumbayan_Barat.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BBP-Gulip",
+      "groupId": 8394006,
+      "templateId": 3000162,
+      "ssid": "@BPP_Gulip.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-GULIP",
+      "groupId": 8394210,
+      "templateId": 3000350,
+      "ssid": "@PKM_Gulip.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "KEC-GULIP",
+      "groupId": 8394721,
+      "templateId": 3000800,
+      "ssid": "@Kec_Gulip.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-SANGGI-BNS",
+      "groupId": 8396226,
+      "templateId": 3002039,
+      "ssid": "@PKM_Sanggi.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan-BNS",
+      "groupId": 8396690,
+      "templateId": 3002476,
+      "ssid": "Kec.BNS_Kominfo",
+      "password": "beenes2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan-BNS",
+      "groupId": 8406441,
+      "templateId": 3011446,
+      "ssid": "@KB.BNS.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec-Semaka-group",
+      "groupId": 8621373,
+      "templateId": 3189991,
+      "ssid": "@Kec.Semaka.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec-Semaka-group",
+      "groupId": 8407436,
+      "templateId": 3012312,
+      "ssid": "@Capil_Semaka.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec-Semaka-group",
+      "groupId": 8407439,
+      "templateId": 3012315,
+      "ssid": "@KB_Semaka.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec-Semaka-group",
+      "groupId": 8407399,
+      "templateId": 3012291,
+      "ssid": "@Kec.Semaka.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-Semaka",
+      "groupId": 8408022,
+      "templateId": 3012842,
+      "ssid": "@PKM_Semaka.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan Bulok",
+      "groupId": 8425082,
+      "templateId": 3026847,
+      "ssid": "Kantor Camat Bulok_Kominfo",
+      "password": "Camatbulok21#",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan Bulok",
+      "groupId": 8431483,
+      "templateId": 3032186,
+      "ssid": "Puskesmas Bulok_Kominfo",
+      "password": "Pur12345",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan Bulok",
+      "groupId": 8426653,
+      "templateId": 3028177,
+      "ssid": "BULOK WIL 3_Kominfo",
+      "password": "uptbulok",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan Bulok",
+      "groupId": 8432696,
+      "templateId": 3033242,
+      "ssid": "Puskeswan Bulok_Kominfo",
+      "password": "87654321",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kecamatan Bulok",
+      "groupId": 8425157,
+      "templateId": 3026903,
+      "ssid": "BALAI KB BULOK_KOMINFO",
+      "password": "bulokTanggamus",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec-Sumber-Rejo",
+      "groupId": 8616499,
+      "templateId": 3185973,
+      "ssid": "@Kec_Sumber Rejo.Kominfo",
+      "password": "budiwahyudin",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec-Sumber-Rejo",
+      "groupId": 8448429,
+      "templateId": 3046749,
+      "ssid": "@PKM_Sumber Rejo.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec-Sumber-Rejo",
+      "groupId": 8437121,
+      "templateId": 3037135,
+      "ssid": "@KB_Sumber Rejo.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec-Sumber-Rejo",
+      "groupId": 8437116,
+      "templateId": 3037131,
+      "ssid": "@PUPR_Sumber Rejo.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Kec-Sumber-Rejo",
+      "groupId": 8437117,
+      "templateId": 3037132,
+      "ssid": "@BPP_Sumber Rejo.Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM-Martanda",
+      "groupId": 8440350,
+      "templateId": 3040055,
+      "ssid": "@PKM_Martanda.Kominfo",
+      "password": "Martand42026#*",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "true"
+    },
+    {
+      "groupName": "PKM-Sudimoro",
+      "groupId": 8458010,
+      "templateId": 3054678,
+      "ssid": "PKM_Sudimoro_Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumdis Inspektur",
+      "groupId": 8481100,
+      "templateId": 3073926,
+      "ssid": "RUMDIS INSPEKTUR_KOMINFO",
+      "password": "12345678",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPP-GISTING_Auto",
+      "groupId": 8571925,
+      "templateId": 3149324,
+      "ssid": "BPKB GISTING/@KOMINFO_iot",
+      "password": "pulangajayuk",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPP-GISTING_Auto",
+      "groupId": 8571925,
+      "templateId": 3149324,
+      "ssid": "BPKB GISTING/@KOMINFO_iot_5G",
+      "password": "pulangajayuk",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPP-GISTING_Auto",
+      "groupId": 8571925,
+      "templateId": 3149324,
+      "ssid": "BPKB Gisting_Kominfo",
+      "password": "pulangajayuk",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Lapangan Tangsi",
+      "groupId": 8733878,
+      "templateId": 3284990,
+      "ssid": "Kantor Pekon Tanjung Gunung ",
+      "password": "Kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BAPENDA_Auto",
+      "groupId": 8735753,
+      "templateId": 3286490,
+      "ssid": "BAGIAN UMUM BAPENDA_KOMINFO",
+      "password": "bagianumum123",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Barak Militer",
+      "groupId": 8738959,
+      "templateId": 3289111,
+      "ssid": "BARAK 1",
+      "password": "BARAK945",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Barak Militer",
+      "groupId": 8738959,
+      "templateId": 3289111,
+      "ssid": "BARAK 2",
+      "password": "BARAK945",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Barak Militer",
+      "groupId": 8738959,
+      "templateId": 3289111,
+      "ssid": "BARAK 3",
+      "password": "MAYON945",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Barak Militer",
+      "groupId": 8738959,
+      "templateId": 3289111,
+      "ssid": "KANTOR",
+      "password": "YONIF945PPC",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Rumah Bu Kabid E-goverment",
+      "groupId": 8766879,
+      "templateId": 3311827,
+      "ssid": "Ayahbunda_",
+      "password": "Tunggubunda",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "DINAS KETENAGAKERJAAN",
+      "groupId": 8879836,
+      "templateId": 3404774,
+      "ssid": "DISNAKER@KOMINFO",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "Bagian umum inspektorat",
+      "groupId": 9190978,
+      "templateId": 3657266,
+      "ssid": "RUANG_UMUM_KOMINFO",
+      "password": "umum1234",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "BPBD TANGGAMUS",
+      "groupId": 9336579,
+      "templateId": 3718457,
+      "ssid": "BPBD_disKominfo",
+      "password": "12345678",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    },
+    {
+      "groupName": "PKM Pulau Tabuan",
+      "groupId": 9592228,
+      "templateId": 3921635,
+      "ssid": "Puskesmas Pulau Tabuan Kominfo",
+      "password": "kominfo2026",
+      "security": "WPA2",
+      "vlanId": 1,
+      "hidden": "false"
+    }
+  ],
+  "alarms_summary": {
+    "total": 141,
+    "offline_alarms": 38,
+    "warning_alarms": 103,
+    "last_checked": "2026-09-13T06:02:00.754Z"
+  },
+  "alarm_desc_map": {
+    "1001": "Device offline alarm",
+    "1002": "Device goes online/offline frequently",
+    "1003": "Device STUN change frequently",
+    "1004": "All device offline",
+    "2001": "Channel utilization high",
+    "3001": "SIM card traffic limit exceeded",
+    "3002": "No GPS signal",
+    "3003": "Excessive CPU usage",
+    "3004": "Excessive memory usage",
+    "3005": "Excessive disk usage",
+    "3006": "Excessive flash memory usage",
+    "3007": "No 3G/4G signal"
   }
 }
