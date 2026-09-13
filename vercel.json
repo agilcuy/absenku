@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/ruijie-monitor",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

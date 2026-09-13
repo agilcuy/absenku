@@ -30,6 +30,12 @@ import {
   Zap,
   X,
   Router,
+  Send,
+  Bell,
+  Eye,
+  EyeOff,
+  QrCode,
+  Key,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -89,6 +95,137 @@ export default function RuijieMonitoringPage() {
 
   // Quick Copy Feedback state
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Telegram & Cloud Worker State
+  const [telegramModalOpen, setTelegramModalOpen] = useState(false);
+  const [wifiModalOpen, setWifiModalOpen] = useState(false);
+  const [telegramData, setTelegramData] = useState<any>(null);
+  const [telegramTokenInput, setTelegramTokenInput] = useState('');
+  const [telegramChatInput, setTelegramChatInput] = useState('');
+  const [telegramAuthUsersInput, setTelegramAuthUsersInput] = useState('');
+  const [telegramAlertEnabled, setTelegramAlertEnabled] = useState(true);
+  const [isSavingTelegram, setIsSavingTelegram] = useState(false);
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+  const [isRegisteringWebhook, setIsRegisteringWebhook] = useState(false);
+  const [isRunningWorker, setIsRunningWorker] = useState(false);
+  const [telegramNotice, setTelegramNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Wi-Fi State
+  const [showWifiPassword, setShowWifiPassword] = useState<Record<string, boolean>>({});
+  const [selectedQrSsid, setSelectedQrSsid] = useState('DISKOMINFO_TANGGAMUS_PKL');
+
+  // Load Telegram Config & Worker Health
+  const fetchTelegramInfo = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/ruijie/telegram');
+      if (res.ok) {
+        const json = await res.json();
+        setTelegramData(json);
+        if (json.config) {
+          setTelegramChatInput(json.config.default_chat_id || '');
+          setTelegramAuthUsersInput(
+            Array.isArray(json.config.authorized_user_ids)
+              ? json.config.authorized_user_ids.join(', ')
+              : ''
+          );
+          setTelegramAlertEnabled(json.config.alert_enabled !== false);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load telegram config:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTelegramInfo();
+  }, [fetchTelegramInfo]);
+
+  // Handle Save Telegram Config
+  const handleSaveTelegram = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingTelegram(true);
+    setTelegramNotice(null);
+    try {
+      const res = await fetch('/api/admin/ruijie/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_config',
+          bot_token: telegramTokenInput,
+          default_chat_id: telegramChatInput,
+          authorized_user_ids: telegramAuthUsersInput,
+          alert_enabled: telegramAlertEnabled,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Gagal menyimpan');
+      setTelegramNotice({ type: 'success', text: 'Konfigurasi Telegram berhasil disimpan!' });
+      setTelegramTokenInput('');
+      fetchTelegramInfo();
+    } catch (err: any) {
+      setTelegramNotice({ type: 'error', text: err.message });
+    } finally {
+      setIsSavingTelegram(false);
+    }
+  };
+
+  // Handle Test Telegram Alert
+  const handleTestTelegram = async () => {
+    setIsTestingTelegram(true);
+    setTelegramNotice(null);
+    try {
+      const res = await fetch('/api/admin/ruijie/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test_message', chat_id: telegramChatInput }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Gagal mengirim pesan');
+      setTelegramNotice({ type: 'success', text: 'Pesan tes berhasil terkirim ke Telegram Anda!' });
+      fetchTelegramInfo();
+    } catch (err: any) {
+      setTelegramNotice({ type: 'error', text: err.message });
+    } finally {
+      setIsTestingTelegram(false);
+    }
+  };
+
+  // Handle Register Webhook
+  const handleRegisterWebhook = async () => {
+    setIsRegisteringWebhook(true);
+    setTelegramNotice(null);
+    try {
+      const res = await fetch('/api/admin/ruijie/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'register_webhook' }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Gagal mendaftarkan webhook');
+      setTelegramNotice({ type: 'success', text: 'Webhook berhasil aktif di server cloud Vercel!' });
+    } catch (err: any) {
+      setTelegramNotice({ type: 'error', text: err.message });
+    } finally {
+      setIsRegisteringWebhook(false);
+    }
+  };
+
+  // Handle Trigger Cloud Worker Now
+  const handleTriggerCloudWorker = async () => {
+    setIsRunningWorker(true);
+    try {
+      const res = await fetch('/api/cron/ruijie-monitor?source=admin_manual_click&refresh=true');
+      const json = await res.json();
+      if (json.success) {
+        fetchData(true);
+        fetchTelegramInfo();
+      }
+    } catch (err) {
+      console.error('Trigger worker error:', err);
+    } finally {
+      setIsRunningWorker(false);
+    }
+  };
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<'all' | 'OFF' | 'ON'>('OFF');
@@ -405,6 +542,29 @@ export default function RuijieMonitoringPage() {
               <span>{refreshing ? 'Menyinkronkan...' : 'Refresh Sekarang'}</span>
             </button>
 
+            {/* Wi-Fi & QR Code Tool */}
+            <button
+              onClick={() => setWifiModalOpen(true)}
+              className="px-3.5 py-2.5 text-xs font-semibold rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 shadow-sm flex items-center gap-2 transition-all active:scale-95"
+              title="Informasi SSID Wi-Fi & QR Code Instan"
+            >
+              <Wifi className="w-3.5 h-3.5 text-purple-400" />
+              <span>Info Wi-Fi & QR</span>
+            </button>
+
+            {/* Telegram Bot Setting & Test */}
+            <button
+              onClick={() => setTelegramModalOpen(true)}
+              className="px-3.5 py-2.5 text-xs font-semibold rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 shadow-sm flex items-center gap-2 transition-all active:scale-95 relative"
+              title="Konfigurasi Bot Telegram & Alert 24/7"
+            >
+              <Send className="w-3.5 h-3.5 text-blue-400" />
+              <span>Bot Telegram</span>
+              {telegramData?.config?.has_token && (
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              )}
+            </button>
+
             {/* Export Excel */}
             <button
               onClick={handleExportExcel}
@@ -431,6 +591,50 @@ export default function RuijieMonitoringPage() {
             </span>
           </div>
         )}
+      </div>
+
+      {/* Cloud Monitoring 24/7 Engine Status Bar */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900/90 via-indigo-950/40 to-slate-900/90 border border-indigo-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+            <Activity className="w-5 h-5 text-indigo-400 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-white tracking-wide uppercase">
+                Mesin Cloud Monitoring (Skenario PC Mati)
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                Vercel Cron 24/7 Mandiri
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Pengecekan cloud terakhir:{' '}
+              <b className="text-slate-200 font-mono">
+                {telegramData?.worker_health?.last_run_at
+                  ? new Date(telegramData.worker_health.last_run_at).toLocaleTimeString('id-ID') + ' WIB'
+                  : 'Baru saja'}
+              </b>{' '}
+              &bull; Alert Telegram:{' '}
+              <span className={telegramData?.config?.alert_enabled ? 'text-emerald-400 font-semibold' : 'text-slate-400'}>
+                {telegramData?.config?.alert_enabled ? 'Aktif' : 'Non-aktif'}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-end md:self-auto">
+          <button
+            type="button"
+            disabled={isRunningWorker}
+            onClick={handleTriggerCloudWorker}
+            className="px-3 py-1.5 rounded-xl border border-indigo-500/40 hover:bg-indigo-500/20 text-indigo-200 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRunningWorker ? 'animate-spin text-indigo-400' : ''}`} />
+            <span>{isRunningWorker ? 'Mengecek...' : 'Picu Cek Cloud'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Snapshot Cache Notice if offline */}
@@ -1453,6 +1657,348 @@ export default function RuijieMonitoringPage() {
           </div>
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/* MODAL 1: PENGATURAN & TEST TELEGRAM BOT 24/7                 */}
+      {/* ============================================================ */}
+      {telegramModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="glass-card w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-7 border border-blue-500/30 bg-[#0a0f24] shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                  <Send className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    Telegram Bot & Cloud Alert 24/7
+                    {telegramData?.config?.has_token && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
+                        Terhubung
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Notifikasi otomatis perangkat offline/recovery & perintah teknisi via Telegram
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setTelegramModalOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {telegramNotice && (
+              <div
+                className={`p-3.5 rounded-xl text-xs flex items-center gap-2 border ${
+                  telegramNotice.type === 'success'
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                    : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                }`}
+              >
+                <Info className="w-4 h-4 shrink-0" />
+                <span>{telegramNotice.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveTelegram} className="space-y-4 text-xs">
+              {/* Token Bot */}
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1 flex items-center justify-between">
+                  <span>Token Bot Telegram (dari @BotFather)</span>
+                  {telegramData?.config?.masked_token && (
+                    <span className="font-mono text-[11px] text-emerald-400 font-normal">
+                      Tersimpan: {telegramData.config.masked_token}
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="password"
+                  value={telegramTokenInput}
+                  onChange={(e) => setTelegramTokenInput(e.target.value)}
+                  placeholder={telegramData?.config?.has_token ? '••••••••••••••••••••••••' : 'Contoh: 1234567890:ABCdefGhIJKlmNoPQRstuVWXyz'}
+                  className="input-field text-xs font-mono"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Buat bot baru melalui chat <b>@BotFather</b> di aplikasi Telegram untuk mendapatkan token ini. Kosongkan jika tidak ingin mengubah.
+                </p>
+              </div>
+
+              {/* Chat ID Target */}
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Target Chat ID / Group ID Penerima Alert
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={telegramChatInput}
+                  onChange={(e) => setTelegramChatInput(e.target.value)}
+                  placeholder="Contoh: 123456789 (chat pribadi) atau -1001234567890 (group)"
+                  className="input-field text-xs font-mono"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  ID akun Telegram Anda atau Group Tim NOC Tanggamus yang akan menerima notifikasi 🚨 Offline & ✅ Recovery.
+                </p>
+              </div>
+
+              {/* User ID yang Diizinkan */}
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  User ID Teknisi Berwenang (Otorisasi RBAC)
+                </label>
+                <input
+                  type="text"
+                  value={telegramAuthUsersInput}
+                  onChange={(e) => setTelegramAuthUsersInput(e.target.value)}
+                  placeholder="Pisahkan dengan koma, contoh: 123456789, 987654321"
+                  className="input-field text-xs font-mono"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Hanya ID pengguna di atas yang diizinkan menjalankan perintah <code>/status</code>, <code>/offline</code>, <code>/wifi</code>, dll.
+                </p>
+              </div>
+
+              {/* Toggle Alert */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="tg-alert-toggle"
+                  checked={telegramAlertEnabled}
+                  onChange={(e) => setTelegramAlertEnabled(e.target.checked)}
+                  className="rounded bg-white/5 border-white/20 text-blue-500 focus:ring-0 w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="tg-alert-toggle" className="text-slate-300 text-xs cursor-pointer select-none">
+                  Aktifkan Notifikasi Otomatis 24/7 (🚨 Offline & ✅ Recovery)
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isTestingTelegram || !telegramData?.config?.has_token}
+                    onClick={handleTestTelegram}
+                    className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
+                  >
+                    <Send className="w-3.5 h-3.5 text-blue-400" />
+                    <span>{isTestingTelegram ? 'Mengirim...' : 'Kirim Pesan Tes'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isRegisteringWebhook || !telegramData?.config?.has_token}
+                    onClick={handleRegisterWebhook}
+                    className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{isRegisteringWebhook ? 'Mendaftarkan...' : 'Aktifkan Webhook Cloud'}</span>
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSavingTelegram}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition disabled:opacity-50"
+                >
+                  {isSavingTelegram ? 'Menyimpan...' : 'Simpan Konfigurasi'}
+                </button>
+              </div>
+            </form>
+
+            {/* Riwayat Notifikasi Terakhir */}
+            {telegramData?.recent_logs && telegramData.recent_logs.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-white/10 text-xs">
+                <h4 className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <Bell className="w-3.5 h-3.5 text-indigo-400" />
+                  Log Pengiriman Notifikasi Terakhir
+                </h4>
+                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                  {telegramData.recent_logs.map((log: any) => (
+                    <div
+                      key={log.id}
+                      className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between text-[11px]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            log.notification_type === 'OFFLINE_ALERT'
+                              ? 'bg-rose-500 animate-pulse'
+                              : 'bg-emerald-400'
+                          }`}
+                        />
+                        <span className="font-bold text-white">{log.device_name}</span>
+                        <span className="text-slate-400">({log.notification_type})</span>
+                      </div>
+                      <span className="text-slate-500 font-mono">
+                        {new Date(log.sent_at).toLocaleTimeString('id-ID')} WIB
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL 2: WI-FI INFORMATION & INSTANT QR CODE GENERATOR       */}
+      {/* ============================================================ */}
+      {wifiModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="glass-card w-full max-w-lg rounded-3xl p-6 sm:p-7 border border-purple-500/30 bg-[#0d0f26] shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                  <Wifi className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Informasi Wi-Fi & QR Code</h3>
+                  <p className="text-xs text-slate-400">Kredensial jaringan resmi instansi & generator QR instan</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setWifiModalOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* List of Official Wi-Fi Networks */}
+            <div className="space-y-3 text-xs">
+              {[
+                {
+                  ssid: 'DISKOMINFO_TANGGAMUS_PKL',
+                  location: 'Gedung Diskominfo Kabupaten Tanggamus',
+                  pass: 'TanggamusHebat2026',
+                  security: 'WPA2-PSK',
+                },
+                {
+                  ssid: 'GENZ_TECH_INTERN',
+                  location: 'DeryGarage X Gen z Code (Bernung)',
+                  pass: 'BernungKreatif2026',
+                  security: 'WPA2-PSK',
+                },
+              ].map((net) => {
+                const isShowing = showWifiPassword[net.ssid];
+                const isSelected = selectedQrSsid === net.ssid;
+                const wifiString = `WIFI:T:WPA;S:${net.ssid};P:${net.pass};;`;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+                  wifiString
+                )}`;
+
+                return (
+                  <div
+                    key={net.ssid}
+                    className={`p-4 rounded-2xl border transition-all ${
+                      isSelected
+                        ? 'border-purple-500/50 bg-purple-500/10'
+                        : 'border-white/10 bg-white/[0.02]'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-white text-sm">{net.ssid}</h4>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">
+                            {net.security}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{net.location}</p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedQrSsid(net.ssid)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                          isSelected
+                            ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                            : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>{isSelected ? 'Aktif' : 'Lihat QR'}</span>
+                      </button>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Key className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="text-slate-400 text-[11px]">Kata Sandi:</span>
+                        <span className="font-mono text-xs text-white">
+                          {isShowing ? net.pass : '••••••••••••'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowWifiPassword((prev) => ({
+                              ...prev,
+                              [net.ssid]: !prev[net.ssid],
+                            }))
+                          }
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition"
+                          title={isShowing ? 'Sembunyikan' : 'Tampilkan'}
+                        >
+                          {isShowing ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(net.pass, `pass-${net.ssid}`)}
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition"
+                          title="Salin Password"
+                        >
+                          {copiedId === `pass-${net.ssid}` ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* QR Code Preview if selected */}
+                    {isSelected && (
+                      <div className="mt-4 pt-4 border-t border-purple-500/20 text-center space-y-3 animate-fade-in">
+                        <div className="p-3 bg-white rounded-2xl inline-block shadow-xl border border-white/20">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={qrUrl}
+                            alt={`QR Code Wi-Fi ${net.ssid}`}
+                            className="w-44 h-44 mx-auto rounded-lg"
+                          />
+                        </div>
+                        <p className="text-[11px] text-purple-200">
+                          📷 Arahkan kamera smartphone Android/iPhone Anda ke kode di atas untuk langsung terhubung tanpa mengetik password.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-2 border-t border-white/10 text-right">
+              <button
+                type="button"
+                onClick={() => setWifiModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-semibold text-xs transition"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

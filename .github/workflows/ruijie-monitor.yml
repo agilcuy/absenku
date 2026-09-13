@@ -1,0 +1,30 @@
+name: Ruijie Cloud 24/7 Monitoring Heartbeat
+
+on:
+  schedule:
+    # Berjalan setiap 10 menit 24/7 di server cloud GitHub (tidak butuh komputer lokal)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  monitor-ruijie:
+    name: Execute Cloud Monitoring Worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping Ruijie Cloud Monitoring Endpoint
+        run: |
+          echo "Triggering 24/7 Cloud Monitoring Worker on Vercel..."
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" "https://absenku-three.vercel.app/api/cron/ruijie-monitor?source=github_heartbeat")
+          HTTP_STATUS=$(echo "$RESPONSE" | tr -d '\r' | grep "HTTP_STATUS" | cut -d':' -f2)
+          BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS")
+          
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response Body: $BODY"
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "SUCCESS: Ruijie Cloud Monitoring Heartbeat executed successfully."
+          else
+            echo "WARNING: Monitoring endpoint returned HTTP $HTTP_STATUS, check Vercel deployment status."
+          fi
