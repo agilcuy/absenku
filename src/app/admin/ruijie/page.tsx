@@ -18,6 +18,18 @@ import {
   CheckCircle2,
   XCircle,
   ExternalLink,
+  LayoutGrid,
+  Table as TableIcon,
+  Copy,
+  Check,
+  Info,
+  ShieldCheck,
+  Activity,
+  Cpu,
+  ArrowUpRight,
+  Zap,
+  X,
+  Router,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -32,12 +44,14 @@ interface RuijieDevice {
   offlineReason?: string;
   groupName: string;
   groupId: number;
+  buildingId?: number;
   localIp: string;
   cpeIp: string;
   mac: string;
   hardwareVersion?: string;
   softwareVersion?: string;
   lastOnline?: number;
+  createTime?: number;
 }
 
 interface RuijieSummary {
@@ -51,6 +65,7 @@ interface RuijieSummary {
 export default function RuijieMonitoringPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [recentlyRefreshed, setRecentlyRefreshed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [summary, setSummary] = useState<RuijieSummary>({
@@ -66,21 +81,31 @@ export default function RuijieMonitoringPage() {
   const [deviceTypes, setDeviceTypes] = useState<string[]>([]);
   const [isFromCache, setIsFromCache] = useState(false);
 
+  // View Mode: Grid (Hardware cards) vs Table
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+
+  // Selected device for Detail Drawer
+  const [selectedDevice, setSelectedDevice] = useState<RuijieDevice | null>(null);
+
+  // Quick Copy Feedback state
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   // Filters
-  const [statusFilter, setStatusFilter] = useState<'all' | 'OFF' | 'ON'>('OFF'); // Default to OFF to highlight problems
+  const [statusFilter, setStatusFilter] = useState<'all' | 'OFF' | 'ON'>('OFF');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNetwork, setSelectedNetwork] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [countdown, setCountdown] = useState(60);
 
   // Pagination
   const [page, setPage] = useState(1);
-  const pageSize = 25;
+  const pageSize = viewMode === 'grid' ? 16 : 25;
 
   const fetchData = useCallback(
     async (isManualRefresh = false) => {
       if (isManualRefresh) setRefreshing(true);
-      else setLoading(true);
+      else if (devices.length === 0) setLoading(true);
       setError(null);
 
       try {
@@ -100,6 +125,10 @@ export default function RuijieMonitoringPage() {
         setNetworks(data.networks || []);
         setDeviceTypes(data.deviceTypes || []);
         setIsFromCache(Boolean(data.fromCache));
+
+        // Visual flash effect on refresh
+        setRecentlyRefreshed(true);
+        setTimeout(() => setRecentlyRefreshed(false), 2000);
       } catch (err: any) {
         console.error('Error fetching Ruijie devices:', err);
         setError(err.message || 'Terjadi kesalahan saat memuat data Ruijie Cloud');
@@ -108,7 +137,7 @@ export default function RuijieMonitoringPage() {
         setRefreshing(false);
       }
     },
-    []
+    [devices.length]
   );
 
   // Initial load
@@ -116,14 +145,72 @@ export default function RuijieMonitoringPage() {
     fetchData(false);
   }, [fetchData]);
 
-  // Auto-refresh timer every 60 seconds (reads cache or updates smoothly without forcing re-login)
+  // Smooth Countdown Ring & Auto-refresh timer
   useEffect(() => {
     if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      fetchData(false);
-    }, 60000);
-    return () => clearInterval(interval);
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          fetchData(false);
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
   }, [autoRefresh, fetchData]);
+
+  const handleManualRefresh = () => {
+    setCountdown(60);
+    fetchData(true);
+  };
+
+  const handleCopy = (text: string, id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!text || text === '-') return;
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1800);
+  };
+
+  // Top 5 locations with highest offline devices (Spotlight)
+  const topOfflineLocations = useMemo(() => {
+    const counts: Record<string, number> = {};
+    devices.forEach((d) => {
+      if (d.onlineStatus !== 'ON') {
+        const grp = d.groupName || 'Tanpa Lokasi';
+        counts[grp] = (counts[grp] || 0) + 1;
+      }
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([group, count]) => ({ group, count }));
+  }, [devices]);
+
+  // Device Breakdown statistics
+  const deviceTypeStats = useMemo(() => {
+    const apTotal = devices.filter((d) => d.commonType === 'AP').length;
+    const apOnline = devices.filter((d) => d.commonType === 'AP' && d.onlineStatus === 'ON').length;
+    const wrTotal = devices.filter((d) => d.commonType === 'WR').length;
+    const wrOnline = devices.filter((d) => d.commonType === 'WR' && d.onlineStatus === 'ON').length;
+    const otherTotal = devices.filter((d) => d.commonType !== 'AP' && d.commonType !== 'WR').length;
+    const otherOnline = devices.filter(
+      (d) => d.commonType !== 'AP' && d.commonType !== 'WR' && d.onlineStatus === 'ON'
+    ).length;
+
+    return {
+      ap: { total: apTotal, online: apOnline, rate: apTotal ? Math.round((apOnline / apTotal) * 100) : 0 },
+      wr: { total: wrTotal, online: wrOnline, rate: wrTotal ? Math.round((wrOnline / wrTotal) * 100) : 0 },
+      other: { total: otherTotal, online: otherOnline, rate: otherTotal ? Math.round((otherOnline / otherTotal) * 100) : 0 },
+    };
+  }, [devices]);
+
+  // Network Health percentage
+  const healthRate = useMemo(() => {
+    if (!summary.total) return 0;
+    return Math.round((summary.online / summary.total) * 1000) / 10;
+  }, [summary]);
 
   // Filtered devices memo
   const filteredDevices = useMemo(() => {
@@ -156,10 +243,10 @@ export default function RuijieMonitoringPage() {
     return filteredDevices.slice(start, start + pageSize);
   }, [filteredDevices, page, pageSize]);
 
-  // Reset page when filters change
+  // Reset page when filters or viewMode change
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, searchQuery, selectedNetwork, selectedType]);
+  }, [statusFilter, searchQuery, selectedNetwork, selectedType, viewMode]);
 
   // Export to Excel
   const handleExportExcel = () => {
@@ -176,6 +263,8 @@ export default function RuijieMonitoringPage() {
       'IP Publik (CPE)': d.cpeIp || '-',
       'MAC Address': d.mac || '-',
       'Serial Number': d.serialNumber,
+      'Versi Software': d.softwareVersion || '-',
+      'Versi Hardware': d.hardwareVersion || '-',
       'Terakhir Online': d.lastOnline
         ? new Date(d.lastOnline).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
         : '-',
@@ -202,96 +291,166 @@ export default function RuijieMonitoringPage() {
     });
   };
 
+  const getRelativeTime = (timestamp?: number) => {
+    if (!timestamp) return 'Waktu tidak tersedia';
+    const diffMs = Date.now() - timestamp;
+    if (diffMs < 0) return 'Baru saja';
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Baru saja';
+    if (diffMin < 60) return `${diffMin} menit lalu`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour} jam ${diffMin % 60} mnt lalu`;
+    const diffDays = Math.floor(diffHour / 24);
+    return `${diffDays} hari lalu`;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/50 to-slate-900 border border-white/10 p-6 shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 relative z-10">
+      {/* Header Banner - NOC Command Center Aesthetic */}
+      <div
+        className={`relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#070b19] via-[#0d1430] to-[#070b19] border transition-all duration-700 p-6 lg:p-7 shadow-2xl ${
+          recentlyRefreshed ? 'border-emerald-500/50 shadow-emerald-900/20' : 'border-white/10 shadow-indigo-950/20'
+        }`}
+      >
+        {/* Subtle mesh glows */}
+        <div className="absolute -right-16 -top-16 w-80 h-80 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-16 -bottom-16 w-80 h-80 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
           <div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                <Radio className="w-5 h-5 animate-pulse text-indigo-400" />
+            <div className="flex items-center gap-4">
+              {/* Radar Scanner Animation */}
+              <div className="relative w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 overflow-hidden shadow-inner shrink-0">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.25)_0%,transparent_75%)]" />
+                <div className="absolute w-10 h-10 rounded-full border border-indigo-400/20" />
+                <div className="absolute w-6 h-6 rounded-full border border-indigo-400/30" />
+                <div className="absolute w-2 h-2 rounded-full bg-indigo-400 animate-ping opacity-75" />
+                <Radio className="w-7 h-7 text-indigo-400 relative z-10 animate-pulse" />
               </div>
+
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-                  Ruijie Cloud Live Monitoring
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                    Ruijie Cloud Live NOC
+                  </h1>
                   {isFromCache ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-sm shadow-amber-950">
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
                       Snapshot Cache
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm shadow-emerald-950">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                       Live Cloud Sync
                     </span>
                   )}
-                </h1>
-                <p className="text-sm text-slate-400 mt-0.5">
-                  Pemantauan real-time 320+ Access Point & Router se-Kabupaten Tanggamus
+                </div>
+                <p className="text-sm text-slate-400 mt-1 flex items-center gap-2">
+                  <span>Telemetri & Pemantauan Perangkat Jaringan se-Kabupaten Tanggamus</span>
+                  <span className="hidden sm:inline text-slate-600">&bull;</span>
+                  <span className="hidden sm:inline font-mono text-xs text-indigo-300/80">329 Perangkat Terdaftar</span>
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons with Countdown Ring */}
           <div className="flex items-center flex-wrap gap-2.5">
+            {/* Auto-Refresh with Countdown Ring */}
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`px-3 py-2 text-xs font-medium rounded-xl border transition-all flex items-center gap-1.5 ${
+              title={autoRefresh ? 'Matikan Auto-Refresh' : 'Aktifkan Auto-Refresh (60s)'}
+              className={`px-3.5 py-2.5 text-xs font-medium rounded-xl border transition-all flex items-center gap-2.5 shadow-sm ${
                 autoRefresh
-                  ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20'
+                  ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-200 hover:bg-indigo-500/25'
                   : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
               }`}
             >
-              <Clock className="w-3.5 h-3.5" />
-              Auto-Refresh (60s): <span className="font-bold">{autoRefresh ? 'AKTIF' : 'NONAKTIF'}</span>
+              {autoRefresh ? (
+                <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
+                  <svg className="w-4 h-4 -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-white/10"
+                      strokeWidth="4"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      className="text-indigo-400 transition-all duration-1000 ease-linear"
+                      strokeDasharray={`${(countdown / 60) * 100}, 100`}
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                </div>
+              ) : (
+                <Clock className="w-4 h-4 text-slate-400" />
+              )}
+              <span>
+                Auto-Sync: <span className="font-bold text-white">{autoRefresh ? `${countdown}s` : 'OFF'}</span>
+              </span>
             </button>
 
+            {/* Manual Refresh */}
             <button
-              onClick={() => fetchData(true)}
+              onClick={handleManualRefresh}
               disabled={refreshing || loading}
-              className="px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white shadow-lg shadow-indigo-600/25 flex items-center gap-2 transition-all active:scale-95"
+              className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:opacity-50 text-white shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all active:scale-95"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh Sekarang
+              <span>{refreshing ? 'Menyinkronkan...' : 'Refresh Sekarang'}</span>
             </button>
 
+            {/* Export Excel */}
             <button
               onClick={handleExportExcel}
               disabled={filteredDevices.length === 0}
-              className="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600/90 hover:bg-emerald-600 disabled:opacity-50 text-white shadow-lg shadow-emerald-600/25 flex items-center gap-2 transition-all active:scale-95"
+              className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-emerald-600/90 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all active:scale-95"
             >
               <Download className="w-3.5 h-3.5" />
-              Export Excel
+              <span>Export Excel</span>
             </button>
           </div>
         </div>
 
         {summary.lastChecked && (
-          <div className="mt-4 pt-3 border-t border-white/5 text-xs text-slate-400 flex items-center gap-1.5">
-            <span>{isFromCache ? 'Waktu snapshot cache:' : 'Pemeriksaan live terakhir:'}</span>
-            <span className="text-slate-300 font-mono">
-              {new Date(summary.lastChecked).toLocaleString('id-ID')}
+          <div className="mt-5 pt-3.5 border-t border-white/5 text-xs text-slate-400 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+              <span>{isFromCache ? 'Waktu snapshot cache:' : 'Pemeriksaan live terakhir:'}</span>
+              <span className="text-slate-200 font-mono font-medium">
+                {new Date(summary.lastChecked).toLocaleString('id-ID')} WIB
+              </span>
+            </div>
+            <span className="text-slate-500 text-[11px]">
+              Region: Asia-Pacific (AS) &bull; Cloud Service Tenant: Tanggamus (441225)
             </span>
           </div>
         )}
       </div>
 
-      {/* Snapshot Cache Notice */}
+      {/* Snapshot Cache Notice if offline */}
       {isFromCache && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>
-              Menampilkan <strong>data snapshot lokal cadangan</strong>. Klik tombol <strong>Refresh Sekarang</strong> untuk mencoba sinkronisasi langsung ke Ruijie Cloud.
-            </span>
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <span className="font-semibold text-amber-200">Mode Snapshot Cadangan Aktif</span>
+              <p className="text-xs text-amber-300/80 mt-0.5">
+                Menampilkan data snapshot cadangan lokal terakhir. Klik &apos;Sinkronkan Ulang&apos; untuk mencoba menghubungkan langsung ke Ruijie Cloud.
+              </p>
+            </div>
           </div>
           <button
-            onClick={() => fetchData(true)}
+            onClick={handleManualRefresh}
             disabled={refreshing || loading}
-            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 shrink-0 transition-colors"
+            className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 shrink-0 transition-colors shadow-sm"
           >
             Sinkronkan Ulang
           </button>
@@ -300,7 +459,7 @@ export default function RuijieMonitoringPage() {
 
       {/* Error Alert */}
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-start gap-3">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-start gap-3 shadow-lg">
           <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
           <div>
             <div className="font-semibold">Gagal Menghubungi Ruijie Cloud</div>
@@ -309,167 +468,367 @@ export default function RuijieMonitoringPage() {
         </div>
       )}
 
-      {/* Stats Cards (4 Columns) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Devices */}
-        <div className="bg-[#0a0d17] border border-white/5 rounded-2xl p-5 relative overflow-hidden shadow-lg">
+      {/* Analytics & Stats Command Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Network Health Score Meter (4 cols) */}
+        <div className="lg:col-span-4 bg-[#0a0d17] border border-white/5 rounded-3xl p-5 relative overflow-hidden shadow-xl flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Perangkat</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
-              <Server className="w-4 h-4" />
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Network Health Score
+              </span>
+            </div>
+            <span
+              className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
+                healthRate >= 90
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  : healthRate >= 75
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+              }`}
+            >
+              {healthRate >= 90 ? 'OPTIMAL' : healthRate >= 75 ? 'PERHATIAN' : 'KRITIS'}
+            </span>
+          </div>
+
+          {/* Large Health Radial Bar */}
+          <div className="my-4 flex items-center justify-between gap-4">
+            <div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-4xl font-black text-white tracking-tight">
+                  {loading ? '...' : healthRate}%
+                </span>
+                <span className="text-xs text-emerald-400 font-semibold">Online Rate</span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                <strong className="text-emerald-400">{summary.online}</strong> unit dari {summary.total} alat beroperasi lancar
+              </p>
+            </div>
+
+            {/* Circular Gauge Graphic */}
+            <div className="relative w-18 h-18 flex items-center justify-center shrink-0">
+              <svg className="w-16 h-16 -rotate-90" viewBox="0 0 36 36">
+                <circle
+                  className="text-white/5"
+                  strokeWidth="3.5"
+                  stroke="currentColor"
+                  fill="none"
+                  r="15.9155"
+                  cx="18"
+                  cy="18"
+                />
+                <circle
+                  className="text-emerald-400 transition-all duration-1000 ease-out"
+                  strokeDasharray={`${healthRate}, 100`}
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  r="15.9155"
+                  cx="18"
+                  cy="18"
+                />
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              </div>
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white tracking-tight">
-              {loading ? '...' : summary.total}
-            </span>
-            <span className="text-xs text-slate-400">Unit</span>
+
+          {/* Segmented Bar */}
+          <div className="space-y-1.5 pt-2 border-t border-white/5">
+            <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden flex">
+              <div
+                style={{ width: `${healthRate}%` }}
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700"
+              />
+              <div
+                style={{ width: `${100 - healthRate}%` }}
+                className="h-full bg-rose-500 transition-all duration-700"
+              />
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                Online: {summary.online}
+              </span>
+              <span className="flex items-center gap-1.5 text-rose-400">
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                Offline: {summary.offline}
+              </span>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 mt-1">Terpasang di seluruh OPD</p>
         </div>
 
-        {/* Online Devices */}
-        <div
-          onClick={() => setStatusFilter('ON')}
-          className={`cursor-pointer bg-[#0a0d17] border rounded-2xl p-5 relative overflow-hidden transition-all shadow-lg ${
-            statusFilter === 'ON' ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-white/5 hover:border-emerald-500/30'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Online Normal</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-              <Wifi className="w-4 h-4 text-emerald-400" />
+        {/* 4 Stats Cards (8 cols) */}
+        <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {/* Total Devices */}
+          <div
+            onClick={() => setStatusFilter('all')}
+            className={`cursor-pointer bg-[#0a0d17] border rounded-3xl p-5 relative overflow-hidden transition-all shadow-xl hover:-translate-y-1 ${
+              statusFilter === 'all' ? 'border-blue-500/50 bg-blue-950/20 ring-1 ring-blue-500/20' : 'border-white/5 hover:border-white/20'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Alat</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                <Server className="w-4 h-4" />
+              </div>
             </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-white tracking-tight">
+                {loading ? '...' : summary.total}
+              </span>
+              <span className="text-xs text-slate-400">Unit</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">Terpasang se-Tanggamus</p>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-emerald-400 tracking-tight">
-              {loading ? '...' : summary.online}
-            </span>
-            <span className="text-xs text-emerald-400/70 font-medium">
-              ({summary.total ? Math.round((summary.online / summary.total) * 100) : 0}%)
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">Beroperasi lancar</p>
-        </div>
 
-        {/* Offline Devices */}
-        <div
-          onClick={() => setStatusFilter('OFF')}
-          className={`cursor-pointer bg-[#0a0d17] border rounded-2xl p-5 relative overflow-hidden transition-all shadow-lg ${
-            statusFilter === 'OFF' ? 'border-rose-500/50 bg-rose-950/20 ring-1 ring-rose-500/30' : 'border-white/5 hover:border-rose-500/30'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-rose-400 uppercase tracking-wider">Perangkat Offline</span>
-            <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
-              <WifiOff className="w-4 h-4 text-rose-400" />
+          {/* Online Devices */}
+          <div
+            onClick={() => setStatusFilter('ON')}
+            className={`cursor-pointer bg-[#0a0d17] border rounded-3xl p-5 relative overflow-hidden transition-all shadow-xl hover:-translate-y-1 ${
+              statusFilter === 'ON' ? 'border-emerald-500/50 bg-emerald-950/20 ring-1 ring-emerald-500/30' : 'border-white/5 hover:border-emerald-500/30'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Online Normal</span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <Wifi className="w-4 h-4 text-emerald-400" />
+              </div>
             </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-emerald-400 tracking-tight">
+                {loading ? '...' : summary.online}
+              </span>
+              <span className="text-xs text-emerald-400/70 font-semibold">
+                ({summary.total ? Math.round((summary.online / summary.total) * 100) : 0}%)
+              </span>
+            </div>
+            <p className="text-[11px] text-emerald-500/60 mt-1 font-medium">Beroperasi lancar</p>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-rose-400 tracking-tight">
-              {loading ? '...' : summary.offline}
-            </span>
-            <span className="text-xs text-rose-400/80 font-medium">Perlu Cek</span>
-          </div>
-          <p className="text-xs text-rose-400/60 mt-1">Mati / terputus koneksi</p>
-        </div>
 
-        {/* Total Networks */}
-        <div className="bg-[#0a0d17] border border-white/5 rounded-2xl p-5 relative overflow-hidden shadow-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Titik Lokasi</span>
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
-              <Building2 className="w-4 h-4" />
+          {/* Offline Devices */}
+          <div
+            onClick={() => setStatusFilter('OFF')}
+            className={`cursor-pointer bg-[#0a0d17] border rounded-3xl p-5 relative overflow-hidden transition-all shadow-xl hover:-translate-y-1 ${
+              statusFilter === 'OFF' ? 'border-rose-500/60 bg-rose-950/30 ring-2 ring-rose-500/30' : 'border-white/5 hover:border-rose-500/30'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-rose-400 uppercase tracking-wider">Offline</span>
+              <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                <WifiOff className="w-4 h-4 text-rose-400 animate-pulse" />
+              </div>
             </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-rose-400 tracking-tight">
+                {loading ? '...' : summary.offline}
+              </span>
+              <span className="text-xs px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold text-[10px]">
+                Perlu Cek
+              </span>
+            </div>
+            <p className="text-[11px] text-rose-400/70 mt-1">Mati / terputus</p>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white tracking-tight">
-              {loading ? '...' : summary.totalNetworks}
-            </span>
-            <span className="text-xs text-slate-400">Jaringan</span>
+
+          {/* Total Networks */}
+          <div className="bg-[#0a0d17] border border-white/5 rounded-3xl p-5 relative overflow-hidden shadow-xl">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider">Titik Lokasi</span>
+              <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-purple-400" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-white tracking-tight">
+                {loading ? '...' : summary.totalNetworks}
+              </span>
+              <span className="text-xs text-slate-400">Jaringan</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">Kecamatan & Puskesmas</p>
           </div>
-          <p className="text-xs text-slate-500 mt-1">Kecamatan & Puskesmas</p>
         </div>
       </div>
 
-      {/* Critical Offline Notice if any */}
-      {summary.offline > 0 && (
-        <div className="p-4 rounded-xl bg-gradient-to-r from-rose-950/40 via-rose-900/20 to-transparent border border-rose-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
-              <AlertTriangle className="w-4 h-4 text-rose-400" />
-            </div>
-            <div>
-              <span className="text-sm font-semibold text-rose-200">
-                Peringatan: Terdapat {summary.offline} Perangkat Jaringan yang OFFLINE
+      {/* Spotlight: Top 5 OPD / Lokasi Terdampak Offline */}
+      {summary.offline > 0 && topOfflineLocations.length > 0 && (
+        <div className="p-5 rounded-3xl bg-gradient-to-r from-rose-950/40 via-[#0d1022] to-slate-900 border border-rose-500/30 shadow-xl space-y-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500" />
               </span>
-              <p className="text-xs text-rose-300/80">
-                Periksa kabel LAN, adaptor daya PoE, atau koneksi ISP pada lokasi yang terdampak di bawah ini.
-              </p>
+              <span className="text-sm font-bold text-white tracking-wide">
+                Spotlight Gangguan: 5 Lokasi dengan Perangkat Offline Terbanyak
+              </span>
             </div>
+            <span className="text-xs text-slate-400">
+              Klik lokasi untuk langsung memfilter daftar perangkat
+            </span>
           </div>
-          <button
-            onClick={() => {
-              setStatusFilter('OFF');
-              setSelectedNetwork('');
-              setSearchQuery('');
-            }}
-            className="text-xs font-semibold text-rose-300 hover:text-white px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 transition-all shrink-0"
-          >
-            Fokus Perangkat Offline &rarr;
-          </button>
+
+          {/* Quick Filter Chips */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1">
+            {topOfflineLocations.map(({ group, count }) => {
+              const isSelected = selectedNetwork === group && statusFilter === 'OFF';
+              return (
+                <button
+                  key={group}
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedNetwork('');
+                    } else {
+                      setSelectedNetwork(group);
+                      setStatusFilter('OFF');
+                    }
+                  }}
+                  className={`px-3.5 py-2.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-2 ${
+                    isSelected
+                      ? 'bg-rose-500/30 border-rose-400 text-white shadow-lg shadow-rose-900/30 ring-1 ring-rose-400'
+                      : 'bg-white/5 border-white/10 hover:border-rose-500/40 hover:bg-rose-500/10 text-slate-200'
+                  }`}
+                >
+                  <div className="truncate pr-1">
+                    <div className="text-xs font-semibold truncate">{group}</div>
+                    <div className="text-[10px] text-rose-400 mt-0.5 flex items-center gap-1">
+                      <WifiOff className="w-3 h-3 shrink-0" />
+                      <span>{count} unit offline</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Filter & Search Bar */}
-      <div className="bg-[#0a0d17] border border-white/5 rounded-2xl p-4 space-y-4">
+      {/* Hardware Distribution Mini-Bar */}
+      <div className="bg-[#0a0d17] border border-white/5 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 text-xs">
+        <div className="flex items-center gap-2 text-slate-400">
+          <Cpu className="w-4 h-4 text-indigo-400" />
+          <span className="font-semibold text-slate-300">Distribusi Kategori Perangkat:</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* AP */}
+          <button
+            onClick={() => setSelectedType(selectedType === 'AP' ? '' : 'AP')}
+            className={`px-3 py-1.5 rounded-xl border transition-all flex items-center gap-2 ${
+              selectedType === 'AP'
+                ? 'bg-indigo-600/30 border-indigo-400 text-white'
+                : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+            }`}
+          >
+            <Radio className="w-3.5 h-3.5 text-indigo-400" />
+            <span>
+              Access Point (AP): <strong>{deviceTypeStats.ap.total}</strong> ({deviceTypeStats.ap.rate}% Online)
+            </span>
+          </button>
+
+          {/* WR (Router) */}
+          <button
+            onClick={() => setSelectedType(selectedType === 'WR' ? '' : 'WR')}
+            className={`px-3 py-1.5 rounded-xl border transition-all flex items-center gap-2 ${
+              selectedType === 'WR'
+                ? 'bg-indigo-600/30 border-indigo-400 text-white'
+                : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+            }`}
+          >
+            <Router className="w-3.5 h-3.5 text-indigo-400" />
+            <span>
+              Wireless Router (WR): <strong>{deviceTypeStats.wr.total}</strong> ({deviceTypeStats.wr.rate}% Online)
+            </span>
+          </button>
+
+          {deviceTypeStats.other.total > 0 && (
+            <span className="text-slate-400 px-2 py-1 bg-white/5 rounded-xl">
+              Lainnya: <strong>{deviceTypeStats.other.total}</strong>
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Filter & Search Bar + View Mode Toggle */}
+      <div className="bg-[#0a0d17] border border-white/5 rounded-3xl p-5 space-y-4 shadow-xl">
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           {/* Search box */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari nama perangkat, IP, MAC, Model, atau Lokasi..."
+              placeholder="Cari nama perangkat, IP, MAC, Serial Number, atau Lokasi..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
             />
           </div>
 
-          {/* Status Tabs */}
-          <div className="flex p-1 bg-white/5 rounded-xl border border-white/10 shrink-0">
-            <button
-              onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                statusFilter === 'all'
-                  ? 'bg-indigo-600 text-white shadow'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Semua ({summary.total})
-            </button>
-            <button
-              onClick={() => setStatusFilter('OFF')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
-                statusFilter === 'OFF'
-                  ? 'bg-rose-600 text-white shadow'
-                  : 'text-rose-400 hover:text-rose-300'
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-rose-400" />
-              Offline ({summary.offline})
-            </button>
-            <button
-              onClick={() => setStatusFilter('ON')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
-                statusFilter === 'ON'
-                  ? 'bg-emerald-600 text-white shadow'
-                  : 'text-emerald-400 hover:text-emerald-300'
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              Online ({summary.online})
-            </button>
+          <div className="flex items-center gap-2.5">
+            {/* Status Tabs */}
+            <div className="flex p-1 bg-white/5 rounded-2xl border border-white/10 shrink-0">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all ${
+                  statusFilter === 'all'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/50'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Semua ({summary.total})
+              </button>
+              <button
+                onClick={() => setStatusFilter('OFF')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 ${
+                  statusFilter === 'OFF'
+                    ? 'bg-rose-600 text-white shadow-md shadow-rose-900/50'
+                    : 'text-rose-400 hover:text-rose-300'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                Offline ({summary.offline})
+              </button>
+              <button
+                onClick={() => setStatusFilter('ON')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 ${
+                  statusFilter === 'ON'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/50'
+                    : 'text-emerald-400 hover:text-emerald-300'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                Online ({summary.online})
+              </button>
+            </div>
+
+            {/* View Switcher (Table vs Grid) */}
+            <div className="flex p-1 bg-white/5 rounded-2xl border border-white/10 shrink-0">
+              <button
+                onClick={() => setViewMode('table')}
+                title="Tampilan Tabel (Ringkas)"
+                className={`p-2 rounded-xl transition-all ${
+                  viewMode === 'table'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/50'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <TableIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                title="Tampilan Grid Card Hardware (Visual)"
+                className={`p-2 rounded-xl transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/50'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -527,33 +886,39 @@ export default function RuijieMonitoringPage() {
         </div>
       </div>
 
-      {/* Devices Table / List */}
-      <div className="bg-[#0a0d17] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
-        {/* Table Header / Summary count */}
+      {/* Devices Content (Grid or Table) */}
+      <div className="bg-[#0a0d17] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+        {/* Table/Grid Header summary count */}
         <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
-          <div className="text-sm font-semibold text-white flex items-center gap-2">
-            <span>Daftar Perangkat</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-300 font-mono">
-              Menampilkan {filteredDevices.length} dari {summary.total} alat
+          <div className="text-sm font-semibold text-white flex items-center gap-2.5">
+            <span>Daftar Perangkat Ruijie Cloud</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-slate-300 font-mono">
+              {filteredDevices.length} dari {summary.total} alat
             </span>
           </div>
           {filteredDevices.length > 0 && (
             <div className="text-xs text-slate-400 font-medium">
-              Halaman {page} dari {totalPages}
+              Halaman {page} dari {totalPages} &bull; Mode: {viewMode === 'grid' ? 'Grid Cards' : 'Tabel'}
             </div>
           )}
         </div>
 
-        {/* Content */}
+        {/* Loading State with Shimmer Skeletons */}
         {loading ? (
-          <div className="p-16 flex flex-col items-center justify-center text-slate-400">
-            <RefreshCw className="w-8 h-8 animate-spin text-indigo-500 mb-3" />
-            <p className="text-sm font-medium text-white">Memuat data dari Ruijie Cloud...</p>
-            <p className="text-xs text-slate-500 mt-1">Mengambil status sinkronisasi 320+ alat</p>
+          <div className="p-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 animate-pulse space-y-3">
+                  <div className="h-4 bg-white/10 rounded-md w-2/3" />
+                  <div className="h-3 bg-white/5 rounded-md w-1/2" />
+                  <div className="h-8 bg-white/5 rounded-lg" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : filteredDevices.length === 0 ? (
           <div className="p-16 flex flex-col items-center justify-center text-slate-400">
-            <CheckCircle2 className="w-10 h-10 text-emerald-500 mb-3" />
+            <CheckCircle2 className="w-12 h-12 text-emerald-500 mb-3" />
             <p className="text-base font-semibold text-white">Tidak ada perangkat yang cocok</p>
             <p className="text-xs text-slate-500 mt-1">
               {statusFilter === 'OFF'
@@ -561,7 +926,125 @@ export default function RuijieMonitoringPage() {
                 : 'Coba ubah kata kunci atau reset filter pencarian.'}
             </p>
           </div>
+        ) : viewMode === 'grid' ? (
+          /* ============================================================
+             VIEW MODE 1: GRID CARDS (HARDWARE NOC STYLE)
+             ============================================================ */
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {paginatedDevices.map((dev) => {
+                const isOnline = dev.onlineStatus === 'ON';
+                return (
+                  <div
+                    key={dev.serialNumber}
+                    onClick={() => setSelectedDevice(dev)}
+                    className={`group relative rounded-2xl p-5 border transition-all duration-300 cursor-pointer shadow-lg hover:-translate-y-1 hover:shadow-2xl flex flex-col justify-between ${
+                      isOnline
+                        ? 'bg-gradient-to-b from-[#0c1226] to-[#070b16] border-white/5 hover:border-emerald-500/40 hover:shadow-emerald-950/20'
+                        : 'bg-gradient-to-b from-rose-950/20 to-[#070b16] border-rose-500/20 hover:border-rose-500/50 hover:shadow-rose-950/30 ring-1 ring-rose-500/10'
+                    }`}
+                  >
+                    <div>
+                      {/* Top Bar: Icon + Model + LED status */}
+                      <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/5">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                              isOnline ? 'bg-indigo-500/10 text-indigo-400' : 'bg-rose-500/10 text-rose-400'
+                            }`}
+                          >
+                            {dev.commonType === 'WR' ? (
+                              <Router className="w-4 h-4" />
+                            ) : (
+                              <Radio className="w-4 h-4" />
+                            )}
+                          </div>
+                          <span className="text-xs font-semibold text-slate-300 font-mono">
+                            {dev.productClass}
+                          </span>
+                        </div>
+
+                        {/* Status LED Badge */}
+                        <div className="flex items-center gap-1.5">
+                          {isOnline ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              ONLINE
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                              OFFLINE
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Device Name & Location */}
+                      <div className="mt-3">
+                        <h3 className="font-bold text-sm text-white group-hover:text-indigo-300 transition-colors truncate">
+                          {dev.name || dev.aliasName || 'Perangkat Tanpa Nama'}
+                        </h3>
+                        <div className="text-xs text-slate-400 mt-1 flex items-center gap-1 truncate">
+                          <Building2 className="w-3 h-3 text-indigo-400 shrink-0" />
+                          <span className="truncate">{dev.groupName || 'Tanpa Grup'}</span>
+                        </div>
+                      </div>
+
+                      {/* Technical Info Box */}
+                      <div className="mt-3.5 p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1.5 text-xs font-mono">
+                        {/* IP with copy */}
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span className="text-[11px] text-slate-500 font-sans">IP Lokal:</span>
+                          <button
+                            onClick={(e) => handleCopy(dev.localIp, `ip-${dev.serialNumber}`, e)}
+                            className="hover:text-indigo-300 flex items-center gap-1 text-[11px]"
+                            title="Klik untuk menyalin IP"
+                          >
+                            <span>{dev.localIp || '-'}</span>
+                            {copiedId === `ip-${dev.serialNumber}` ? (
+                              <Check className="w-3 h-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3 h-3 text-slate-500 hover:text-slate-300" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* MAC with copy */}
+                        <div className="flex items-center justify-between text-slate-400">
+                          <span className="text-[11px] text-slate-500 font-sans">MAC:</span>
+                          <button
+                            onClick={(e) => handleCopy(dev.mac, `mac-${dev.serialNumber}`, e)}
+                            className="hover:text-indigo-300 flex items-center gap-1 text-[11px]"
+                            title="Klik untuk menyalin MAC"
+                          >
+                            <span className="truncate max-w-[120px]">{dev.mac || '-'}</span>
+                            {copiedId === `mac-${dev.serialNumber}` ? (
+                              <Check className="w-3 h-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3 h-3 text-slate-500 hover:text-slate-300" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Footer: Last Seen & Detail button */}
+                    <div className="mt-3.5 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+                      <span>{getRelativeTime(dev.lastOnline)}</span>
+                      <span className="text-indigo-400 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                        Detail &rarr;
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         ) : (
+          /* ============================================================
+             VIEW MODE 2: TABLE VIEW (COMPACT)
+             ============================================================ */
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -573,6 +1056,7 @@ export default function RuijieMonitoringPage() {
                   <th className="py-3.5 px-4">Alamat IP</th>
                   <th className="py-3.5 px-4">MAC Address</th>
                   <th className="py-3.5 px-6">Terakhir Online</th>
+                  <th className="py-3.5 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-sm text-slate-300">
@@ -581,7 +1065,8 @@ export default function RuijieMonitoringPage() {
                   return (
                     <tr
                       key={dev.serialNumber}
-                      className="hover:bg-white/[0.02] transition-colors group"
+                      onClick={() => setSelectedDevice(dev)}
+                      className="hover:bg-white/[0.03] transition-colors group cursor-pointer"
                     >
                       {/* Status Badge */}
                       <td className="py-3.5 px-6 whitespace-nowrap">
@@ -600,7 +1085,7 @@ export default function RuijieMonitoringPage() {
 
                       {/* Device Name */}
                       <td className="py-3.5 px-4">
-                        <div className="font-medium text-white group-hover:text-indigo-400 transition-colors">
+                        <div className="font-semibold text-white group-hover:text-indigo-400 transition-colors">
                           {dev.name || dev.aliasName || 'Perangkat Tanpa Nama'}
                         </div>
                         <div className="text-xs text-slate-500 font-mono mt-0.5">
@@ -630,10 +1115,23 @@ export default function RuijieMonitoringPage() {
                         </div>
                       </td>
 
-                      {/* IP Addresses */}
+                      {/* IP Addresses with copy */}
                       <td className="py-3.5 px-4">
-                        <div className="text-xs font-mono text-slate-300">
-                          {dev.localIp || '-'}
+                        <div className="flex items-center gap-1 text-xs font-mono text-slate-300">
+                          <span>{dev.localIp || '-'}</span>
+                          {dev.localIp && (
+                            <button
+                              onClick={(e) => handleCopy(dev.localIp, `tip-${dev.serialNumber}`, e)}
+                              className="text-slate-500 hover:text-white p-0.5"
+                              title="Salin IP"
+                            >
+                              {copiedId === `tip-${dev.serialNumber}` ? (
+                                <Check className="w-3 h-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          )}
                         </div>
                         {dev.cpeIp && (
                           <div className="text-[11px] font-mono text-slate-500">
@@ -642,17 +1140,40 @@ export default function RuijieMonitoringPage() {
                         )}
                       </td>
 
-                      {/* MAC Address */}
+                      {/* MAC Address with copy */}
                       <td className="py-3.5 px-4">
-                        <span className="text-xs font-mono text-slate-400">
-                          {dev.mac || '-'}
-                        </span>
+                        <div className="flex items-center gap-1 text-xs font-mono text-slate-400">
+                          <span>{dev.mac || '-'}</span>
+                          {dev.mac && (
+                            <button
+                              onClick={(e) => handleCopy(dev.mac, `tmac-${dev.serialNumber}`, e)}
+                              className="text-slate-500 hover:text-white p-0.5"
+                              title="Salin MAC"
+                            >
+                              {copiedId === `tmac-${dev.serialNumber}` ? (
+                                <Check className="w-3 h-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </td>
 
                       {/* Last Seen */}
                       <td className="py-3.5 px-6 whitespace-nowrap">
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-300">
                           {formatLastSeen(dev.lastOnline)}
+                        </span>
+                        <div className="text-[11px] text-slate-500">
+                          {getRelativeTime(dev.lastOnline)}
+                        </div>
+                      </td>
+
+                      {/* Action */}
+                      <td className="py-3.5 px-4 text-right">
+                        <span className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-indigo-400 border border-white/5 inline-flex items-center gap-1">
+                          Detail &rarr;
                         </span>
                       </td>
                     </tr>
@@ -665,7 +1186,7 @@ export default function RuijieMonitoringPage() {
 
         {/* Pagination Controls */}
         {filteredDevices.length > pageSize && (
-          <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="text-xs text-slate-400">
               Menampilkan {(page - 1) * pageSize + 1} -{' '}
               {Math.min(page * pageSize, filteredDevices.length)} dari {filteredDevices.length} perangkat
@@ -674,17 +1195,17 @@ export default function RuijieMonitoringPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white border border-white/10 transition-colors"
+                className="px-3 py-1.5 text-xs font-medium rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white border border-white/10 transition-colors"
               >
                 Sebelumnya
               </button>
-              <span className="text-xs font-medium text-slate-300 px-2">
+              <span className="text-xs font-medium text-slate-300 px-2 font-mono">
                 {page} / {totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white border border-white/10 transition-colors"
+                className="px-3 py-1.5 text-xs font-medium rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-30 text-white border border-white/10 transition-colors"
               >
                 Selanjutnya
               </button>
@@ -692,6 +1213,246 @@ export default function RuijieMonitoringPage() {
           </div>
         )}
       </div>
+
+      {/* ============================================================
+         SLIDE-OVER DETAIL DRAWER FOR SELECTED DEVICE
+         ============================================================ */}
+      {selectedDevice && (
+        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+            onClick={() => setSelectedDevice(null)}
+          />
+
+          {/* Slide panel */}
+          <div className="relative w-full max-w-lg bg-[#0a0d18] border-l border-white/10 shadow-2xl flex flex-col h-full z-10 animate-in slide-in-from-right duration-300">
+            {/* Drawer Header */}
+            <div className="p-6 border-b border-white/10 flex items-start justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
+                    selectedDevice.onlineStatus === 'ON'
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                  }`}
+                >
+                  {selectedDevice.commonType === 'WR' ? (
+                    <Router className="w-6 h-6" />
+                  ) : (
+                    <Radio className="w-6 h-6" />
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white leading-snug">
+                    {selectedDevice.name || selectedDevice.aliasName || 'Perangkat Ruijie'}
+                  </h2>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    Model: <span className="font-mono text-slate-200">{selectedDevice.productClass}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedDevice(null)}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Body (Scrollable) */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Status Banner */}
+              <div
+                className={`p-4 rounded-2xl border flex items-center justify-between ${
+                  selectedDevice.onlineStatus === 'ON'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                    : 'bg-rose-500/10 border-rose-500/20 text-rose-300'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className={`w-3 h-3 rounded-full ${
+                      selectedDevice.onlineStatus === 'ON' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400 animate-ping'
+                    }`}
+                  />
+                  <span className="font-bold text-sm tracking-wide">
+                    STATUS: {selectedDevice.onlineStatus === 'ON' ? 'ONLINE (TERHUBUNG)' : 'OFFLINE (TERPUTUS)'}
+                  </span>
+                </div>
+                <span className="text-xs text-slate-300">
+                  {getRelativeTime(selectedDevice.lastOnline)}
+                </span>
+              </div>
+
+              {/* Network & Location Section */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                  <Building2 className="w-3.5 h-3.5 text-indigo-400" />
+                  Lokasi & Jaringan
+                </h4>
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">OPD / Kelompok:</span>
+                    <span className="font-semibold text-white text-right max-w-[240px]">
+                      {selectedDevice.groupName || '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Group ID:</span>
+                    <span className="font-mono text-slate-300">{selectedDevice.groupId || '-'}</span>
+                  </div>
+                  {selectedDevice.buildingId && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Building ID:</span>
+                      <span className="font-mono text-slate-300">{selectedDevice.buildingId}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* IP & Network Specs Section */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                  Alamat IP & Identifikasi Fisik
+                </h4>
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3 text-xs">
+                  {/* Local IP */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Alamat IP Lokal:</span>
+                    <div className="flex items-center gap-1.5 font-mono text-white">
+                      <span>{selectedDevice.localIp || '-'}</span>
+                      {selectedDevice.localIp && (
+                        <button
+                          onClick={() => handleCopy(selectedDevice.localIp, 'drawer-ip')}
+                          className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white"
+                          title="Salin IP"
+                        >
+                          {copiedId === 'drawer-ip' ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Public IP */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">CPE Public IP:</span>
+                    <div className="flex items-center gap-1.5 font-mono text-slate-300">
+                      <span>{selectedDevice.cpeIp || '-'}</span>
+                      {selectedDevice.cpeIp && (
+                        <button
+                          onClick={() => handleCopy(selectedDevice.cpeIp, 'drawer-cpe')}
+                          className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white"
+                          title="Salin CPE IP"
+                        >
+                          {copiedId === 'drawer-cpe' ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* MAC Address */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">MAC Address:</span>
+                    <div className="flex items-center gap-1.5 font-mono text-slate-300">
+                      <span>{selectedDevice.mac || '-'}</span>
+                      {selectedDevice.mac && (
+                        <button
+                          onClick={() => handleCopy(selectedDevice.mac, 'drawer-mac')}
+                          className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white"
+                          title="Salin MAC"
+                        >
+                          {copiedId === 'drawer-mac' ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Serial Number */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Serial Number:</span>
+                    <div className="flex items-center gap-1.5 font-mono text-indigo-300">
+                      <span>{selectedDevice.serialNumber}</span>
+                      <button
+                        onClick={() => handleCopy(selectedDevice.serialNumber, 'drawer-sn')}
+                        className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white"
+                        title="Salin SN"
+                      >
+                        {copiedId === 'drawer-sn' ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hardware & Software Version */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                  <Cpu className="w-3.5 h-3.5 text-purple-400" />
+                  Firmware & Perangkat Keras
+                </h4>
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Hardware Version:</span>
+                    <span className="font-mono text-slate-200">{selectedDevice.hardwareVersion || '-'}</span>
+                  </div>
+                  <div className="flex flex-col gap-1 pt-1">
+                    <span className="text-slate-400">ReyeeOS / Firmware Version:</span>
+                    <span className="font-mono text-[11px] text-slate-300 bg-black/40 p-2 rounded-lg border border-white/5 break-all">
+                      {selectedDevice.softwareVersion || 'ReyeeOS standar'}
+                    </span>
+                  </div>
+                  {selectedDevice.offlineReason && (
+                    <div className="flex flex-col gap-1 pt-1 text-rose-300">
+                      <span className="text-slate-400">Penyebab Offline:</span>
+                      <span className="bg-rose-500/10 p-2 rounded-lg border border-rose-500/20 text-xs">
+                        {selectedDevice.offlineReason}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Drawer Footer Actions */}
+            <div className="p-6 border-t border-white/10 bg-white/[0.02] flex items-center gap-3">
+              <a
+                href="https://cloud-as.ruijienetworks.com/macc5/adminIntl/"
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-600/30 active:scale-95"
+              >
+                <span>Buka di Ruijie Cloud Web GUI</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <button
+                onClick={() => setSelectedDevice(null)}
+                className="py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-semibold text-xs border border-white/10 transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
