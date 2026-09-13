@@ -57,9 +57,10 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
       </div>
 
       {/* Right Controls: Live Clock & Sign out */}
-      <div className="flex items-center gap-3 sm:gap-4">
+      {/* Right Controls: Live Clock & Sign out */}
+      <div className="flex items-center gap-2.5 sm:gap-3.5">
         {/* Live WIB Clock */}
-        <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-indigo-300 shadow-inner">
+        <div className="flex items-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-indigo-300 shadow-inner transition-all hover:border-indigo-500/30">
           <Clock className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
           <span>{timeStr || 'Memuat...'}</span>
         </div>
@@ -71,10 +72,10 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
         <Link
           href="/pembimbing"
           prefetch={true}
-          className="flex items-center gap-1.5 text-xs text-purple-300 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 px-3 py-1.5 rounded-xl transition font-semibold active:scale-[0.98]"
+          className="shimmer-beam flex items-center gap-1.5 text-xs text-purple-200 bg-gradient-to-r from-purple-500/15 via-purple-500/25 to-purple-500/15 hover:from-purple-500/25 hover:to-purple-500/35 border border-purple-500/30 hover:border-purple-400/60 px-3.5 py-1.5 rounded-xl transition-all duration-200 font-semibold active:scale-[0.97] hover:shadow-[0_0_15px_rgba(168,85,247,0.35)] group"
           title="Buka Portal Bimbingan Siswa PKL Anda"
         >
-          <span>🎓</span>
+          <span className="text-sm group-hover:scale-110 group-hover:rotate-6 transition-transform">🎓</span>
           <span className="hidden md:inline">Portal Pembimbing</span>
         </Link>
 
@@ -82,10 +83,10 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
         <Link
           href="/dashboard"
           prefetch={true}
-          className="flex items-center gap-1.5 text-xs text-indigo-300 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 px-3 py-1.5 rounded-xl transition font-semibold active:scale-[0.98]"
+          className="shimmer-beam flex items-center gap-1.5 text-xs text-indigo-200 bg-gradient-to-r from-indigo-500/15 via-indigo-500/25 to-indigo-500/15 hover:from-indigo-500/25 hover:to-indigo-500/35 border border-indigo-500/30 hover:border-indigo-400/60 px-3.5 py-1.5 rounded-xl transition-all duration-200 font-semibold active:scale-[0.97] hover:shadow-[0_0_15px_rgba(99,102,241,0.35)] group"
           title="Lakukan Absensi Masuk / Pulang Mandiri"
         >
-          <span>📸</span>
+          <span className="text-sm group-hover:scale-110 group-hover:-rotate-6 transition-transform">📸</span>
           <span className="hidden md:inline">Absen Mandiri</span>
         </Link>
 
@@ -93,9 +94,9 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
         <button
           onClick={handleSignOut}
           title="Keluar dari Panel Admin"
-          className="flex items-center gap-1.5 text-xs text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-3 py-1.5 rounded-xl transition"
+          className="group flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 px-3 py-1.5 rounded-xl transition-all duration-200 active:scale-95"
         >
-          <LogOut className="w-3.5 h-3.5" />
+          <LogOut className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
           <span className="hidden sm:inline">Logout</span>
         </button>
       </div>

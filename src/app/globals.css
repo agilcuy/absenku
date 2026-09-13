@@ -518,3 +518,38 @@ select option:hover,
   }
 }
 
+/* Navigation Animations & Micro-Interactions */
+@keyframes bellShake {
+  0%, 100% { transform: rotate(0deg); }
+  8%, 24%, 40% { transform: rotate(14deg); }
+  16%, 32% { transform: rotate(-14deg); }
+  48% { transform: rotate(0deg); }
+}
+
+.animate-bell-shake {
+  animation: bellShake 3s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+@keyframes shimmerBeam {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.shimmer-beam {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-beam::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  animation: shimmerBeam 3.5s infinite;
+  pointer-events: none;
+}
+

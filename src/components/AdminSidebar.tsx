@@ -98,24 +98,24 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
       >
         {/* Brand Header */}
         <div className="h-16 px-6 border-b border-white/5 flex items-center justify-between">
-          <Link href="/admin" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/25">
-              ⚡
+          <Link href="/admin" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/25 transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.6)]">
+              <span className="inline-block transition-transform duration-300 group-hover:rotate-12 group-hover:scale-125">⚡</span>
             </div>
             <div>
-              <span className="font-extrabold text-sm tracking-wide text-white flex items-center gap-1">
+              <span className="font-extrabold text-sm tracking-wide text-white flex items-center gap-1.5">
                 ABSENKU
-                <span className="text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded font-bold border border-indigo-500/30">
+                <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-bold border border-indigo-500/30 group-hover:border-indigo-400 transition-colors">
                   ADMIN
                 </span>
               </span>
-              <p className="text-[10px] text-gray-400">Sistem Presensi PKL</p>
+              <p className="text-[10px] text-slate-400 group-hover:text-slate-300 transition-colors">Sistem Presensi PKL</p>
             </div>
           </Link>
 
           <button
             onClick={onCloseMobile}
-            className="lg:hidden text-gray-400 hover:text-white p-1 rounded-lg"
+            className="lg:hidden text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -125,8 +125,8 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 custom-scrollbar">
           {MENU_SECTIONS.map((section) => (
             <div key={section.title} className="space-y-1">
-              <div className="px-3 pb-1 text-[9px] font-extrabold text-gray-400/80 uppercase tracking-wider">
-                {section.title}
+              <div className="px-3 pb-1 text-[9px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                <span>{section.title}</span>
               </div>
 
               {section.items.map((item) => {
@@ -141,12 +141,50 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
                     href={item.href}
                     prefetch={true}
                     onClick={onCloseMobile}
-                    className={`sidebar-link active:scale-[0.98] transition-all duration-100 ${
-                      isActive ? 'active' : ''
+                    className={`group relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 select-none active:scale-[0.98] ${
+                      isActive
+                        ? 'bg-gradient-to-r from-indigo-500/20 via-indigo-500/10 to-transparent text-white font-semibold border border-indigo-500/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+                        : 'text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-gray-400'}`} />
-                    <span className="text-xs font-medium">{item.label}</span>
+                    {/* Neon Left Indicator Bar */}
+                    {isActive && (
+                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,1)]" />
+                    )}
+
+                    {/* Icon with hover micro-animation */}
+                    <Icon
+                      className={`w-4 h-4 transition-all duration-200 group-hover:scale-110 group-hover:rotate-3 shrink-0 ${
+                        isActive
+                          ? 'text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]'
+                          : 'text-slate-400 group-hover:text-indigo-300'
+                      }`}
+                    />
+
+                    {/* Label with slide on hover */}
+                    <span className="text-xs font-medium transition-transform duration-200 group-hover:translate-x-1 truncate">
+                      {item.label}
+                    </span>
+
+                    {/* Contextual Live Badges */}
+                    {item.href === '/admin/ruijie' && (
+                      <span className="ml-auto inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                        NOC
+                      </span>
+                    )}
+
+                    {item.href === '/admin/structure' && (
+                      <span className="ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded bg-white/5 text-slate-400 shrink-0">
+                        Peta
+                      </span>
+                    )}
+
+                    {item.href === '/admin/permits' && (
+                      <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0">
+                        Izin
+                      </span>
+                    )}
                   </Link>
                 )
               })}
@@ -156,14 +194,19 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
 
         {/* Footer Admin System info */}
         <div className="p-4 border-t border-white/5 bg-black/20">
-          <div className="rounded-xl p-3 bg-white/[0.02] border border-white/5 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">
+          <div className="rounded-xl p-3 bg-white/[0.02] border border-white/5 flex items-center gap-3 transition-all hover:bg-white/[0.05] hover:border-white/10 group">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs group-hover:scale-105 group-hover:shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all">
               RA
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-white truncate">Rafi Agil Kurniawan</p>
-              <p className="text-[10px] text-emerald-400 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <p className="text-xs font-bold text-white truncate group-hover:text-indigo-300 transition-colors">
+                Rafi Agil Kurniawan
+              </p>
+              <p className="text-[10px] text-emerald-400 flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
                 Superadmin Sistem
               </p>
             </div>
