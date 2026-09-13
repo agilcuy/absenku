@@ -5,8 +5,8 @@ import { logAudit } from '@/lib/audit'
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const { data: holidays, error } = await supabase
+    const adminClient = createAdminClient()
+    const { data: holidays, error } = await adminClient
       .from('holidays')
       .select('*')
       .order('date', { ascending: true })

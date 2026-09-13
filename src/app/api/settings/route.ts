@@ -5,8 +5,8 @@ import { logAudit } from '@/lib/audit'
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const { data: settings, error } = await supabase
+    const adminClient = createAdminClient()
+    const { data: settings, error } = await adminClient
       .from('settings')
       .select('*')
       .limit(1)
