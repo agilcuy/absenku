@@ -17,9 +17,45 @@ import {
   Info,
   Calendar,
   Filter,
+  Copy,
+  Check,
+  Database,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useToast, ToastProvider } from '@/components/Toast'
+
+const MIGRATION_SQL = `-- Salin & jalankan di Supabase Dashboard -> SQL Editor:
+create table if not exists public.announcements (
+  id uuid default gen_random_uuid() primary key,
+  author_id uuid references public.users(id) on delete cascade not null,
+  title text not null,
+  content text not null,
+  type text default 'info' check (type in ('info', 'warning', 'urgent', 'success')),
+  internship_place_id uuid references public.internship_places(id) on delete cascade,
+  is_pinned boolean default false,
+  is_active boolean default true,
+  expires_at timestamp with time zone,
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
+create index if not exists idx_announcements_place on public.announcements(internship_place_id, is_active, created_at desc);
+create index if not exists idx_announcements_author on public.announcements(author_id);
+
+alter table public.announcements enable row level security;
+
+drop policy if exists "announcements_read" on public.announcements;
+create policy "announcements_read" on public.announcements for select using (true);
+
+drop policy if exists "announcements_superadmin" on public.announcements;
+create policy "announcements_superadmin" on public.announcements for all
+  using (exists (select 1 from public.users where id = auth.uid() and role = 'superadmin'));
+
+drop policy if exists "announcements_mentor" on public.announcements;
+create policy "announcements_mentor" on public.announcements for all
+  using (exists (select 1 from public.users where id = auth.uid() and role = 'pembimbing' and internship_place_id = public.announcements.internship_place_id));`
 
 function AnnouncementsAdminPageContent() {
   const { showToast } = useToast()
@@ -28,6 +64,9 @@ function AnnouncementsAdminPageContent() {
   const [places, setPlaces] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [needsMigration, setNeedsMigration] = useState(false)
+  const [showSqlDetails, setShowSqlDetails] = useState(false)
+  const [copiedSql, setCopiedSql] = useState(false)
 
   // Filters
   const [search, setSearch] = useState('')
@@ -69,6 +108,11 @@ function AnnouncementsAdminPageContent() {
       if (res.ok) {
         const json = await res.json()
         setAnnouncements(json.announcements || [])
+        if (json.needsMigration) {
+          setNeedsMigration(true)
+        } else {
+          setNeedsMigration(false)
+        }
       }
     } catch (err) {
       console.error('Failed to load announcements:', err)
@@ -90,6 +134,17 @@ function AnnouncementsAdminPageContent() {
   const handleRefresh = () => {
     setRefreshing(true)
     loadAnnouncements()
+  }
+
+  const handleCopySql = () => {
+    try {
+      navigator.clipboard.writeText(MIGRATION_SQL)
+      setCopiedSql(true)
+      showToast('Skrip SQL berhasil disalin! Tempel di Supabase SQL Editor.', 'success')
+      setTimeout(() => setCopiedSql(false), 3000)
+    } catch {
+      showToast('Gagal menyalin otomatis, silakan buka detail skrip.', 'error')
+    }
   }
 
   // Open modal for Create
@@ -157,6 +212,10 @@ function AnnouncementsAdminPageContent() {
 
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Gagal menyimpan pengumuman')
+
+      if (json.needsMigration) {
+        setNeedsMigration(true)
+      }
 
       showToast(
         isEdit ? 'Pengumuman berhasil diperbarui!' : 'Pengumuman berhasil disiarkan ke siswa!',
@@ -246,6 +305,68 @@ function AnnouncementsAdminPageContent() {
           </button>
         </div>
       </div>
+
+      {/* Migration Notice Banner if DB table is not yet migrated */}
+      {needsMigration && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 relative overflow-hidden backdrop-blur-md animate-fade-in-up">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5 sm:mt-0">
+                <Database className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-amber-300 text-sm">Mode Sinkronisasi Lokal Aktif</h4>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-500/30 font-semibold">
+                    Auto-Fallback Aktif
+                  </span>
+                </div>
+                <p className="text-xs text-amber-200/80 mt-0.5 leading-relaxed">
+                  Tabel <code className="bg-black/40 px-1.5 py-0.5 rounded text-amber-300 font-mono">public.announcements</code> belum dibuat di Supabase Cloud. Sistem tetap berjalan lancar dan pengumuman tersimpan di server cache. Jalankan skrip SQL di Supabase SQL Editor agar tersinkronisasi permanen di cloud.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={handleCopySql}
+                className="btn-outline border-amber-500/40 text-amber-300 hover:bg-amber-500/20 flex items-center gap-1.5 py-1.5 px-3 text-xs"
+              >
+                {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedSql ? 'Tersalin!' : 'Salin Skrip SQL'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowSqlDetails(!showSqlDetails)}
+                className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition text-xs flex items-center gap-1"
+                title="Lihat Petunjuk"
+              >
+                {showSqlDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                <span className="hidden sm:inline text-[11px] font-medium">{showSqlDetails ? 'Tutup' : 'Petunjuk'}</span>
+              </button>
+            </div>
+          </div>
+
+          {showSqlDetails && (
+            <div className="mt-3 pt-3 border-t border-amber-500/20 text-xs text-gray-300 space-y-2">
+              <p className="text-amber-200 font-semibold">Cara Menjalankan Migrasi di Supabase Dashboard:</p>
+              <ol className="list-decimal list-inside space-y-1 text-gray-300 text-[11px] leading-relaxed">
+                <li>Buka dashboard proyek <b>Supabase</b> Anda di browser.</li>
+                <li>Pilih menu <b>SQL Editor</b> di navigasi sisi kiri.</li>
+                <li>Klik tombol <b>New Query</b>, lalu klik tombol <b>Salin Skrip SQL</b> di atas dan tempel (Paste) di editor.</li>
+                <li>Klik tombol hijau <b>Run</b> (atau tekan Ctrl+Enter). Selesai!</li>
+              </ol>
+              <div className="relative mt-2">
+                <pre className="p-3 bg-black/70 rounded-xl border border-white/10 text-[11px] text-emerald-300 font-mono overflow-x-auto max-h-44 leading-snug">
+                  {MIGRATION_SQL}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
