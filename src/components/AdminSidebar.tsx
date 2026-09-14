@@ -39,7 +39,7 @@ const MENU_SECTIONS: MenuSection[] = [
     title: 'MONITORING',
     items: [
       { label: 'Dashboard Utama', href: '/admin', icon: LayoutDashboard },
-      { label: 'Monitoring Jaringan Tanggamus', href: '/admin/ruijie', icon: Radio },
+      { label: 'Monitoring Jaringan', href: '/admin/ruijie', icon: Radio },
       { label: 'Topologi & Tupoksi', href: '/admin/structure', icon: Network },
     ],
   },
@@ -133,6 +133,7 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
                 const Icon = item.icon
                 const isActive =
                   pathname === item.href ||
+                  (item.href === '/admin/ruijie' && (pathname === '/admin/ruijie' || pathname === '/admin/network')) ||
                   (item.href === '/admin/settings' && pathname.startsWith('/admin/settings'))
 
                 return (
@@ -167,10 +168,10 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
                     </span>
 
                     {/* Contextual Live Badges */}
-                    {item.href === '/admin/ruijie' && (
+                    {(item.href === '/admin/ruijie' || item.href === '/admin/network') && (
                       <span className="ml-auto inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                        69 IP
+                        69 Host
                       </span>
                     )}
 

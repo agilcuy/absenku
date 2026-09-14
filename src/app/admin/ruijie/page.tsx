@@ -22,19 +22,14 @@ import {
   X,
   Send,
   Bell,
-  Eye,
-  EyeOff,
-  QrCode,
-  Key,
-  ShieldAlert,
-  MapPin,
-  HelpCircle,
   Play,
-  RotateCw,
   Filter,
-  SlidersHorizontal,
   Table as TableIcon,
   LayoutGrid,
+  Network,
+  HelpCircle,
+  Layers,
+  ArrowUpRight,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -71,19 +66,9 @@ interface DownHistoryEntry {
   durationMinutes?: number | null;
 }
 
-interface WifiItem {
-  id: string;
-  ssid: string;
-  password?: string;
-  group_name: string;
-  group_id?: number;
-  encryption?: string;
-  is_hide?: boolean;
-}
-
 export default function TanggamusNetworkMonitoringPage() {
   // Main State
-  const [activeTab, setActiveTab] = useState<'hosts' | 'history' | 'telegram' | 'wifi'>('hosts');
+  const [activeTab, setActiveTab] = useState<'hosts' | 'history' | 'subnet' | 'telegram'>('hosts');
   const [hosts, setHosts] = useState<TanggamusHost[]>([]);
   const [summary, setSummary] = useState<NetworkMonitoringSummary>({
     total: 69,
@@ -107,12 +92,6 @@ export default function TanggamusNetworkMonitoringPage() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'UP' | 'DOWN'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-
-  // Wi-Fi Tab State (282 SSIDs)
-  const [wifiList, setWifiList] = useState<WifiItem[]>([]);
-  const [wifiSearch, setWifiSearch] = useState<string>('');
-  const [showWifiPasswords, setShowWifiPasswords] = useState<Record<string, boolean>>({});
-  const [qrModalItem, setQrModalItem] = useState<WifiItem | null>(null);
 
   // Telegram Config State
   const [tgChatId, setTgChatId] = useState<string>('6555969768');
@@ -161,24 +140,10 @@ export default function TanggamusNetworkMonitoringPage() {
     }
   }, []);
 
-  // Fetch Wi-Fi 282 SSIDs
-  const fetchWifi = useCallback(async () => {
-    try {
-      const res = await fetch('/api/ruijie/wifi?limit=300');
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setWifiList(json.data);
-      }
-    } catch (e) {
-      console.error('Fetch Wi-Fi error:', e);
-    }
-  }, []);
-
   useEffect(() => {
     fetchData();
-    fetchWifi();
 
-    // Polling refresh setiap 30 detik
+    // Polling refresh data setiap 30 detik
     const timer = setInterval(() => {
       if (!pingingAll) {
         fetchData();
@@ -186,7 +151,7 @@ export default function TanggamusNetworkMonitoringPage() {
     }, 30000);
 
     return () => clearInterval(timer);
-  }, [fetchData, fetchWifi, pingingAll]);
+  }, [fetchData, pingingAll]);
 
   // Handle Sequential Ping to All 69 Hosts
   const handlePingAll = async () => {
@@ -195,7 +160,7 @@ export default function TanggamusNetworkMonitoringPage() {
       setPingingAll(true);
       showToast('Memulai pengecekan ping berurutan ke 69 host Tanggamus...', 'info');
 
-      // Simulasi progress step untuk UI responsiveness
+      // Simulasi progress step untuk UI feedback
       let step = 0;
       const total = hosts.length || 69;
       const progressInterval = setInterval(() => {
@@ -277,12 +242,12 @@ export default function TanggamusNetworkMonitoringPage() {
   const handleExportExcel = () => {
     const dataToExport = hosts.map((h) => ({
       'No': h.no,
-      'Nama Tempat': h.name,
+      'Nama Tempat / Host': h.name,
       'IP Address': h.ip,
       'Kategori': h.category,
       'Status': h.status === 'UP' ? 'ONLINE' : 'DOWN',
-      'Latensi (ms)': h.latency !== null ? h.latency : 'Timeout',
-      'Terakhir Cek': h.lastCheck ? new Date(h.lastCheck).toLocaleString('id-ID') : '-',
+      'Latensi ICMP (ms)': h.latency !== null ? h.latency : 'Timeout',
+      'Terakhir Dicek': h.lastCheck ? new Date(h.lastCheck).toLocaleString('id-ID') : '-',
       'Durasi Padam': h.downSince ? `${Math.round((Date.now() - new Date(h.downSince).getTime()) / 60000)} menit` : '-',
     }));
 
@@ -346,18 +311,6 @@ export default function TanggamusNetworkMonitoringPage() {
     });
   }, [hosts, searchQuery, statusFilter, categoryFilter]);
 
-  // Filtered Wi-Fi List
-  const filteredWifi = useMemo(() => {
-    if (!wifiSearch) return wifiList;
-    const q = wifiSearch.toLowerCase();
-    return wifiList.filter(
-      (w) =>
-        (w.ssid && w.ssid.toLowerCase().includes(q)) ||
-        (w.group_name && w.group_name.toLowerCase().includes(q)) ||
-        (w.password && w.password.toLowerCase().includes(q))
-    );
-  }, [wifiList, wifiSearch]);
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 custom-scrollbar">
       {/* Toast Notification */}
@@ -386,7 +339,7 @@ export default function TanggamusNetworkMonitoringPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-sky-500 to-emerald-400 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-sky-500 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)]">
               <Radio className="w-6 h-6 text-white animate-pulse" />
             </div>
             <div>
@@ -398,7 +351,7 @@ export default function TanggamusNetworkMonitoringPage() {
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                   ICMP PING REALTIME
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
                   NOC TELEGRAM 24/7
                 </span>
               </div>
@@ -414,7 +367,7 @@ export default function TanggamusNetworkMonitoringPage() {
           <button
             onClick={handlePingAll}
             disabled={pingingAll}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-semibold text-xs md:text-sm shadow-lg shadow-indigo-600/30 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs md:text-sm shadow-lg shadow-emerald-600/30 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
           >
             {pingingAll ? (
               <RefreshCw className="w-4 h-4 animate-spin text-white" />
@@ -439,17 +392,17 @@ export default function TanggamusNetworkMonitoringPage() {
             className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 transition-all active:scale-[0.98] disabled:opacity-50"
             title="Refresh Status"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* ACTIVE PING PROGRESS BANNER */}
       {pingingAll && (
-        <div className="mt-4 p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 backdrop-blur-md animate-in fade-in slide-in-from-top-3">
+        <div className="mt-4 p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 backdrop-blur-md animate-in fade-in slide-in-from-top-3">
           <div className="flex items-center justify-between text-xs md:text-sm mb-2">
-            <span className="font-semibold text-indigo-300 flex items-center gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
+            <span className="font-semibold text-emerald-300 flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
               Memproses ICMP Ping Berurutan... ({pingProgress.current} dari {pingProgress.total} Host)
             </span>
             <span className="text-slate-400 font-mono">
@@ -458,7 +411,7 @@ export default function TanggamusNetworkMonitoringPage() {
           </div>
           <div className="w-full h-2.5 rounded-full bg-slate-900 overflow-hidden border border-white/5">
             <div
-              className="h-full bg-gradient-to-r from-indigo-500 via-sky-400 to-emerald-400 transition-all duration-300 rounded-full"
+              className="h-full bg-gradient-to-r from-teal-500 via-emerald-400 to-sky-400 transition-all duration-300 rounded-full"
               style={{ width: `${(pingProgress.current / pingProgress.total) * 100}%` }}
             />
           </div>
@@ -476,7 +429,7 @@ export default function TanggamusNetworkMonitoringPage() {
         <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-400">Total Host</span>
-            <Server className="w-4 h-4 text-indigo-400" />
+            <Server className="w-4 h-4 text-teal-400" />
           </div>
           <div className="mt-2 text-2xl md:text-3xl font-black tracking-tight text-white">
             {summary.total}
@@ -546,7 +499,7 @@ export default function TanggamusNetworkMonitoringPage() {
           onClick={() => setActiveTab('hosts')}
           className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-xs md:text-sm font-semibold transition-all border-b-2 whitespace-nowrap ${
             activeTab === 'hosts'
-              ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10'
+              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
               : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
           }`}
         >
@@ -575,6 +528,18 @@ export default function TanggamusNetworkMonitoringPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab('subnet')}
+          className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-xs md:text-sm font-semibold transition-all border-b-2 whitespace-nowrap ${
+            activeTab === 'subnet'
+              ? 'border-teal-500 text-teal-400 bg-teal-500/10'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
+          }`}
+        >
+          <Network className="w-4 h-4" />
+          <span>Alokasi IP & Subnet (192.168.97.x)</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('telegram')}
           className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-xs md:text-sm font-semibold transition-all border-b-2 whitespace-nowrap ${
             activeTab === 'telegram'
@@ -585,21 +550,6 @@ export default function TanggamusNetworkMonitoringPage() {
           <Send className="w-4 h-4" />
           <span>Telegram NOC Bot</span>
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        </button>
-
-        <button
-          onClick={() => setActiveTab('wifi')}
-          className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-xs md:text-sm font-semibold transition-all border-b-2 whitespace-nowrap ${
-            activeTab === 'wifi'
-              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
-              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
-          }`}
-        >
-          <QrCode className="w-4 h-4" />
-          <span>Wi-Fi & QR Code Asli OPD</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300">
-            {wifiList.length} SSID
-          </span>
         </button>
       </div>
 
@@ -616,7 +566,7 @@ export default function TanggamusNetworkMonitoringPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari nama tempat atau IP..."
-                className="w-full bg-slate-900 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs md:text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+                className="w-full bg-slate-900 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs md:text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all"
               />
               {searchQuery && (
                 <button
@@ -669,7 +619,7 @@ export default function TanggamusNetworkMonitoringPage() {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
+                  className="bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500"
                 >
                   <option value="ALL">Semua Kategori</option>
                   {categories.map((cat) => (
@@ -816,9 +766,9 @@ export default function TanggamusNetworkMonitoringPage() {
                                 title="Ping host ini sekarang"
                               >
                                 {isPingingThis ? (
-                                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
                                 ) : (
-                                  <Play className="w-3 h-3 text-indigo-400 fill-indigo-400" />
+                                  <Play className="w-3 h-3 text-emerald-400 fill-emerald-400" />
                                 )}
                                 <span>Ping</span>
                               </button>
@@ -890,12 +840,12 @@ export default function TanggamusNetworkMonitoringPage() {
                       <button
                         onClick={() => handlePingSingle(h.ip, h.name)}
                         disabled={isPingingThis || pingingAll}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-medium transition-all"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-medium transition-all"
                       >
                         {isPingingThis ? (
-                          <RefreshCw className="w-3 h-3 animate-spin text-indigo-400" />
+                          <RefreshCw className="w-3 h-3 animate-spin text-emerald-400" />
                         ) : (
-                          <Play className="w-3 h-3 fill-indigo-400" />
+                          <Play className="w-3 h-3 fill-emerald-400" />
                         )}
                         <span>Ping Host</span>
                       </button>
@@ -983,7 +933,132 @@ export default function TanggamusNetworkMonitoringPage() {
         </div>
       )}
 
-      {/* TAB 3: TELEGRAM NOC BOT */}
+      {/* TAB 3: ALOKASI IP & SUBNET (192.168.97.x) */}
+      {activeTab === 'subnet' && (
+        <div className="mt-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                <Network className="w-5 h-5 text-teal-400" />
+                Pemetaan Alokasi Subnet IP 192.168.97.0/24
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Struktur blok alamat IP jaringan ONU Pemerintah Kabupaten Tanggamus berdasarkan kelompok dan fungsi.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Blok 1 */}
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-teal-500/30 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/20 text-teal-300">
+                  BLOK 1 (OPD & Sekda)
+                </span>
+                <span className="font-mono text-xs text-slate-400">.2 s/d .30</span>
+              </div>
+              <h3 className="font-bold text-slate-200 text-sm mt-3">Kantor Dinas & Sekretariat</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Meliputi ONU Capil, Perikanan, PUPR, Pemadam, Pendidikan, Sekda Tanggamus (1-4), Rupatama, dan ULP.
+              </p>
+              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-500 font-mono">
+                <span>Total: 29 Host</span>
+                <span className="text-emerald-400">Prioritas Tinggi</span>
+              </div>
+            </div>
+
+            {/* Blok 2 */}
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-teal-500/30 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300">
+                  BLOK 2 (Dinas & Dewan)
+                </span>
+                <span className="font-mono text-xs text-slate-400">.66 s/d .80</span>
+              </div>
+              <h3 className="font-bold text-slate-200 text-sm mt-3">Keuangan, DPRD & Rumdis</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Meliputi Bapenda, Sekwan DPRD, Dinkes, Disnaker, Pol PP, Keuangan (Backup & RO), Rumdis BUP, Rumdis Dewan.
+              </p>
+              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-500 font-mono">
+                <span>Total: 15 Host</span>
+                <span className="text-emerald-400">Prioritas Tinggi</span>
+              </div>
+            </div>
+
+            {/* Blok 3 */}
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-teal-500/30 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300">
+                  BLOK 3 (Kec & Puskesmas)
+                </span>
+                <span className="font-mono text-xs text-slate-400">.82 s/d .103</span>
+              </div>
+              <h3 className="font-bold text-slate-200 text-sm mt-3">Kecamatan, RSUD & Kelurahan</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Meliputi Kota Agung Timur, KOPUS, RSUD BM, Puskesmas Pasar Simpang, Kuripan, Baros, Pasar Madang, Pos Damkar.
+              </p>
+              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-500 font-mono">
+                <span>Total: 22 Host</span>
+                <span className="text-emerald-400">Layanan Publik</span>
+              </div>
+            </div>
+
+            {/* Blok 4 */}
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-teal-500/30 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300">
+                  BLOK 4 (Publik & Wisata)
+                </span>
+                <span className="font-mono text-xs text-slate-400">.142 s/d .154</span>
+              </div>
+              <h3 className="font-bold text-slate-200 text-sm mt-3">Wabup, Dispora & Rest Area</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Meliputi ONU Wabup (192.168.97.142), ONU Dispora (192.168.97.146), dan ONU Rest Area (192.168.97.154).
+              </p>
+              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-500 font-mono">
+                <span>Total: 3 Host</span>
+                <span className="text-emerald-400">Wisata & Publik</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Subnet Quick IP Grid */}
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5">
+            <h3 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-emerald-400" />
+              Tampilan Status Matriks IP 192.168.97.x
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+              {hosts.map((h) => {
+                const isUp = h.status === 'UP';
+                return (
+                  <div
+                    key={h.ip}
+                    className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all ${
+                      isUp
+                        ? 'bg-emerald-500/[0.03] border-emerald-500/20 hover:border-emerald-500/40'
+                        : 'bg-rose-500/[0.04] border-rose-500/20 hover:border-rose-500/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[11px] font-bold text-slate-300">{h.ip.replace('192.168.97.', '.')}</span>
+                      <span className={`w-2 h-2 rounded-full ${isUp ? 'bg-emerald-400' : 'bg-rose-400 animate-pulse'}`} />
+                    </div>
+                    <div className="text-[11px] text-slate-300 font-medium truncate mt-1" title={h.name}>
+                      {h.name}
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-1 font-mono">
+                      {isUp && h.latency !== null ? `${h.latency}ms` : 'Down'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: TELEGRAM NOC BOT */}
       {activeTab === 'telegram' && (
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Settings & Test Alert */}
@@ -1038,7 +1113,7 @@ export default function TanggamusNetworkMonitoringPage() {
               <button
                 onClick={handleSendTestTelegram}
                 disabled={tgSendingTest}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-semibold text-xs transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 text-white font-semibold text-xs transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
               >
                 {tgSendingTest ? (
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
@@ -1053,7 +1128,7 @@ export default function TanggamusNetworkMonitoringPage() {
           {/* Bot Command Reference */}
           <div className="lg:col-span-2 p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
             <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2">
-              <HelpCircle className="w-4 h-4 text-indigo-400" />
+              <HelpCircle className="w-4 h-4 text-emerald-400" />
               Perintah Bot Telegram (@monitoring_tggms_bot)
             </h3>
             <p className="text-xs text-slate-400">
@@ -1064,7 +1139,7 @@ export default function TanggamusNetworkMonitoringPage() {
               <div className="p-3.5 rounded-xl bg-slate-900 border border-white/5">
                 <div className="font-mono text-sky-400 font-bold">/status</div>
                 <div className="text-slate-300 text-[11px] mt-1">
-                  Menampilkan ringkasan live 69 host (Total, Online, Down, Latensi Rata-rata, Skor).
+                  Menampilkan ringkasan live 69 host (Total, Online, Down, Latensi Rata-rata, Skor Kesehatan).
                 </div>
               </div>
 
@@ -1090,178 +1165,19 @@ export default function TanggamusNetworkMonitoringPage() {
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-900 border border-white/5">
-                <div className="font-mono text-indigo-400 font-bold">/hosts</div>
+                <div className="font-mono text-teal-400 font-bold">/hosts</div>
                 <div className="text-slate-300 text-[11px] mt-1">
                   Daftar kategori dan seluruh 69 host yang terdaftar di sistem.
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-900 border border-white/5">
-                <div className="font-mono text-purple-400 font-bold">/wifi & /qrcode</div>
+                <div className="font-mono text-purple-400 font-bold">/daftargrup</div>
                 <div className="text-slate-300 text-[11px] mt-1">
-                  Cari password asli Wi-Fi OPD dan kirim QR Code scan instan.
+                  Mendaftarkan chat/grup ini sebagai target penerima notifikasi otomatis 24/7.
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: WI-FI & QR CODE OPD (282 SSIDs) */}
-      {activeTab === 'wifi' && (
-        <div className="mt-6 space-y-4">
-          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
-                <QrCode className="w-5 h-5 text-emerald-400" />
-                Daftar 282 Wi-Fi & Password Asli OPD Tanggamus
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Data SSID dan password riil yang diekstrak langsung dari jaringan Tanggamus, lengkap dengan QR Code siap pindai.
-              </p>
-            </div>
-
-            <div className="relative w-full md:w-80">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={wifiSearch}
-                onChange={(e) => setWifiSearch(e.target.value)}
-                placeholder="Cari SSID atau OPD..."
-                className="w-full bg-slate-900 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs md:text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden">
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-white/5 bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
-                    <th className="py-3 px-4 w-12 text-center">No</th>
-                    <th className="py-3 px-4">Nama Wi-Fi (SSID)</th>
-                    <th className="py-3 px-4">Password Asli</th>
-                    <th className="py-3 px-4">Lokasi / Instansi OPD</th>
-                    <th className="py-3 px-4 text-center">Enkripsi</th>
-                    <th className="py-3 px-4 text-right">QR Code</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 text-xs">
-                  {filteredWifi.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-500">
-                        Tidak ditemukan Wi-Fi yang cocok.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredWifi.map((w, idx) => {
-                      const showPwd = showWifiPasswords[w.id];
-                      return (
-                        <tr key={w.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="py-3 px-4 text-center font-mono text-slate-500">{idx + 1}</td>
-                          <td className="py-3 px-4 font-bold text-slate-200">{w.ssid}</td>
-                          <td className="py-3 px-4">
-                            {w.password ? (
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-emerald-400 font-semibold">
-                                  {showPwd ? w.password : '••••••••'}
-                                </span>
-                                <button
-                                  onClick={() =>
-                                    setShowWifiPasswords((prev) => ({ ...prev, [w.id]: !prev[w.id] }))
-                                  }
-                                  className="text-slate-500 hover:text-slate-300"
-                                >
-                                  {showPwd ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(w.password || '');
-                                    showToast('Password disalin!', 'info');
-                                  }}
-                                  className="text-slate-500 hover:text-slate-300"
-                                  title="Salin Password"
-                                >
-                                  <Copy className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-slate-500 italic">Open (Tanpa Password)</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-slate-300">{w.group_name}</td>
-                          <td className="py-3 px-4 text-center text-slate-400">
-                            <span className="px-2 py-0.5 rounded text-[10px] bg-white/5">
-                              {w.encryption || 'WPA2-PSK'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <button
-                              onClick={() => setQrModalItem(w)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold transition-all"
-                            >
-                              <QrCode className="w-3.5 h-3.5" />
-                              <span>QR Code</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* QR CODE MODAL POPUP */}
-      {qrModalItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl relative">
-            <button
-              onClick={() => setQrModalItem(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3">
-              <QrCode className="w-6 h-6" />
-            </div>
-
-            <h3 className="text-lg font-bold text-white">{qrModalItem.ssid}</h3>
-            <p className="text-xs text-slate-400 mt-0.5">{qrModalItem.group_name}</p>
-
-            {/* QR Image */}
-            <div className="mt-5 p-4 rounded-xl bg-white flex items-center justify-center mx-auto w-56 h-56 shadow-inner">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                  `WIFI:T:${qrModalItem.password ? 'WPA' : 'nopass'};S:${qrModalItem.ssid};P:${
-                    qrModalItem.password || ''
-                  };;`
-                )}`}
-                alt={`QR Code ${qrModalItem.ssid}`}
-                className="w-full h-full object-contain"
-              />
-            </div>
-
-            <div className="mt-4 p-3 rounded-xl bg-white/[0.03] border border-white/5 text-xs text-left space-y-1">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Password:</span>
-                <span className="font-mono text-emerald-400 font-bold">
-                  {qrModalItem.password || '(Tanpa Password)'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Keamanan:</span>
-                <span className="text-slate-300">{qrModalItem.encryption || 'WPA2-PSK'}</span>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-slate-500 mt-4">
-              Arahkan kamera smartphone Android/iPhone untuk otomatis tersambung ke jaringan ini tanpa mengetik password.
-            </p>
           </div>
         </div>
       )}
