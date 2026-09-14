@@ -6,6 +6,7 @@ import {
   sendTelegramPhoto,
   formatStatusSummary,
   formatOfflineList,
+  formatTanggamusStatusSummary,
 } from '@/lib/telegram';
 import { getRuijieDevices, RuijieDevice } from '@/lib/ruijie';
 import fs from 'fs';
@@ -116,23 +117,103 @@ Bot ini terhubung secara cloud ke sistem monitoring ABSENKU.
       }
 
       case '/status': {
-        const cache = getCachedMonitoring();
-        const workerHealth = cache.worker_health;
+        const netCachePath = path.join(process.cwd(), 'src', 'data', 'network_monitoring_cache.json');
+        let netCache: any = null;
+        try {
+          if (fs.existsSync(netCachePath)) {
+            netCache = JSON.parse(fs.readFileSync(netCachePath, 'utf-8'));
+          }
+        } catch {}
 
-        // Ambil data cepat
-        const fetchResult = await getRuijieDevices();
-        const summaryText = formatStatusSummary(fetchResult.summary, workerHealth);
-
-        await sendTelegramMessage(chatId, summaryText);
+        if (netCache && netCache.summary && netCache.summary.total > 0) {
+          const summaryText = formatTanggamusStatusSummary(netCache.summary);
+          await sendTelegramMessage(chatId, summaryText);
+        } else {
+          const cache = getCachedMonitoring();
+          const workerHealth = cache.worker_health;
+          const fetchResult = await getRuijieDevices();
+          const summaryText = formatStatusSummary(fetchResult.summary, workerHealth);
+          await sendTelegramMessage(chatId, summaryText);
+        }
         break;
       }
 
-      case '/offline': {
-        const fetchResult = await getRuijieDevices();
-        const offlineList = fetchResult.devices.filter((d) => d.onlineStatus !== 'ON');
-        const text = formatOfflineList(offlineList);
+      case '/offline':
+      case '/down': {
+        const netCachePath = path.join(process.cwd(), 'src', 'data', 'network_monitoring_cache.json');
+        let netCache: any = null;
+        try {
+          if (fs.existsSync(netCachePath)) {
+            netCache = JSON.parse(fs.readFileSync(netCachePath, 'utf-8'));
+          }
+        } catch {}
 
-        await sendTelegramMessage(chatId, text);
+        if (netCache && Array.isArray(netCache.hosts) && netCache.hosts.length > 0) {
+          const downHosts = netCache.hosts.filter((h: any) => h.status === 'DOWN');
+          if (downHosts.length === 0) {
+            await sendTelegramMessage(
+              chatId,
+              `🟢 <b>ALHAMDULILLAH, SELURUH JARINGAN NORMAL!</b>\n\nSaat ini seluruh <b>${netCache.summary?.total || 69} Host ONU Tanggamus</b> aktif dan merespons ping dengan normal (0 host down).`
+            );
+          } else {
+            let text = `🚨 <b>DAFTAR HOST PADAM / DOWN (${downHosts.length} Host):</b>\n─────────────────────────\n`;
+            downHosts.forEach((h: any, idx: number) => {
+              text += `${idx + 1}. 🔴 <b>${h.name}</b>\n   • IP: <code>${h.ip}</code> | ${h.category}\n`;
+            });
+            await sendTelegramMessage(chatId, text);
+          }
+        } else {
+          const fetchResult = await getRuijieDevices();
+          const offlineList = fetchResult.devices.filter((d) => d.onlineStatus !== 'ON');
+          const text = formatOfflineList(offlineList);
+          await sendTelegramMessage(chatId, text);
+        }
+        break;
+      }
+
+      case '/ping': {
+        if (!arg) {
+          await sendTelegramMessage(
+            chatId,
+            'ℹ️ <b>Format Perintah:</b>\nKetik: <code>/ping [nama/ip]</code>\nContoh: <code>/ping capil</code> atau <code>/ping 192.168.97.6</code>'
+          );
+          break;
+        }
+
+        const netCachePath = path.join(process.cwd(), 'src', 'data', 'network_monitoring_cache.json');
+        let netCache: any = null;
+        try {
+          if (fs.existsSync(netCachePath)) {
+            netCache = JSON.parse(fs.readFileSync(netCachePath, 'utf-8'));
+          }
+        } catch {}
+
+        const hosts = netCache?.hosts || [];
+        const q = arg.toLowerCase();
+        const target = hosts.find(
+          (h: any) => h.ip.includes(q) || (h.name && h.name.toLowerCase().includes(q))
+        );
+        const targetIp = target ? target.ip : arg;
+        const targetName = target ? target.name : arg;
+
+        await sendTelegramMessage(chatId, `⏳ <i>Mengeping <b>${targetName}</b> (<code>${targetIp}</code>)...</i>`);
+        try {
+          const { pingSingleHost } = await import('@/lib/network-ping');
+          const res = await pingSingleHost(targetIp, 1000, 1);
+          if (res.isOnline) {
+            await sendTelegramMessage(
+              chatId,
+              `🟢 <b>PING BERHASIL (ONLINE)!</b>\n\n📍 <b>Host:</b> <b>${targetName}</b>\n🌐 <b>IP:</b> <code>${targetIp}</code>\n⚡ <b>Latensi:</b> <b>${res.latency} ms</b>`
+            );
+          } else {
+            await sendTelegramMessage(
+              chatId,
+              `🔴 <b>PING GAGAL (REQUEST TIMED OUT)!</b>\n\n📍 <b>Host:</b> <b>${targetName}</b>\n🌐 <b>IP:</b> <code>${targetIp}</code>\n❌ Status: <b>DOWN</b>`
+            );
+          }
+        } catch (e: any) {
+          await sendTelegramMessage(chatId, `❌ Error ping: ${e.message}`);
+        }
         break;
       }
 

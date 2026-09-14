@@ -421,3 +421,120 @@ export function logNotificationSent(
 
   writeMonitoringCache(cache);
 }
+
+/**
+ * Format Pesan Notifikasi Host Tanggamus DOWN (🚨 Merah)
+ */
+export function formatTanggamusHostDownAlert(
+  host: {
+    no: number;
+    name: string;
+    ip: string;
+    category?: string;
+  },
+  detectedAt = new Date()
+): string {
+  const timeStr = detectedAt.toLocaleTimeString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const dateStr = detectedAt.toLocaleDateString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
+  return `🚨 <b>ALERT: JARINGAN TANGGAMUS DOWN</b>
+
+📍 <b>Nama Tempat:</b> <b>${host.name}</b>
+🌐 <b>IP Address:</b> <code>${host.ip}</code>
+🏢 <b>Kategori:</b> ${host.category || 'OPD / Lokasi'}
+🔢 <b>No Urut:</b> #${host.no}
+
+⏱️ <b>Waktu Terdeteksi:</b> ${timeStr} WIB (${dateStr})
+⚠️ <b>Kondisi:</b> 🔴 <b>REQUEST TIMED OUT (DOWN)</b>
+
+<i>Mohon teknisi NOC Diskominfo Tanggamus segera memeriksa catu daya/ONU/koneksi fiber optik di lokasi tersebut.</i>`;
+}
+
+/**
+ * Format Pesan Notifikasi Host Tanggamus RECOVERY (✅ Hijau)
+ */
+export function formatTanggamusHostRecoveryAlert(
+  host: {
+    no: number;
+    name: string;
+    ip: string;
+    category?: string;
+  },
+  downtimeMinutes: number,
+  recoveredAt = new Date()
+): string {
+  const timeStr = recoveredAt.toLocaleTimeString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+  const hours = Math.floor(downtimeMinutes / 60);
+  const mins = downtimeMinutes % 60;
+  const durationStr =
+    hours > 0 ? `${hours} Jam ${mins} Menit` : `${mins} Menit`;
+
+  return `✅ <b>RECOVERY: JARINGAN TANGGAMUS PULIH</b>
+
+📍 <b>Nama Tempat:</b> <b>${host.name}</b>
+🌐 <b>IP Address:</b> <code>${host.ip}</code>
+🏢 <b>Kategori:</b> ${host.category || 'OPD / Lokasi'}
+
+⏱️ <b>Waktu Pulih:</b> ${timeStr} WIB
+⏳ <b>Durasi Padam:</b> <b>${durationStr}</b>
+🟢 <b>Status:</b> <b>NORMAL (ONLINE)</b>
+
+<i>Koneksi jaringan telah kembali merespons ICMP ping dengan normal.</i>`;
+}
+
+/**
+ * Format Pesan Ringkasan Status 69 Host Tanggamus
+ */
+export function formatTanggamusStatusSummary(summary: {
+  total: number;
+  online: number;
+  down: number;
+  avgLatency: number;
+  healthScore: number;
+  lastChecked?: string;
+}): string {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+  const percentOnline =
+    summary.total > 0
+      ? ((summary.online / summary.total) * 100).toFixed(1)
+      : '100';
+
+  return `📊 <b>STATUS MONITORING JARINGAN TANGGAMUS</b>
+─────────────────────────
+🎯 <b>Total Host:</b> <code>${summary.total} Lokasi</code>
+🟢 <b>Host Online:</b> <b>${summary.online}</b> (${percentOnline}%)
+🔴 <b>Host Down:</b> <b>${summary.down}</b>
+⚡ <b>Rata-rata Latensi:</b> <b>${summary.avgLatency} ms</b>
+🩺 <b>Skor Kesehatan:</b> <b>${summary.healthScore}%</b>
+
+🕒 <b>Waktu Laporan:</b> ${timeStr} WIB
+
+<i>Gunakan perintah:</i>
+• <code>/offline</code> — Daftar host yang padam
+• <code>/ping [nama/ip]</code> — Tes ping instan
+• <code>/hosts</code> — Daftar seluruh 69 host`;
+}
+

@@ -39,7 +39,7 @@ const MENU_SECTIONS: MenuSection[] = [
     title: 'MONITORING',
     items: [
       { label: 'Dashboard Utama', href: '/admin', icon: LayoutDashboard },
-      { label: 'Monitoring Ruijie Cloud', href: '/admin/ruijie', icon: Radio },
+      { label: 'Monitoring Jaringan Tanggamus', href: '/admin/ruijie', icon: Radio },
       { label: 'Topologi & Tupoksi', href: '/admin/structure', icon: Network },
     ],
   },
@@ -168,9 +168,9 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
 
                     {/* Contextual Live Badges */}
                     {item.href === '/admin/ruijie' && (
-                      <span className="ml-auto inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
-                        NOC
+                      <span className="ml-auto inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        69 IP
                       </span>
                     )}
 
