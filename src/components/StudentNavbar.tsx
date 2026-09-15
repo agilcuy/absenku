@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LogOut, Calendar, Home, User as UserIcon, FileText, UserCircle, ChevronLeft, Network, BookOpen, Zap } from 'lucide-react'
+import { LogOut, Calendar, Home, User as UserIcon, FileText, UserCircle, ChevronLeft, Network, BookOpen, Zap, Radio } from 'lucide-react'
 import NotificationCenter from '@/components/NotificationCenter'
 
 interface StudentNavbarProps {
@@ -88,12 +88,22 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
           {/* Right Mobile Actions */}
           <div className="flex items-center gap-1.5">
             {user?.role === 'superadmin' && (
-              <Link
-                href="/admin"
-                className="text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-1.5 rounded-lg active:scale-95 transition"
-              >
-                Admin
-              </Link>
+              <>
+                <Link
+                  href="/admin/monitoring-ip"
+                  className="flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-1.5 rounded-lg active:scale-95 transition"
+                  title="Monitoring IP Tanggamus"
+                >
+                  <Radio className="w-3 h-3 animate-pulse" />
+                  IP
+                </Link>
+                <Link
+                  href="/admin"
+                  className="text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-1.5 rounded-lg active:scale-95 transition"
+                >
+                  Admin
+                </Link>
+              </>
             )}
             <NotificationCenter />
             <button
@@ -235,14 +245,24 @@ export default function StudentNavbar({ user, isProfileIncomplete = false }: Stu
 
             {/* Return to Admin Panel for Superadmin */}
             {user?.role === 'superadmin' && (
-              <Link
-                href="/admin"
-                className="flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-3 py-2 rounded-xl hover:bg-amber-500/25 transition"
-                title="Kembali ke Panel Superadmin"
-              >
-                <span>⚡</span>
-                <span>Panel Admin</span>
-              </Link>
+              <>
+                <Link
+                  href="/admin/monitoring-ip"
+                  className="flex items-center gap-1.5 text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-3 py-2 rounded-xl hover:bg-emerald-500/25 transition"
+                  title="Monitoring IP 69 Host Tanggamus"
+                >
+                  <Radio className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
+                  <span>Monitoring IP</span>
+                </Link>
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-3 py-2 rounded-xl hover:bg-amber-500/25 transition"
+                  title="Kembali ke Panel Superadmin"
+                >
+                  <span>⚡</span>
+                  <span>Panel Admin</span>
+                </Link>
+              </>
             )}
 
             {/* Direct Link to Pembimbing Portal for Pembimbing */}

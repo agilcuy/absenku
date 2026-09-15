@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Menu, LogOut, Clock, ShieldCheck } from 'lucide-react'
+import { Menu, LogOut, Clock, ShieldCheck, Radio } from 'lucide-react'
 import NotificationCenter from '@/components/NotificationCenter'
 
 interface AdminTopNavProps {
@@ -67,6 +67,18 @@ export default function AdminTopNav({ onOpenMobileSidebar }: AdminTopNavProps) {
 
         {/* Notification Center */}
         <NotificationCenter />
+
+        {/* Monitoring IP Button */}
+        <Link
+          href="/admin/monitoring-ip"
+          prefetch={true}
+          className="shimmer-beam flex items-center gap-1.5 text-xs text-emerald-200 bg-gradient-to-r from-emerald-500/15 via-teal-500/25 to-emerald-500/15 hover:from-emerald-500/25 hover:to-teal-500/35 border border-emerald-500/30 hover:border-emerald-400/60 px-3.5 py-1.5 rounded-xl transition-all duration-200 font-semibold active:scale-[0.97] hover:shadow-[0_0_15px_rgba(16,185,129,0.35)] group"
+          title="Buka Menu Monitoring IP 69 Host Tanggamus & WhatsApp NOC"
+        >
+          <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+          <span className="hidden md:inline">Monitoring IP</span>
+          <span className="text-[9px] bg-emerald-500/30 text-emerald-300 px-1 rounded-full font-bold">69</span>
+        </Link>
 
         {/* Portal Pembimbing Button for Superadmin */}
         <Link
