@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import {
   LayoutDashboard,
   GraduationCap,
@@ -20,6 +20,7 @@ import {
   Zap,
   Megaphone,
   Radio,
+  MessageSquare,
   X,
 } from 'lucide-react'
 
@@ -40,6 +41,7 @@ const MENU_SECTIONS: MenuSection[] = [
     items: [
       { label: 'Dashboard Utama', href: '/admin', icon: LayoutDashboard },
       { label: 'Monitoring IP', href: '/admin/monitoring-ip', icon: Radio },
+      { label: 'NOC WhatsApp Bot', href: '/admin/monitoring-ip?tab=whatsapp', icon: MessageSquare },
       { label: 'Topologi & Tupoksi', href: '/admin/structure', icon: Network },
     ],
   },
@@ -80,6 +82,8 @@ interface AdminSidebarProps {
 
 export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebarProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const tab = searchParams.get('tab')
 
   return (
     <>
@@ -132,9 +136,12 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: AdminSidebar
               {section.items.map((item) => {
                 const Icon = item.icon
                 const isActive =
-                  pathname === item.href ||
-                  (item.href === '/admin/monitoring-ip' && (pathname === '/admin/monitoring-ip' || pathname === '/admin/network' || pathname === '/admin/ruijie')) ||
-                  (item.href === '/admin/settings' && pathname.startsWith('/admin/settings'))
+                  item.href.includes('tab=')
+                    ? pathname === '/admin/monitoring-ip' && tab === 'whatsapp'
+                    : item.href === '/admin/monitoring-ip'
+                    ? (pathname === '/admin/monitoring-ip' && (!tab || tab !== 'whatsapp')) || pathname === '/admin/network' || pathname === '/admin/ruijie'
+                    : pathname === item.href ||
+                      (item.href === '/admin/settings' && pathname.startsWith('/admin/settings'))
 
                 return (
                   <Link

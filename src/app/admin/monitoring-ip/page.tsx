@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Radio,
   RefreshCw,
@@ -173,6 +174,13 @@ export default function TanggamusIpMonitoringPage() {
   useEffect(() => {
     fetchData();
     fetchWhatsAppStatus();
+
+    // Apply tab from query param if present
+    const search = useSearchParams();
+    const tab = search?.get('tab');
+    if (tab && ['hosts', 'history', 'subnet', 'whatsapp'].includes(tab)) {
+      setActiveTab(tab as any);
+    }
 
     // Polling refresh data host setiap 30 detik
     const timer = setInterval(() => {
