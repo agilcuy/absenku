@@ -21,6 +21,7 @@ import {
   XCircle,
   HelpCircle,
   Search,
+  Radio,
 } from 'lucide-react'
 import {
   BarChart,
@@ -48,6 +49,8 @@ import { cachedFetch, invalidateCache } from '@/lib/apiCache'
 export default function AdminDashboardPage() {
   const { showToast } = useToast()
   const [data, setData] = useState<any>(null)
+  const [networkData, setNetworkData] = useState<any>(null)
+  const [pingingNetwork, setPingingNetwork] = useState(false)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [presenceFilter, setPresenceFilter] = useState<'all' | 'online' | 'offline'>('all')
@@ -57,8 +60,14 @@ export default function AdminDashboardPage() {
 
   const loadStats = useCallback(async (forceFresh = false) => {
     try {
-      const json = await cachedFetch('/api/admin/stats', undefined, 15000, forceFresh)
+      const [json, netRes] = await Promise.all([
+        cachedFetch('/api/admin/stats', undefined, 15000, forceFresh),
+        fetch('/api/network/hosts').then((r) => r.json()).catch(() => null),
+      ])
       setData(json)
+      if (netRes && netRes.success && netRes.data) {
+        setNetworkData(netRes.data)
+      }
     } catch (err) {
       console.error('Failed to load stats:', err)
     } finally {
@@ -66,6 +75,27 @@ export default function AdminDashboardPage() {
       setRefreshing(false)
     }
   }, [])
+
+  const handleQuickPing = async () => {
+    try {
+      setPingingNetwork(true)
+      showToast('Memulai pengecekan ping 69 host Tanggamus...', 'info')
+      const res = await fetch('/api/network/ping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ all: true, sendAlerts: true }),
+      })
+      const json = await res.json()
+      if (json.success && json.data) {
+        setNetworkData(json.data)
+        showToast(`Ping selesai: ${json.data.summary.online} Online, ${json.data.summary.down} Down`, 'success')
+      }
+    } catch (e: any) {
+      showToast('Gagal ping jaringan: ' + e.message, 'error')
+    } finally {
+      setPingingNetwork(false)
+    }
+  }
 
   useEffect(() => {
     loadStats()
@@ -114,6 +144,9 @@ export default function AdminDashboardPage() {
     }
     return true
   })
+
+  const networkSummary = networkData?.summary
+  const downHostsPreview = (networkData?.hosts || []).filter((h: any) => h.status === 'DOWN')
 
   return (
     <div className="flex flex-col gap-6">
@@ -168,6 +201,15 @@ export default function AdminDashboardPage() {
             <FileText className="w-3.5 h-3.5" />
             <span>Review Izin</span>
           </Link>
+
+          <Link
+            href="/admin/monitoring-ip"
+            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/15 font-semibold rounded-xl"
+            title="Buka Monitoring IP 69 Host Tanggamus"
+          >
+            <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <span>Monitoring IP</span>
+          </Link>
         </div>
       </div>
 
@@ -196,6 +238,96 @@ export default function AdminDashboardPage() {
           </Link>
         </div>
       )}
+
+      {/* Widget Monitoring IP Jaringan Tanggamus (69 Host) */}
+      <div className="glass-card p-5 border border-emerald-500/20 bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-emerald-950/25 rounded-2xl relative overflow-hidden shadow-xl animate-fade-in">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 shrink-0">
+              <Radio className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-black text-white tracking-wide">
+                  Monitoring IP Jaringan Tanggamus
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  69 Host Real-time
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                  NOC Telegram 24/7
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Pemantauan 69 IP ONU OPD & Pengecekan ICMP Ping Otomatis Setiap 60 Detik
+              </p>
+            </div>
+          </div>
+
+          {/* Metric badges & quick action buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="text-xs font-mono font-bold text-emerald-400">
+                {networkSummary?.online ?? 0} Online
+              </span>
+            </div>
+
+            <div className="px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-400" />
+              <span className="text-xs font-mono font-bold text-rose-400">
+                {networkSummary?.down ?? 0} Down
+              </span>
+            </div>
+
+            <div className="px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/5 hidden sm:flex items-center gap-1.5 text-xs text-slate-300 font-mono">
+              <Activity className="w-3.5 h-3.5 text-sky-400" />
+              <span>{networkSummary?.avgLatency ?? 0} ms</span>
+            </div>
+
+            <button
+              onClick={handleQuickPing}
+              disabled={pingingNetwork}
+              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-semibold text-xs transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-1.5"
+              title="Ping 69 host sekarang"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${pingingNetwork ? 'animate-spin text-emerald-400' : 'text-slate-400'}`} />
+              <span>{pingingNetwork ? 'Mengeping...' : 'Ping Cepat'}</span>
+            </button>
+
+            <Link
+              href="/admin/monitoring-ip"
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-600/25 flex items-center gap-1.5 transition-all active:scale-[0.98]"
+            >
+              <span>Buka Menu Monitoring IP</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* If any hosts are down, show quick alert preview */}
+        {networkSummary?.down > 0 && downHostsPreview.length > 0 && (
+          <div className="mt-3.5 pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-rose-400">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>
+                Host Padam Terdeteksi ({downHostsPreview.length}):{' '}
+                <b className="text-white font-medium">
+                  {downHostsPreview.slice(0, 4).map((h: any) => h.name).join(', ')}
+                  {downHostsPreview.length > 4 ? ` (+${downHostsPreview.length - 4} lainnya)` : ''}
+                </b>
+              </span>
+            </div>
+            <Link
+              href="/admin/monitoring-ip"
+              className="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold underline flex items-center gap-1 shrink-0"
+            >
+              Lihat Detail & Tindak Lanjut ➔
+            </Link>
+          </div>
+        )}
+      </div>
 
       {/* Top 9 Statistics Grid (Fitur 11) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">

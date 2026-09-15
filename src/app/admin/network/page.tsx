@@ -1,1 +1,1 @@
-export { default } from '../ruijie/page';
+export { default } from '../monitoring-ip/page';
