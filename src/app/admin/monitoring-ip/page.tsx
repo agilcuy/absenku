@@ -31,6 +31,11 @@ import {
   HelpCircle,
   Layers,
   ArrowUpRight,
+  MessageSquare,
+  QrCode,
+  Smartphone,
+  KeyRound,
+  PhoneCall,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -69,7 +74,7 @@ interface DownHistoryEntry {
 
 export default function TanggamusIpMonitoringPage() {
   // Main State
-  const [activeTab, setActiveTab] = useState<'hosts' | 'history' | 'subnet' | 'telegram'>('hosts');
+  const [activeTab, setActiveTab] = useState<'hosts' | 'history' | 'subnet' | 'whatsapp'>('hosts');
   const [hosts, setHosts] = useState<TanggamusHost[]>([]);
   const [summary, setSummary] = useState<NetworkMonitoringSummary>({
     total: 69,
@@ -94,11 +99,22 @@ export default function TanggamusIpMonitoringPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
-  // Telegram Config State
-  const [tgChatId, setTgChatId] = useState<string>('6555969768');
-  const [tgBotToken, setTgBotToken] = useState<string>('8858219898:AAHgTA1ARc67k3A_0z9T85fgCHMqa2WXdCs');
-  const [tgAlertEnabled, setTgAlertEnabled] = useState<boolean>(true);
-  const [tgSendingTest, setTgSendingTest] = useState<boolean>(false);
+  // WhatsApp NOC State
+  const [waStatus, setWaStatus] = useState<'DISCONNECTED' | 'CONNECTING' | 'QR_READY' | 'CONNECTED'>('DISCONNECTED');
+  const [waQrDataUrl, setWaQrDataUrl] = useState<string | null>(null);
+  const [waPairingCode, setWaPairingCode] = useState<string | null>(null);
+  const [waBotPhone, setWaBotPhone] = useState<string | null>(null);
+  const [waTargetPhone, setWaTargetPhone] = useState<string>('');
+  const [waTargetGroupJid, setWaTargetGroupJid] = useState<string | null>(null);
+  const [waAlertEnabled, setWaAlertEnabled] = useState<boolean>(true);
+  const [waLastConnectedAt, setWaLastConnectedAt] = useState<string | null>(null);
+  const [waLogs, setWaLogs] = useState<any[]>([]);
+  const [waPairInputPhone, setWaPairInputPhone] = useState<string>('');
+  const [waPairingLoading, setWaPairingLoading] = useState<boolean>(false);
+  const [waSendingTest, setWaSendingTest] = useState<boolean>(false);
+  const [waSavingConfig, setWaSavingConfig] = useState<boolean>(false);
+  const [waPairMode, setWaPairMode] = useState<'qr' | 'code'>('qr');
+
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [copiedIp, setCopiedIp] = useState<string | null>(null);
 
@@ -124,14 +140,6 @@ export default function TanggamusIpMonitoringPage() {
         if (json.data.last_check_at) {
           setLastCheckAt(json.data.last_check_at);
         }
-        if (json.data.telegram_config) {
-          if (json.data.telegram_config.default_chat_id) {
-            setTgChatId(json.data.telegram_config.default_chat_id);
-          }
-          if (json.data.telegram_config.alert_enabled !== undefined) {
-            setTgAlertEnabled(json.data.telegram_config.alert_enabled);
-          }
-        }
       }
     } catch (err: any) {
       console.error('Fetch hosts error:', err);
@@ -141,18 +149,48 @@ export default function TanggamusIpMonitoringPage() {
     }
   }, []);
 
+  // Fetch WhatsApp NOC Status & QR/Pairing Code
+  const fetchWhatsAppStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/whatsapp/status');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setWaStatus(json.data.status || 'DISCONNECTED');
+        setWaQrDataUrl(json.data.qr_data_url || null);
+        setWaPairingCode(json.data.pairing_code || null);
+        setWaBotPhone(json.data.bot_phone || null);
+        if (json.data.target_phone !== undefined) setWaTargetPhone(json.data.target_phone);
+        if (json.data.target_group_jid !== undefined) setWaTargetGroupJid(json.data.target_group_jid);
+        if (json.data.alert_enabled !== undefined) setWaAlertEnabled(json.data.alert_enabled);
+        if (json.data.last_connected_at) setWaLastConnectedAt(json.data.last_connected_at);
+        if (json.data.notification_logs) setWaLogs(json.data.notification_logs);
+      }
+    } catch (err) {
+      console.error('Fetch WhatsApp status error:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
+    fetchWhatsAppStatus();
 
-    // Polling refresh data setiap 30 detik
+    // Polling refresh data host setiap 30 detik
     const timer = setInterval(() => {
       if (!pingingAll) {
         fetchData();
       }
     }, 30000);
 
-    return () => clearInterval(timer);
-  }, [fetchData, pingingAll]);
+    // Polling status WhatsApp setiap 4 detik agar live QR dan Pairing Code selalu up to date
+    const waTimer = setInterval(() => {
+      fetchWhatsAppStatus();
+    }, 4000);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(waTimer);
+    };
+  }, [fetchData, fetchWhatsAppStatus, pingingAll]);
 
   // Handle Sequential Ping to All 69 Hosts
   const handlePingAll = async () => {
@@ -257,28 +295,89 @@ export default function TanggamusIpMonitoringPage() {
     showToast('Data monitoring berhasil diekspor ke Excel.', 'success');
   };
 
-  // Send Test Telegram Alert
-  const handleSendTestTelegram = async () => {
+  // Save WhatsApp Config
+  const handleSaveWaConfig = async () => {
     try {
-      setTgSendingTest(true);
-      const res = await fetch('/api/admin/ruijie/telegram', {
+      setWaSavingConfig(true);
+      const res = await fetch('/api/whatsapp/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'test_message',
-          custom_message: `🔔 <b>TES MONITORING IP JARINGAN TANGGAMUS</b>\n\nSistem monitoring 69 host ONU Tanggamus terhubung normal.\n\n🟢 <b>Host Online:</b> ${summary.online}\n🔴 <b>Host Down:</b> ${summary.down}\n⚡ <b>Latensi:</b> ${summary.avgLatency} ms\n\n<i>Pesan uji coba berhasil terkirim!</i>`,
+          target_phone: waTargetPhone,
+          target_group_jid: waTargetGroupJid,
+          alert_enabled: waAlertEnabled,
         }),
       });
       const json = await res.json();
       if (json.success) {
-        showToast('Pesan uji coba berhasil dikirim ke Telegram!', 'success');
+        showToast('Pengaturan WhatsApp NOC berhasil disimpan!', 'success');
+        fetchWhatsAppStatus();
       } else {
-        showToast(json.message || 'Gagal mengirim pesan ke Telegram', 'error');
+        showToast(json.message || 'Gagal menyimpan konfigurasi WhatsApp', 'error');
       }
     } catch (e: any) {
       showToast('Error koneksi: ' + e.message, 'error');
     } finally {
-      setTgSendingTest(false);
+      setWaSavingConfig(false);
+    }
+  };
+
+  // Request 8-Digit Pairing Code for New SIM
+  const handleRequestPairingCode = async () => {
+    if (!waPairInputPhone || waPairInputPhone.trim().length < 9) {
+      showToast('Masukkan nomor WhatsApp kartu baru (cth: 08123456789).', 'error');
+      return;
+    }
+    try {
+      setWaPairingLoading(true);
+      showToast('Meminta 8-digit kode pairing dari WhatsApp...', 'info');
+      const res = await fetch('/api/whatsapp/pair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: waPairInputPhone.trim() }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        if (json.data?.pairing_code) {
+          setWaPairingCode(json.data.pairing_code);
+          showToast(`Kode Pairing: ${json.data.pairing_code}. Masukkan di WhatsApp HP Anda!`, 'success');
+        } else {
+          showToast('Permintaan dikirim. Kode akan muncul sebentar lagi.', 'info');
+        }
+        fetchWhatsAppStatus();
+      } else {
+        showToast(json.message || 'Gagal meminta kode pairing.', 'error');
+      }
+    } catch (e: any) {
+      showToast('Error pairing: ' + e.message, 'error');
+    } finally {
+      setWaPairingLoading(false);
+    }
+  };
+
+  // Send Test WhatsApp Message
+  const handleSendTestWhatsApp = async () => {
+    try {
+      setWaSendingTest(true);
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: waTargetGroupJid || waTargetPhone,
+          text: `🔔 *TES MONITORING JARINGAN TANGGAMUS (WHATSAPP NOC)*\n─────────────────────────\nLayanan pemantauan 69 host jaringan Tanggamus beroperasi normal 24/7.\n\n🟢 *Host Online:* ${summary.online} Lokasi\n🔴 *Host Down:* ${summary.down} Lokasi\n⚡ *Rata-rata Latensi:* ${summary.avgLatency} ms\n🩺 *Skor Kesehatan:* ${summary.healthScore}%\n\n_Pesan uji coba berhasil terkirim dari Web Dashboard ABSENKU!_`,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast('Pesan uji coba berhasil dimasukkan ke antrean WhatsApp!', 'success');
+        fetchWhatsAppStatus();
+      } else {
+        showToast(json.message || 'Gagal mengirim pesan WhatsApp', 'error');
+      }
+    } catch (e: any) {
+      showToast('Error koneksi: ' + e.message, 'error');
+    } finally {
+      setWaSendingTest(false);
     }
   };
 
@@ -539,16 +638,28 @@ export default function TanggamusIpMonitoringPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('telegram')}
+          onClick={() => setActiveTab('whatsapp')}
           className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-xs md:text-sm font-semibold transition-all border-b-2 whitespace-nowrap ${
-            activeTab === 'telegram'
-              ? 'border-sky-500 text-sky-400 bg-sky-500/10'
+            activeTab === 'whatsapp'
+              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
               : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
           }`}
         >
-          <Send className="w-4 h-4" />
-          <span>Telegram NOC Bot</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <MessageSquare className="w-4 h-4 text-emerald-400" />
+          <span>WhatsApp NOC Bot</span>
+          {waStatus === 'CONNECTED' ? (
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] text-emerald-300 font-bold hidden sm:inline">Online</span>
+            </span>
+          ) : waStatus === 'QR_READY' ? (
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <span className="text-[10px] text-amber-300 font-bold hidden sm:inline">Scan QR</span>
+            </span>
+          ) : (
+            <span className="w-2 h-2 rounded-full bg-slate-500" />
+          )}
         </button>
       </div>
 
@@ -1057,127 +1168,410 @@ export default function TanggamusIpMonitoringPage() {
         </div>
       )}
 
-      {/* TAB 4: TELEGRAM NOC BOT */}
-      {activeTab === 'telegram' && (
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Settings & Test Alert */}
-          <div className="lg:col-span-1 p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+      {/* TAB 4: WHATSAPP NOC BOT */}
+      {activeTab === 'whatsapp' && (
+        <div className="mt-6 space-y-6">
+          {/* Status Header Banner */}
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-slate-900/60 border border-emerald-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center">
-                <Send className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                <MessageSquare className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-200 text-sm">Konfigurasi Bot Telegram</h3>
-                <span className="text-[11px] text-slate-400">@monitoring_tggms_bot</span>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-100 text-base">WhatsApp NOC Bot Monitoring Tanggamus</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    24/7 Self-Hosted
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Layanan pengiriman alert otomatis saat host padam (🚨) atau pulih (✅) langsung ke nomor WhatsApp teknisi & grup NOC.
+                </p>
               </div>
             </div>
 
-            <div className="space-y-3 pt-2 text-xs">
-              <div>
-                <label className="text-slate-400 block mb-1">Target Chat ID Telegram:</label>
-                <input
-                  type="text"
-                  value={tgChatId}
-                  onChange={(e) => setTgChatId(e.target.value)}
-                  className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-400 block mb-1">Bot Token:</label>
-                <input
-                  type="password"
-                  value={tgBotToken}
-                  readOnly
-                  className="w-full bg-slate-900/60 border border-white/5 rounded-xl px-3 py-2 text-slate-500 font-mono"
-                />
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-slate-300">Kirim Otomatis Saat Down/Pulih:</span>
-                <button
-                  onClick={() => setTgAlertEnabled(!tgAlertEnabled)}
-                  className={`w-11 h-6 rounded-full transition-colors relative ${
-                    tgAlertEnabled ? 'bg-emerald-500' : 'bg-slate-700'
-                  }`}
-                >
-                  <span
-                    className={`block w-5 h-5 rounded-full bg-white transition-transform absolute top-0.5 ${
-                      tgAlertEnabled ? 'left-5' : 'left-0.5'
-                    }`}
-                  />
-                </button>
-              </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {waStatus === 'CONNECTED' ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>TERHUBUNG {waBotPhone ? `(${waBotPhone})` : ''}</span>
+                </div>
+              ) : waStatus === 'QR_READY' ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                  <span>MENUNGGU SCAN / KODE PAIRING</span>
+                </div>
+              ) : waStatus === 'CONNECTING' ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs font-semibold">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>MENGHUBUNGKAN...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                  <span>TERPUTUS</span>
+                </div>
+              )}
 
               <button
-                onClick={handleSendTestTelegram}
-                disabled={tgSendingTest}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 text-white font-semibold text-xs transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+                onClick={() => {
+                  fetchWhatsAppStatus();
+                  showToast('Menyinkronkan status WhatsApp...', 'info');
+                }}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-colors"
+                title="Refresh Status WhatsApp"
               >
-                {tgSendingTest ? (
-                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                ) : (
-                  <Send className="w-4 h-4 text-white" />
-                )}
-                <span>Kirim Pesan Tes ke Telegram</span>
+                <RefreshCw className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Bot Command Reference */}
-          <div className="lg:col-span-2 p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-            <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2">
+          {/* Grid: Pairing Card & Target Settings */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* LEFT COLUMN: PENAUTAN WHATSAPP (QR / PAIRING CODE) */}
+            <div className="lg:col-span-6 p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-emerald-400" />
+                  <h4 className="font-bold text-slate-200 text-sm">Penautan Nomor WhatsApp Baru</h4>
+                </div>
+
+                {/* Switch QR vs Pairing Code */}
+                <div className="flex p-0.5 rounded-lg bg-slate-900 border border-white/10 text-[11px]">
+                  <button
+                    onClick={() => setWaPairMode('qr')}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                      waPairMode === 'qr'
+                        ? 'bg-emerald-600 text-white shadow'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Scan QR Code
+                  </button>
+                  <button
+                    onClick={() => setWaPairMode('code')}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                      waPairMode === 'code'
+                        ? 'bg-emerald-600 text-white shadow'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Kode 8-Digit
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Display: Sudah Terhubung */}
+              {waStatus === 'CONNECTED' ? (
+                <div className="p-6 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/20 text-center space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-100 text-base">WhatsApp Bot Aktif & Terhubung!</h5>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Nomor Kartu: <span className="font-mono text-emerald-400 font-bold">{waBotPhone || '-'}</span>
+                    </p>
+                    {waLastConnectedAt && (
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Terhubung sejak: {new Date(waLastConnectedAt).toLocaleString('id-ID')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900/70 border border-white/5 text-xs text-slate-300">
+                    Bot siap menerima pesan perintah di chat pribadi/grup dan otomatis mendeteksi jika ada host ONU yang padam.
+                  </div>
+                </div>
+              ) : waPairMode === 'qr' ? (
+                /* Mode 1: Scan QR Code */
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-400">
+                    Buka WhatsApp pada smartphone Anda &gt; menu titik 3 / Pengaturan &gt; <strong className="text-slate-200">Perangkat Tertaut</strong> &gt; <strong className="text-slate-200">Tautkan Perangkat</strong> &gt; scan QR Code di bawah:
+                  </p>
+
+                  <div className="flex flex-col items-center justify-center p-6 rounded-xl bg-slate-900 border border-white/10">
+                    {waQrDataUrl ? (
+                      <div className="p-3 rounded-2xl bg-white shadow-2xl border-4 border-emerald-500/40">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={waQrDataUrl}
+                          alt="WhatsApp Pairing QR Code"
+                          className="w-52 h-52 object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-52 h-52 rounded-2xl bg-slate-800/80 border border-white/5 flex flex-col items-center justify-center p-4 text-center">
+                        <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin mb-2" />
+                        <span className="text-xs text-slate-400">
+                          Menunggu QR Code dari Baileys...
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>QR Code otomatis diperbarui secara realtime</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Mode 2: Kode Pairing 8-Digit */
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-400">
+                    Cocok jika smartphone Anda tidak dapat scan kamera. Cukup masukkan nomor HP kartu baru Anda untuk menerima 8-digit kode pairing:
+                  </p>
+
+                  <div className="p-4 rounded-xl bg-slate-900 border border-white/10 space-y-3">
+                    <label className="text-xs text-slate-300 block font-medium">
+                      Nomor WhatsApp Kartu Baru:
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Contoh: 08123456789 atau 628123456789"
+                        value={waPairInputPhone}
+                        onChange={(e) => setWaPairInputPhone(e.target.value)}
+                        className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 font-mono focus:outline-none focus:border-emerald-500"
+                      />
+                      <button
+                        onClick={handleRequestPairingCode}
+                        disabled={waPairingLoading}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                      >
+                        {waPairingLoading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <KeyRound className="w-4 h-4" />
+                        )}
+                        <span>Minta Kode</span>
+                      </button>
+                    </div>
+
+                    {/* Display Generated Pairing Code */}
+                    {waPairingCode && (
+                      <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
+                        <span className="text-[11px] text-slate-400 block text-center">
+                          KODE PAIRING WHATSAPP ANDA:
+                        </span>
+                        <div className="flex items-center justify-center gap-3">
+                          <div className="px-6 py-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 font-mono text-2xl font-black tracking-widest text-center shadow-lg">
+                            {waPairingCode}
+                          </div>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(waPairingCode.replace('-', ''));
+                              showToast('Kode pairing disalin ke clipboard!', 'success');
+                            }}
+                            className="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                            title="Salin Kode Pairing"
+                          >
+                            <Copy className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <div className="p-3 rounded-lg bg-slate-950/60 border border-white/5 text-[11px] text-slate-400 space-y-1 mt-2">
+                          <p>1. Buka WhatsApp &gt; <strong>Perangkat Tertaut</strong> &gt; <strong>Tautkan Perangkat</strong>.</p>
+                          <p>2. Pilih <strong>&quot;Tautkan dengan nomor telepon saja&quot;</strong> di bagian bawah layar.</p>
+                          <p>3. Masukkan 8 karakter kode di atas.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* RIGHT COLUMN: PENGATURAN TARGET & TEST ALERT */}
+            <div className="lg:col-span-6 p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-white/5">
+                <Bell className="w-4 h-4 text-emerald-400" />
+                <h4 className="font-bold text-slate-200 text-sm">Target Notifikasi & Pengujian Alert</h4>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                <div>
+                  <label className="text-slate-300 block mb-1 font-medium">
+                    Target Nomor WhatsApp Pribadi Teknisi:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 08123456789 atau 628123456789"
+                    value={waTargetPhone}
+                    onChange={(e) => setWaTargetPhone(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    Notifikasi alert darurat akan dikirimkan ke nomor ini.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-slate-300 block mb-1 font-medium">
+                    Target JID Grup WhatsApp NOC (Opsional):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 120363123456789012@g.us (bisa via perintah !daftargrup)"
+                    value={waTargetGroupJid || ''}
+                    onChange={(e) => setWaTargetGroupJid(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-slate-200 font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    Atau ketik <code className="text-emerald-400">!daftargrup</code> di dalam grup WhatsApp Anda untuk otomatis mendaftarkan grup.
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-white/5">
+                  <div>
+                    <span className="text-slate-200 font-medium block">Kirim Otomatis Saat Down/Pulih</span>
+                    <span className="text-[11px] text-slate-400">Notifikasi 24/7 saat status ICMP berubah</span>
+                  </div>
+                  <button
+                    onClick={() => setWaAlertEnabled(!waAlertEnabled)}
+                    className={`w-11 h-6 rounded-full transition-colors relative ${
+                      waAlertEnabled ? 'bg-emerald-500' : 'bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`block w-5 h-5 rounded-full bg-white transition-transform absolute top-0.5 ${
+                        waAlertEnabled ? 'left-5' : 'left-0.5'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <button
+                    onClick={handleSaveWaConfig}
+                    disabled={waSavingConfig}
+                    className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition-all flex items-center justify-center gap-2 border border-white/10 active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {waSavingConfig ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                    ) : (
+                      <Check className="w-4 h-4 text-emerald-400" />
+                    )}
+                    <span>Simpan Pengaturan</span>
+                  </button>
+
+                  <button
+                    onClick={handleSendTestWhatsApp}
+                    disabled={waSendingTest}
+                    className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50"
+                  >
+                    {waSendingTest ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    ) : (
+                      <Send className="w-4 h-4 text-white" />
+                    )}
+                    <span>Kirim Tes WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* BOTTOM SECTION: DAFTAR PERINTAH WHATSAPP NOC */}
+          <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+            <h4 className="font-bold text-slate-200 text-sm flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-emerald-400" />
-              Perintah Bot Telegram (@monitoring_tggms_bot)
-            </h3>
+              Panduan Perintah WhatsApp NOC Bot (Kirim ke Chat Bot / Grup)
+            </h4>
             <p className="text-xs text-slate-400">
-              Teknisi NOC dapat mengetik perintah berikut langsung di Telegram 24/7 untuk memantau jaringan tanpa membuka dashboard:
+              Teknisi NOC dapat mengetik perintah berikut di WhatsApp kapan pun untuk memantau kondisi jaringan Tanggamus tanpa membuka komputer:
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
               <div className="p-3.5 rounded-xl bg-slate-900 border border-white/5">
-                <div className="font-mono text-sky-400 font-bold">/status</div>
+                <div className="font-mono text-emerald-400 font-bold">!status / /status</div>
                 <div className="text-slate-300 text-[11px] mt-1">
                   Menampilkan ringkasan live 69 host (Total, Online, Down, Latensi Rata-rata, Skor Kesehatan).
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-900 border border-white/5">
-                <div className="font-mono text-rose-400 font-bold">/offline</div>
+                <div className="font-mono text-rose-400 font-bold">!offline / /offline</div>
                 <div className="text-slate-300 text-[11px] mt-1">
-                  Menampilkan daftar seluruh host ONU yang saat ini padam/down beserta durasi padamnya.
+                  Menampilkan daftar perangkat ONU yang padam/down beserta durasi padamnya.
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-900 border border-white/5">
-                <div className="font-mono text-amber-400 font-bold">/ping [nama/ip]</div>
+                <div className="font-mono text-amber-400 font-bold">!ping [nama/ip]</div>
                 <div className="text-slate-300 text-[11px] mt-1">
-                  Ping instan ke satu host (misal: <code>/ping capil</code> atau <code>/ping 192.168.97.6</code>).
+                  Ping instan ke satu host (misal: <code>!ping capil</code> atau <code>!ping 192.168.97.6</code>).
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-900 border border-white/5">
-                <div className="font-mono text-emerald-400 font-bold">/check</div>
+                <div className="font-mono text-teal-400 font-bold">!check / /check</div>
                 <div className="text-slate-300 text-[11px] mt-1">
-                  Menjalankan pengecekan paksa ICMP ping berurutan ke 69 host saat itu juga.
+                  Menjalankan pengecekan paksa ICMP ping berurutan ke 69 host Tanggamus saat itu juga.
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-900 border border-white/5">
-                <div className="font-mono text-teal-400 font-bold">/hosts</div>
+                <div className="font-mono text-sky-400 font-bold">!hosts</div>
                 <div className="text-slate-300 text-[11px] mt-1">
-                  Daftar kategori dan seluruh 69 host yang terdaftar di sistem.
+                  Daftar kategori OPD dan seluruh 69 host IP yang dipantau sistem.
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-900 border border-white/5">
-                <div className="font-mono text-purple-400 font-bold">/daftargrup</div>
+                <div className="font-mono text-purple-400 font-bold">!daftargrup</div>
                 <div className="text-slate-300 text-[11px] mt-1">
-                  Mendaftarkan chat/grup ini sebagai target penerima notifikasi otomatis 24/7.
+                  Mendaftarkan grup WhatsApp ini sebagai target penerima notifikasi otomatis 24/7.
                 </div>
               </div>
             </div>
           </div>
+
+          {/* RIWAYAT LOG NOTIFIKASI WHATSAPP TERAKHIR */}
+          {waLogs && waLogs.length > 0 && (
+            <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
+              <h4 className="font-bold text-slate-200 text-sm flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-400" />
+                Riwayat Log Pengiriman Alert WhatsApp
+              </h4>
+              <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar">
+                {waLogs.slice(0, 10).map((log: any, idx: number) => (
+                  <div
+                    key={log.id || idx}
+                    className="p-3 rounded-xl bg-slate-900/60 border border-white/5 flex items-center justify-between text-xs"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            log.type === 'DOWN'
+                              ? 'bg-rose-500/20 text-rose-300'
+                              : log.type === 'RECOVERY'
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-sky-500/20 text-sky-300'
+                          }`}
+                        >
+                          {log.type}
+                        </span>
+                        <span className="font-mono text-slate-400 text-[11px]">{log.target}</span>
+                      </div>
+                      <p className="text-slate-300 text-[11px] line-clamp-1">{log.text}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span
+                        className={`text-[10px] font-semibold ${
+                          log.status === 'SENT' ? 'text-emerald-400' : 'text-rose-400'
+                        }`}
+                      >
+                        {log.status === 'SENT' ? 'Terkirim' : 'Gagal'}
+                      </span>
+                      <span className="block text-[10px] text-slate-500 font-mono">
+                        {new Date(log.sent_at).toLocaleTimeString('id-ID')}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

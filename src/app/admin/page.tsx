@@ -22,6 +22,7 @@ import {
   HelpCircle,
   Search,
   Radio,
+  MessageSquare,
 } from 'lucide-react'
 import {
   BarChart,
@@ -255,8 +256,9 @@ export default function AdminDashboardPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                   69 Host Real-time
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                  NOC Telegram 24/7
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <MessageSquare className="w-3 h-3 text-emerald-400" />
+                  NOC WhatsApp 24/7
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
